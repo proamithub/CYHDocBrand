@@ -156,6 +156,45 @@ public class DoctorRepository : IDoctorRepository
         }
     }
 
+    public async Task<bool> UpdateProfileAsync(DoctorProfile profile)
+    {
+        try
+        {
+            await using var con = new SqlConnection(_conn);
+            await con.OpenAsync();
+
+            await using var cmd = new SqlCommand(@"
+                UPDATE DoctorProfiles 
+                SET FullName = @FullName, 
+                    Specialization = @Specialization, 
+                    LicenseNumber = @LicenseNumber, 
+                    ExperienceYears = @ExperienceYears, 
+                    ConsultationFee = @ConsultationFee, 
+                    AvailableDays = @AvailableDays, 
+                    AvailableHours = @AvailableHours, 
+                    Bio = @Bio
+                WHERE Id = @Id", con);
+
+            cmd.Parameters.AddWithValue("@Id", profile.Id);
+            cmd.Parameters.AddWithValue("@FullName", profile.FullName);
+            cmd.Parameters.AddWithValue("@Specialization", profile.Specialization);
+            cmd.Parameters.AddWithValue("@LicenseNumber", profile.LicenseNumber ?? string.Empty);
+            cmd.Parameters.AddWithValue("@ExperienceYears", profile.ExperienceYears);
+            cmd.Parameters.AddWithValue("@ConsultationFee", profile.ConsultationFee);
+            cmd.Parameters.AddWithValue("@AvailableDays", profile.AvailableDays ?? string.Empty);
+            cmd.Parameters.AddWithValue("@AvailableHours", profile.AvailableHours ?? string.Empty);
+            cmd.Parameters.AddWithValue("@Bio", (object?)profile.Bio ?? DBNull.Value);
+
+            var rows = await cmd.ExecuteNonQueryAsync();
+            return rows > 0;
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "UpdateProfileAsync failed for DoctorId {Id}", profile.Id);
+            return false;
+        }
+    }
+
     private static DoctorProfile MapDoctor(SqlDataReader reader)
     {
         var doc = new DoctorProfile

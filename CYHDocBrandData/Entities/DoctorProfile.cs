@@ -18,9 +18,13 @@ public class DoctorProfile
     [MaxLength(100)]
     public string FullName { get; set; } = string.Empty;
 
+    public string DisplayName { get; set; } = string.Empty;
+
     [Required]
     [MaxLength(100)]
     public string Specialization { get; set; } = "General Medicine";
+
+    public string Qualifications { get; set; } = "MBBS, MD";
 
     [MaxLength(50)]
     public string LicenseNumber { get; set; } = string.Empty;
@@ -40,6 +44,21 @@ public class DoctorProfile
     public string? Bio { get; set; }
 
     public bool IsAvailableToday { get; set; } = true;
+
+    public string? ProfilePic { get; set; }
+    public string? MobileNo { get; set; } = "+91 98765 43210";
+    public string? ClinicName { get; set; } = "CYH Heart Care Institute & Hospital";
+    public string? ClinicAddress { get; set; } = "Plot 42, Health City, Medical Enclave";
+    public string? City { get; set; } = "New Delhi";
+    public string? State { get; set; } = "Delhi";
+    public string? PinCode { get; set; } = "110029";
+    public string? WebsiteUrl { get; set; } = "https://www.clickyourhospital.com";
+    public string? ClinicLogo { get; set; }
+    public string PrimaryColorHex { get; set; } = "#00f2fe";
+    public string SecondaryColorHex { get; set; } = "#4facfe";
+    public string PreferredFont { get; set; } = "Inter";
+    public int AiCredits { get; set; } = 25;
+    public bool IsVerified { get; set; } = true;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

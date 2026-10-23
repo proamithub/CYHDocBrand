@@ -12,4 +12,5 @@ public interface IDoctorRepository
     Task<DoctorProfile?> GetByIdAsync(int doctorId);
     Task<DoctorProfile?> GetByUserIdAsync(string userId);
     Task<bool> ToggleAvailabilityAsync(int doctorId);
+    Task<bool> UpdateProfileAsync(DoctorProfile profile);
 }
