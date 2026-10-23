@@ -1,0 +1,121 @@
+@inherits LayoutComponentBase
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
+
+<div class="cyh-app-container">
+    <!-- Left Glass Sidebar -->
+    <aside class="cyh-sidebar">
+        <NavMenu />
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="cyh-main-content">
+        <!-- Top Glass Navigation Bar -->
+        <header class="cyh-topbar">
+            <div class="d-flex align-items-center gap-3">
+                <div class="position-relative" style="width: 320px;">
+                    <i class="bi bi-search position-absolute text-muted" style="left: 12px; top: 50%; transform: translateY(-50%); font-size: 0.85rem;"></i>
+                    <input type="text" class="glass-input" placeholder="Search doctors, specialties, departments..." style="padding-left: 2.2rem; font-size: 0.85rem;" />
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center gap-3">
+                <!-- Notifications -->
+                <button class="glass-btn-secondary glass-btn-sm position-relative" title="Notifications" style="padding: 0.5rem 0.75rem;">
+                    <i class="bi bi-bell-fill text-info"></i>
+                    <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-dark rounded-circle"></span>
+                </button>
+
+                <!-- Quick Switcher for Testing -->
+                <div class="btn-group btn-group-sm">
+                    <button class="glass-btn-secondary @(IsDoctor ? "active text-info" : "")" @onclick="SwitchToDoctor" style="font-size: 0.75rem;">
+                        <i class="bi bi-person-badge"></i> Doctor Mode
+                    </button>
+                    <button class="glass-btn-secondary @(IsAdmin ? "active text-warning" : "")" @onclick="SwitchToAdmin" style="font-size: 0.75rem;">
+                        <i class="bi bi-shield-lock"></i> Admin Mode
+                    </button>
+                </div>
+
+                <!-- User Profile Pill -->
+                <div class="user-profile-pill">
+                    <div class="user-avatar">
+                        @(CurrentUser?.FullName.Length > 0 ? CurrentUser.FullName[0] : 'U')
+                    </div>
+                    <div>
+                        <div style="font-size: 0.85rem; font-weight: 600; line-height: 1.1;">
+                            @(CurrentUser?.FullName ?? "Dr. A. Sharma")
+                        </div>
+                        <div style="font-size: 0.7rem; color: var(--cyh-accent-cyan);">
+                            @(CurrentUser?.Role ?? "Cardiologist")
+                        </div>
+                    </div>
+                    <button class="btn btn-link text-muted p-0 ms-2" @onclick="Logout" title="Logout">
+                        <i class="bi bi-box-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Body Content -->
+        <main class="cyh-body">
+            @Body
+        </main>
+    </div>
+</div>
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>
+
+@code {
+    private CurrentUserDTO? CurrentUser;
+
+    private bool IsDoctor => CurrentUser?.Role == "Doctor";
+    private bool IsAdmin => CurrentUser?.Role == "Admin";
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthStateProvider.AuthenticationStateChanged += async (task) =>
+        {
+            await LoadCurrentUserAsync();
+            await InvokeAsync(StateHasChanged);
+        };
+
+        await LoadCurrentUserAsync();
+
+        // If not logged in, redirect to login page
+        if (CurrentUser == null)
+        {
+            NavigationManager.NavigateTo("login");
+            return;
+        }
+    }
+
+    private async Task LoadCurrentUserAsync()
+    {
+        CurrentUser = AuthService.GetCurrentUser();
+    }
+
+    private async Task SwitchToDoctor()
+    {
+        await AuthService.LoginAsync("doctor@cyhdoctorhub.com", "Doctor@12345");
+        CurrentUser = AuthService.GetCurrentUser();
+        StateHasChanged();
+    }
+
+    private async Task SwitchToAdmin()
+    {
+        await AuthService.LoginAsync("admin@cyhdoctorhub.com", "Admin@12345");
+        CurrentUser = AuthService.GetCurrentUser();
+        StateHasChanged();
+    }
+
+    private async Task Logout()
+    {
+        await AuthService.LogoutAsync();
+        NavigationManager.NavigateTo("login");
+    }
+}

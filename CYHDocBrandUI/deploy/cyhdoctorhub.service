@@ -1,0 +1,19 @@
+[Unit]
+Description=CYH DoctorHub - Healthcare Portal (.NET 10 Blazor Server)
+After=network.target
+
+[Service]
+WorkingDirectory=/var/www/cyhdoctorhub
+ExecStart=/usr/bin/dotnet /var/www/cyhdoctorhub/CYHDoctorHub.dll
+Restart=always
+# Restart service after 10 seconds if dotnet crashes
+RestartSec=10
+KillSignal=SIGINT
+SyslogIdentifier=cyhdoctorhub
+User=www-data
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=DOTNET_PRINT_TELEMETRY_MESSAGE=false
+Environment=ASPNETCORE_URLS=http://127.0.0.1:5000
+
+[Install]
+WantedBy=multi-user.target

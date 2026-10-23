@@ -1,0 +1,55 @@
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+
+<div class="cyh-brand">
+    <div class="cyh-brand-logo">
+        <i class="bi bi-heart-pulse-fill"></i>
+    </div>
+    <div>
+        <div class="cyh-brand-title">CYH DoctorHub</div>
+        <div class="cyh-brand-subtitle">Healthcare Portal</div>
+    </div>
+</div>
+
+<div class="cyh-nav">
+    <div class="cyh-nav-divider">Core Navigation</div>
+
+    <NavLink class="cyh-nav-item" href="overview" Match="NavLinkMatch.All">
+        <i class="bi bi-grid-1x2-fill"></i>
+        <span>Overview</span>
+    </NavLink>
+
+    <NavLink class="cyh-nav-item" href="doctor/dashboard">
+        <i class="bi bi-hospital"></i>
+        <span>Doctor Dashboard</span>
+    </NavLink>
+
+    <NavLink class="cyh-nav-item" href="admin/dashboard">
+        <i class="bi bi-shield-lock-fill"></i>
+        <span>Admin Dashboard</span>
+    </NavLink>
+
+    <div class="cyh-nav-divider">Clinical Operations</div>
+
+    <NavLink class="cyh-nav-item" href="doctors">
+        <i class="bi bi-person-badge-fill"></i>
+        <span>Doctors Directory</span>
+    </NavLink>
+
+    <div class="cyh-nav-divider">Account</div>
+
+    <NavLink class="cyh-nav-item" href="login">
+        <i class="bi bi-box-arrow-in-right"></i>
+        <span>Login Page</span>
+    </NavLink>
+</div>
+
+<div class="cyh-sidebar-footer">
+    <div class="d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge rounded-pill bg-success" style="width: 8px; height: 8px; padding: 0;"></span>
+            <small class="text-muted" style="font-size: 0.75rem;">SQL Server Active</small>
+        </div>
+        <span class="badge bg-dark border border-secondary text-info" style="font-size: 0.7rem;">.NET 10 LTS</span>
+    </div>
+</div>

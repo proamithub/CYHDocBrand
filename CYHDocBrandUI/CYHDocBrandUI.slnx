@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="../CYHDocBrandAPI/CYHDocBrandAPI.csproj" />
+  <Project Path="../CYHDocBrandData/CYHDocBrandData.csproj" />
+  <Project Path="../CYHDocBrandModel/CYHDocBrandModel.csproj" />
+  <Project Path="../CYHDocBrandRepo/CYHDocBrandRepo.csproj" />
+  <Project Path="../CYHDocBrandSMS/CYHDocBrandSMS.csproj" />
+  <Project Path="CYHDocBrandUI.csproj" />
+</Solution>

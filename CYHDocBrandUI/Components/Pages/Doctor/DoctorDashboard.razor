@@ -1,0 +1,191 @@
+@page "/doctor/dashboard"
+@inject IDoctorRepository DoctorRepo
+@inject IAnalyticsService AnalyticsService
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+
+<div class="d-flex flex-column gap-4">
+    <!-- Header with Doctor Greeting & Duty Toggle -->
+    <div class="glass-panel p-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="stat-icon-wrapper" style="width: 58px; height: 58px; font-size: 1.6rem; border-radius: 16px;">
+                <i class="bi bi-person-fill-check"></i>
+            </div>
+            <div>
+                <div class="d-flex align-items-center gap-2">
+                    <h3 class="mb-0 fw-bold text-white">@(CurrentDoctor?.FullName ?? "Dr. A. Sharma")</h3>
+                    <span class="badge @(CurrentDoctor?.IsAvailableToday == true ? "bg-success" : "bg-secondary") rounded-pill px-2 py-1" style="font-size: 0.72rem;">
+                        @(CurrentDoctor?.IsAvailableToday == true ? "● On Duty" : "○ Off Duty")
+                    </span>
+                </div>
+                <div class="text-muted small mt-1">
+                    <span class="text-info fw-semibold">@(CurrentDoctor?.Specialization ?? "Chief Cardiologist")</span>
+                    <span class="mx-2">•</span>
+                    <span>License: @(CurrentDoctor?.LicenseNumber ?? "MED-DEL-98421")</span>
+                    <span class="mx-2">•</span>
+                    <span>Room 304 (Coronary Wing)</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <button class="glass-btn-secondary @(CurrentDoctor?.IsAvailableToday == true ? "text-success border-success" : "")" @onclick="ToggleAvailability">
+                <i class="bi bi-power"></i>
+                <span>@(CurrentDoctor?.IsAvailableToday == true ? "Set as Away" : "Set as Available")</span>
+            </button>
+            <a href="doctors" class="glass-btn-primary">
+                <i class="bi bi-person-badge"></i>
+                <span>View Faculty Roster</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- 4 Doctor KPI Cards -->
+    <div class="row g-3">
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="glass-card stat-card">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="stat-label">Specialization</span>
+                    <div class="stat-icon-wrapper">
+                        <i class="bi bi-heart-pulse-fill"></i>
+                    </div>
+                </div>
+                <div class="stat-value text-info" style="font-size: 1.25rem;">@(DoctorStats?.Specialization ?? "Cardiology")</div>
+                <small class="text-muted" style="font-size: 0.75rem;">Clinical Department</small>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="glass-card stat-card">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="stat-label">Experience</span>
+                    <div class="stat-icon-wrapper stat-icon-amber">
+                        <i class="bi bi-award-fill"></i>
+                    </div>
+                </div>
+                <div class="stat-value text-warning">@(DoctorStats?.ExperienceYears ?? 14) <span style="font-size: 1rem;">Years</span></div>
+                <small class="text-muted" style="font-size: 0.75rem;">Medical practice</small>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="glass-card stat-card">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="stat-label">Consultation Fee</span>
+                    <div class="stat-icon-wrapper stat-icon-emerald">
+                        <i class="bi bi-currency-dollar"></i>
+                    </div>
+                </div>
+                <div class="stat-value text-success">$@(DoctorStats?.ConsultationFee.ToString("N2") ?? "85.00")</div>
+                <small class="text-muted" style="font-size: 0.75rem;">Per consultation</small>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="glass-card stat-card">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="stat-label">Duty Status</span>
+                    <div class="stat-icon-wrapper stat-icon-purple">
+                        <i class="bi bi-activity"></i>
+                    </div>
+                </div>
+                <div class="stat-value @(DoctorStats?.IsAvailableToday == true ? "text-success" : "text-muted")" style="font-size: 1.25rem;">
+                    @(DoctorStats?.IsAvailableToday == true ? "Available Today" : "Away / Off Duty")
+                </div>
+                <small class="text-muted" style="font-size: 0.75rem;">Live clinic presence</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Doctor Clinical Credentials & Information Panel -->
+    <div class="row g-4">
+        <div class="col-12 col-lg-7">
+            <div class="glass-panel p-4 h-100">
+                <h5 class="fw-bold mb-3 text-white">
+                    <i class="bi bi-card-text text-info me-2"></i>Professional Bio & Clinical Scope
+                </h5>
+                <p class="text-white-50 mb-4" style="line-height: 1.7;">
+                    @(string.IsNullOrWhiteSpace(CurrentDoctor?.Bio) 
+                        ? "Specializing in comprehensive diagnostic and therapeutic cardiovascular medicine, interventional consultations, and evidence-based clinical care."
+                        : CurrentDoctor.Bio)
+                </p>
+
+                <h6 class="fw-bold text-white mb-2 small text-uppercase" style="letter-spacing: 0.5px;">Schedule & Clinic Timings</h6>
+                <div class="d-flex flex-wrap gap-2 mb-4">
+                    <span class="badge bg-dark border border-secondary text-info px-3 py-2">
+                        <i class="bi bi-calendar3 me-1"></i> Available Days: @(CurrentDoctor?.AvailableDays ?? "Mon - Sat")
+                    </span>
+                    <span class="badge bg-dark border border-secondary text-info px-3 py-2">
+                        <i class="bi bi-clock me-1"></i> Consultation Hours: @(CurrentDoctor?.AvailableHours ?? "09:00 AM - 04:00 PM")
+                    </span>
+                    <span class="badge bg-dark border border-secondary text-info px-3 py-2">
+                        <i class="bi bi-card-heading me-1"></i> License: @(CurrentDoctor?.LicenseNumber ?? "MED-DEL-98421")
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-5">
+            <div class="glass-panel p-4 h-100 d-flex flex-column justify-content-between">
+                <div>
+                    <h5 class="fw-bold mb-3 text-white">
+                        <i class="bi bi-sliders text-info me-2"></i>Duty Controls
+                    </h5>
+                    <p class="text-muted small mb-4">
+                        Toggle your hospital availability in real-time. Changes are instantly saved via SQL Server Stored Procedures.
+                    </p>
+
+                    <div class="glass-card p-3 mb-3 d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="fw-bold text-white small">Hospital Shift Availability</div>
+                            <small class="text-muted">Broadcast active status to Hospital Command</small>
+                        </div>
+                        <button class="glass-btn-secondary glass-btn-sm @(CurrentDoctor?.IsAvailableToday == true ? "text-success border-success" : "")" @onclick="ToggleAvailability">
+                            <i class="bi bi-power"></i> @(CurrentDoctor?.IsAvailableToday == true ? "Active" : "Offline")
+                        </button>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center justify-content-between pt-3 border-top" style="border-color: rgba(255,255,255,0.08) !important;">
+                    <span class="text-muted small">Hospital System</span>
+                    <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50">SQL Active</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private DoctorProfile? CurrentDoctor;
+    private DoctorDashboardDTO? DoctorStats;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDashboardDataAsync();
+    }
+
+    private async Task LoadDashboardDataAsync()
+    {
+        var currentUser = AuthService.GetCurrentUser();
+        var doctors = await DoctorRepo.GetAllWithUsersAsync();
+
+        if (currentUser?.DoctorProfileId.HasValue == true)
+        {
+            CurrentDoctor = doctors.FirstOrDefault(d => d.Id == currentUser.DoctorProfileId.Value);
+        }
+
+        CurrentDoctor ??= doctors.FirstOrDefault();
+
+        if (CurrentDoctor != null)
+        {
+            DoctorStats = await AnalyticsService.GetDoctorStatsAsync(CurrentDoctor.Id);
+        }
+    }
+
+    private async Task ToggleAvailability()
+    {
+        if (CurrentDoctor == null) return;
+        await DoctorRepo.ToggleAvailabilityAsync(CurrentDoctor.Id);
+        await LoadDashboardDataAsync();
+    }
+}

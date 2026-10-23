@@ -1,0 +1,84 @@
+@page "/overview"
+@inject IAnalyticsService AnalyticsService
+@inject NavigationManager NavigationManager
+
+<div class="d-flex flex-column gap-4">
+    <!-- Hero Glass Banner -->
+    <div class="glass-panel p-5 position-relative overflow-hidden" style="background: radial-gradient(circle at 85% 20%, rgba(0, 242, 254, 0.15) 0%, rgba(14, 25, 48, 0.7) 100%);">
+        <div class="position-relative" style="z-index: 2; max-width: 680px;">
+            <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-3" style="background: rgba(0, 242, 254, 0.12); border: 1px solid rgba(0, 242, 254, 0.3);">
+                <i class="bi bi-shield-check text-info"></i>
+                <small class="text-info fw-semibold">.NET 10 LTS • SQL Server Stored Procedures • Clean Layered Architecture</small>
+            </div>
+            <h1 class="display-5 fw-bold text-white mb-2">CYH DoctorHub</h1>
+            <p class="lead text-muted mb-4" style="font-size: 1.1rem;">
+                Next-generation clinical workflow, specialist directory, and hospital administrative command system built for modern healthcare organizations.
+            </p>
+            <div class="d-flex flex-wrap gap-3">
+                <a href="doctor/dashboard" class="glass-btn-primary">
+                    <i class="bi bi-hospital"></i> Doctor Workspace
+                </a>
+                <a href="admin/dashboard" class="glass-btn-secondary">
+                    <i class="bi bi-shield-lock"></i> Admin Console
+                </a>
+                <a href="doctors" class="glass-btn-secondary">
+                    <i class="bi bi-person-badge"></i> Doctors Directory
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Navigation Hub -->
+    <div class="row g-4">
+        <div class="col-12 col-md-4">
+            <div class="glass-card h-100 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="stat-icon-wrapper mb-3">
+                        <i class="bi bi-person-badge"></i>
+                    </div>
+                    <h5 class="fw-bold text-white mb-2">Doctor Workspace</h5>
+                    <p class="text-muted small mb-3">
+                        Clinical duty management, profile settings, department specialization, and live hospital availability.
+                    </p>
+                </div>
+                <a href="doctor/dashboard" class="text-info text-decoration-none small fw-semibold">
+                    Open Doctor Hub <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-4">
+            <div class="glass-card h-100 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="stat-icon-wrapper stat-icon-amber mb-3">
+                        <i class="bi bi-shield-lock-fill"></i>
+                    </div>
+                    <h5 class="fw-bold text-white mb-2">Admin Command</h5>
+                    <p class="text-muted small mb-3">
+                        Executive oversight, system metrics, specialist allocation, and hospital-wide operational metrics.
+                    </p>
+                </div>
+                <a href="admin/dashboard" class="text-warning text-decoration-none small fw-semibold">
+                    Open Admin Hub <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-4">
+            <div class="glass-card h-100 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="stat-icon-wrapper stat-icon-emerald mb-3">
+                        <i class="bi bi-people-fill"></i>
+                    </div>
+                    <h5 class="fw-bold text-white mb-2">Specialists Directory</h5>
+                    <p class="text-muted small mb-3">
+                        Complete medical faculty roster, department credentials, experience levels, and clinic availability hours.
+                    </p>
+                </div>
+                <a href="doctors" class="text-success text-decoration-none small fw-semibold">
+                    Explore Doctors <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

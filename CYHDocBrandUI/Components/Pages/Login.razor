@@ -1,0 +1,187 @@
+@page "/"
+@page "/login"
+@layout AuthLayout
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+
+<div class="glass-panel p-4 p-sm-5 position-relative overflow-hidden" style="border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65), 0 0 35px rgba(0, 242, 254, 0.15);">
+    <div class="position-absolute top-0 start-0 w-100" style="height: 3px; background: linear-gradient(90deg, #00f2fe, #4facfe, #8b5cf6);"></div>
+
+    <div class="text-center mb-4">
+        <div class="cyh-brand-logo mx-auto mb-3" style="width: 58px; height: 58px; font-size: 1.8rem; border-radius: 14px; box-shadow: 0 0 25px rgba(0, 242, 254, 0.5);">
+            <i class="bi bi-heart-pulse-fill"></i>
+        </div>
+        <h2 class="fw-bold mb-1 text-white" style="letter-spacing: -0.5px;">CYH DoctorHub</h2>
+        <p class="text-muted small mb-0">Clinical & Administrative Health Portal</p>
+    </div>
+
+    <!-- Role Fast Selector Tabs (High Contrast & Visible Inactive State) -->
+    <div class="auth-role-tabs" style="display: flex; gap: 8px; padding: 6px; background: rgba(9, 18, 38, 0.85); border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 12px; margin-bottom: 1.5rem;">
+        <button type="button" class="auth-role-tab @(SelectedRole == "Doctor" ? "active-doctor" : "")"
+                style="@(SelectedRole == "Doctor" 
+                    ? "flex: 1; padding: 0.65rem 0.75rem; border-radius: 9px; font-weight: 700; font-size: 0.88rem; background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); color: #070d1e; border: 1px solid #00f2fe; box-shadow: 0 4px 18px rgba(0, 242, 254, 0.45); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.45rem;" 
+                    : "flex: 1; padding: 0.65rem 0.75rem; border-radius: 9px; font-weight: 600; font-size: 0.88rem; background: rgba(255, 255, 255, 0.08); color: #f1f5f9; border: 1px solid rgba(255, 255, 255, 0.22); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.45rem;")"
+                @onclick="SelectDoctorRole">
+            <i class="bi bi-person-badge @(SelectedRole == "Doctor" ? "" : "text-info")" style="font-size: 1rem;"></i>
+            <span>Doctor Portal</span>
+        </button>
+        <button type="button" class="auth-role-tab @(SelectedRole == "Admin" ? "active-admin" : "")"
+                style="@(SelectedRole == "Admin" 
+                    ? "flex: 1; padding: 0.65rem 0.75rem; border-radius: 9px; font-weight: 700; font-size: 0.88rem; background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%); color: #070d1e; border: 1px solid #f59e0b; box-shadow: 0 4px 18px rgba(245, 158, 11, 0.45); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.45rem;" 
+                    : "flex: 1; padding: 0.65rem 0.75rem; border-radius: 9px; font-weight: 600; font-size: 0.88rem; background: rgba(255, 255, 255, 0.08); color: #f1f5f9; border: 1px solid rgba(255, 255, 255, 0.22); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.45rem;")"
+                @onclick="SelectAdminRole">
+            <i class="bi bi-shield-lock @(SelectedRole == "Admin" ? "" : "text-warning")" style="font-size: 1rem;"></i>
+            <span>Hospital Admin</span>
+        </button>
+    </div>
+
+    @if (!string.IsNullOrEmpty(ErrorMessage))
+    {
+        <div class="alert alert-danger py-2 px-3 small d-flex align-items-center gap-2 mb-3" style="background: rgba(244, 63, 94, 0.15); border: 1px solid rgba(244, 63, 94, 0.35); color: #fda4af; border-radius: 10px;">
+            <i class="bi bi-exclamation-octagon-fill fs-6"></i>
+            <span>@ErrorMessage</span>
+        </div>
+    }
+
+    <div class="mb-3">
+        <label class="form-label small text-muted text-uppercase fw-semibold" style="font-size: 0.72rem; letter-spacing: 0.5px;">Email Address</label>
+        <div class="position-relative">
+            <i class="bi bi-envelope position-absolute" style="left: 14px; top: 50%; transform: translateY(-50%); font-size: 1rem; color: #38bdf8;"></i>
+            <input type="email" class="glass-input" style="padding-left: 2.6rem;" @bind="Email" placeholder="name@cyhdoctorhub.com" />
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <div class="d-flex align-items-center justify-content-between">
+            <label class="form-label small text-muted text-uppercase fw-semibold" style="font-size: 0.72rem; letter-spacing: 0.5px;">Password</label>
+            <span class="small text-info opacity-75" style="font-size: 0.75rem; cursor: pointer;">Default: @(SelectedRole == "Doctor" ? "Doctor@12345" : "Admin@12345")</span>
+        </div>
+        <div class="position-relative">
+            <i class="bi bi-lock position-absolute" style="left: 14px; top: 50%; transform: translateY(-50%); font-size: 1rem; color: #38bdf8;"></i>
+            <input type="@(ShowPassword ? "text" : "password")" class="glass-input" style="padding-left: 2.6rem; padding-right: 2.75rem;" @bind="Password" placeholder="••••••••" @onkeyup="HandleKeyUp" />
+            <button type="button" 
+                    class="btn position-absolute p-0 border-0" 
+                    style="right: 14px; top: 50%; transform: translateY(-50%); color: #00f2fe; background: transparent; z-index: 10; display: flex; align-items: center; justify-content: center; cursor: pointer; width: 30px; height: 30px; border-radius: 6px; transition: all 0.2s ease;"
+                    title="@(ShowPassword ? "Hide password" : "Show password")"
+                    @onclick="TogglePasswordVisibility">
+                @if (ShowPassword)
+                {
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#00f2fe" viewBox="0 0 16 16">
+                        <path d="m10.79 12.912-1.614-1.615a3.5 3.5 0 0 1-4.474-4.474l-2.06-2.06C.938 6.278 0 8 0 8s3 5.5 8 5.5a7 7 0 0 0 2.79-.588M5.21 3.088A7 7 0 0 1 8 2.5c5 0 8 5.5 8 5.5s-.939 1.721-2.641 3.238l-2.062-2.062a3.5 3.5 0 0 0-4.474-4.474z"/>
+                        <path d="M5.525 7.646a2.5 2.5 0 0 0 2.829 2.829zm4.95.708-2.829-2.83a2.5 2.5 0 0 1 2.829 2.829zm3.171 5.95L1.354 1.96 2.06 1.253l12.354 12.354z"/>
+                    </svg>
+                }
+                else
+                {
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#00f2fe" viewBox="0 0 16 16">
+                        <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z"/>
+                        <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0"/>
+                    </svg>
+                }
+            </button>
+        </div>
+    </div>
+
+    <div class="d-flex align-items-center justify-content-between mb-4 small text-muted" style="font-size: 0.8rem;">
+        <label class="d-flex align-items-center gap-2 mb-0" style="cursor: pointer;">
+            <input type="checkbox" class="form-check-input bg-dark border-secondary" checked />
+            <span>Keep me signed in</span>
+        </label>
+        <span class="text-info opacity-75" style="cursor: pointer;">Need Help?</span>
+    </div>
+
+    <button class="glass-btn-primary w-100 justify-content-center py-2 fs-6 mb-4" @onclick="HandleLogin" disabled="@IsLoading" style="border-radius: 12px; height: 46px;">
+        @if (IsLoading)
+        {
+            <span class="spinner-border spinner-border-sm me-2"></span>
+            <span>Signing In...</span>
+        }
+        else
+        {
+            <i class="bi bi-box-arrow-in-right"></i>
+            <span>Sign In to @(SelectedRole == "Doctor" ? "Doctor Workspace" : "Admin Console")</span>
+        }
+    </button>
+
+    <div class="pt-3 border-top d-flex align-items-center justify-content-between text-muted" style="border-color: rgba(255,255,255,0.08) !important; font-size: 0.75rem;">
+        <div class="d-flex align-items-center gap-1">
+            <i class="bi bi-shield-check text-success"></i>
+            <span>256-Bit SSL Encrypted</span>
+        </div>
+        <div class="text-info fw-semibold">
+            SQL Server • .NET 10
+        </div>
+    </div>
+</div>
+
+@code {
+    private string SelectedRole = "Doctor";
+    private string Email = "doctor@cyhdoctorhub.com";
+    private string Password = "Doctor@12345";
+    private bool ShowPassword = false;
+    private string? ErrorMessage;
+    private bool IsLoading;
+
+    private void SelectDoctorRole()
+    {
+        SelectedRole = "Doctor";
+        Email = "doctor@cyhdoctorhub.com";
+        Password = "Doctor@12345";
+        ErrorMessage = null;
+    }
+
+    private void SelectAdminRole()
+    {
+        SelectedRole = "Admin";
+        Email = "admin@cyhdoctorhub.com";
+        Password = "Admin@12345";
+        ErrorMessage = null;
+    }
+
+    private void TogglePasswordVisibility()
+    {
+        ShowPassword = !ShowPassword;
+    }
+
+    private async Task HandleLogin()
+    {
+        ErrorMessage = null;
+        IsLoading = true;
+
+        try
+        {
+            var result = await AuthService.LoginAsync(Email, Password);
+            if (result.Success && result.User != null)
+            {
+                if (result.User.Role == "Admin")
+                {
+                    NavigationManager.NavigateTo("admin/dashboard");
+                }
+                else
+                {
+                    NavigationManager.NavigateTo("doctor/dashboard");
+                }
+            }
+            else
+            {
+                ErrorMessage = result.ErrorMessage ?? "Invalid credentials. Please verify and try again.";
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = ex.Message;
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task HandleKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await HandleLogin();
+        }
+    }
+}

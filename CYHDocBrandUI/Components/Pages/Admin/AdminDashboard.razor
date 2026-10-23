@@ -1,0 +1,197 @@
+@page "/admin/dashboard"
+@inject IAnalyticsService AnalyticsService
+@inject IDoctorRepository DoctorRepo
+@inject NavigationManager NavigationManager
+
+<div class="d-flex flex-column gap-4">
+    <!-- Admin Header -->
+    <div class="glass-panel p-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="stat-icon-wrapper" style="width: 58px; height: 58px; font-size: 1.6rem; border-radius: 16px; background: rgba(245, 158, 11, 0.12); color: var(--cyh-accent-amber); border-color: rgba(245, 158, 11, 0.3);">
+                <i class="bi bi-shield-shaded"></i>
+            </div>
+            <div>
+                <div class="d-flex align-items-center gap-2">
+                    <h3 class="mb-0 fw-bold text-white">Hospital Administration</h3>
+                    <span class="badge bg-primary rounded-pill px-2 py-1" style="font-size: 0.72rem;">Central Command</span>
+                </div>
+                <div class="text-muted small mt-1">
+                    CYH DoctorHub Health System • SQL Server Instance: <span class="text-info">VRS-AMITPC\SQLEXPRESS</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <button class="glass-btn-secondary" @onclick="LoadAdminDataAsync">
+                <i class="bi bi-arrow-clockwise"></i> Refresh Metrics
+            </button>
+            <a href="doctors" class="glass-btn-primary">
+                <i class="bi bi-person-badge"></i> Doctors Roster
+            </a>
+        </div>
+    </div>
+
+    <!-- 4 High-Level Metric Cards -->
+    <div class="row g-3">
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="glass-card stat-card">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="stat-label">Total Doctors</span>
+                    <div class="stat-icon-wrapper">
+                        <i class="bi bi-hospital"></i>
+                    </div>
+                </div>
+                <div class="stat-value text-info">@(Stats?.TotalDoctors ?? 0)</div>
+                <small class="text-muted" style="font-size: 0.75rem;">Verified clinical specialists</small>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="glass-card stat-card">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="stat-label">Active On Duty</span>
+                    <div class="stat-icon-wrapper stat-icon-emerald">
+                        <i class="bi bi-person-check-fill"></i>
+                    </div>
+                </div>
+                <div class="stat-value text-success">@(Stats?.ActiveDoctorsOnDuty ?? 0)</div>
+                <small class="text-muted" style="font-size: 0.75rem;">Currently on hospital floor</small>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="glass-card stat-card">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="stat-label">Departments</span>
+                    <div class="stat-icon-wrapper stat-icon-amber">
+                        <i class="bi bi-diagram-3-fill"></i>
+                    </div>
+                </div>
+                <div class="stat-value text-warning">@(Stats?.TotalDepartments ?? 0)</div>
+                <small class="text-muted" style="font-size: 0.75rem;">Active specialties</small>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="glass-card stat-card">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="stat-label">System Accounts</span>
+                    <div class="stat-icon-wrapper stat-icon-purple">
+                        <i class="bi bi-shield-lock-fill"></i>
+                    </div>
+                </div>
+                <div class="stat-value text-white">@(Stats?.TotalUsers ?? 0)</div>
+                <small class="text-muted" style="font-size: 0.75rem;">Authorized staff & admins</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Doctor Faculty Roster & System Status -->
+    <div class="row g-4">
+        <!-- Doctor Roster -->
+        <div class="col-12 col-lg-8">
+            <div class="glass-panel p-4 h-100">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h5 class="fw-bold mb-0 text-white">
+                        <i class="bi bi-person-badge text-info me-2"></i>Medical Specialists & Faculty
+                    </h5>
+                    <span class="badge bg-secondary">@(Doctors?.Count ?? 0) Doctors</span>
+                </div>
+
+                @if (Doctors == null)
+                {
+                    <div class="text-center py-4">
+                        <div class="spinner-border spinner-border-sm text-info"></div>
+                    </div>
+                }
+                else
+                {
+                    <div class="d-flex flex-column gap-2">
+                        @foreach (var doc in Doctors)
+                        {
+                            <div class="glass-card p-3 d-flex align-items-center justify-content-between">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="user-avatar">
+                                        @doc.FullName[0]
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold text-white small">@doc.FullName</div>
+                                        <div class="text-info" style="font-size: 0.75rem;">@doc.Specialization</div>
+                                        <small class="text-muted" style="font-size: 0.7rem;">Fee: $@doc.ConsultationFee • Hours: @doc.AvailableHours • License: @doc.LicenseNumber</small>
+                                    </div>
+                                </div>
+                                <button class="glass-btn-secondary glass-btn-sm @(doc.IsAvailableToday ? "text-success border-success" : "text-muted")" @onclick="() => ToggleDocDuty(doc.Id)">
+                                    <i class="bi bi-power"></i> @(doc.IsAvailableToday ? "● On Duty" : "○ Away")
+                                </button>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Infrastructure & Security Card -->
+        <div class="col-12 col-lg-4">
+            <div class="glass-panel p-4 h-100 d-flex flex-column justify-content-between">
+                <div>
+                    <h5 class="fw-bold mb-3 text-white">
+                        <i class="bi bi-cpu text-info me-2"></i>System Infrastructure
+                    </h5>
+                    <p class="text-muted small mb-3">
+                        CYH DoctorHub runs on native ADO.NET and SQL Server Stored Procedures for optimal execution speed.
+                    </p>
+
+                    <div class="d-flex flex-column gap-2 small">
+                        <div class="glass-card p-2 d-flex justify-content-between">
+                            <span class="text-muted">Data Engine:</span>
+                            <span class="text-white fw-semibold">SQL Server Express</span>
+                        </div>
+                        <div class="glass-card p-2 d-flex justify-content-between">
+                            <span class="text-muted">Database:</span>
+                            <span class="text-info fw-semibold">CYHDocBrandBD</span>
+                        </div>
+                        <div class="glass-card p-2 d-flex justify-content-between">
+                            <span class="text-muted">Data Access:</span>
+                            <span class="text-success fw-semibold">Pure ADO.NET Procedures</span>
+                        </div>
+                        <div class="glass-card p-2 d-flex justify-content-between">
+                            <span class="text-muted">Security:</span>
+                            <span class="text-white fw-semibold">AES-256 Encryption</span>
+                        </div>
+                        <div class="glass-card p-2 d-flex justify-content-between">
+                            <span class="text-muted">Runtime:</span>
+                            <span class="text-info fw-semibold">.NET 10.0 LTS</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-top d-flex justify-content-between align-items-center" style="border-color: rgba(255,255,255,0.08) !important;">
+                    <span class="text-muted small">Server Status</span>
+                    <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50">Online</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private AdminDashboardDTO? Stats;
+    private List<DoctorProfile>? Doctors;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAdminDataAsync();
+    }
+
+    private async Task LoadAdminDataAsync()
+    {
+        Stats = await AnalyticsService.GetAdminStatsAsync();
+        Doctors = await DoctorRepo.GetAllWithUsersAsync();
+    }
+
+    private async Task ToggleDocDuty(int doctorId)
+    {
+        await DoctorRepo.ToggleAvailabilityAsync(doctorId);
+        await LoadAdminDataAsync();
+    }
+}
