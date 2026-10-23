@@ -37,4 +37,5 @@ public class CurrentUserDTO
     public string Role { get; set; } = string.Empty;
     public int? DoctorProfileId { get; set; }
     public string? Department { get; set; }
+    public string? AvatarUrl { get; set; }
 }

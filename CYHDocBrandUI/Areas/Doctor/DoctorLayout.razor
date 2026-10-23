@@ -25,8 +25,15 @@
             <div class="d-flex align-items-center gap-3">
                 <!-- User Profile Pill -->
                 <div class="user-profile-pill" style="border-color: rgba(0, 242, 254, 0.35);">
-                    <div class="user-avatar" style="background: linear-gradient(135deg, #00f2fe, #4facfe); color: #070d1e;">
-                        @(string.IsNullOrEmpty(CurrentUser?.FullName) ? 'D' : CurrentUser.FullName[0])
+                    <div class="user-avatar" style="background: linear-gradient(135deg, #00f2fe, #4facfe); color: #070d1e; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                        @if (!string.IsNullOrEmpty(CurrentUser?.AvatarUrl))
+                        {
+                            <img src="@CurrentUser.AvatarUrl" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover;" />
+                        }
+                        else
+                        {
+                            @(string.IsNullOrEmpty(CurrentUser?.FullName) ? 'D' : CurrentUser.FullName[0])
+                        }
                     </div>
                     <div>
                         <div style="font-size: 0.85rem; font-weight: 600; line-height: 1.1; color: #ffffff;">
@@ -85,7 +92,8 @@
                         Email = doc.User?.Email ?? "doctor@cyhdoctorhub.com",
                         Role = "Doctor",
                         Department = doc.Specialization,
-                        DoctorProfileId = doc.Id
+                        DoctorProfileId = doc.Id,
+                        AvatarUrl = doc.ProfilePic ?? doc.User?.AvatarUrl
                     };
 
                     if (AuthStateProvider is CustomAuthenticationStateProvider customAuth)

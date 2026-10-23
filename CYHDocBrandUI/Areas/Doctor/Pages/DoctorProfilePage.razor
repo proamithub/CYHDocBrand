@@ -4,6 +4,7 @@
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthStateProvider
+@inject IWebHostEnvironment WebHostEnvironment
 
 <div class="d-flex flex-column gap-4">
     <!-- Top Header Banner & Actions -->
@@ -77,27 +78,65 @@
                 <div class="glass-panel p-4 text-center position-relative overflow-hidden">
                     <div class="position-absolute top-0 start-0 w-100" style="height: 3px; background: linear-gradient(90deg, #00f2fe, #4facfe, #8b5cf6);"></div>
 
+                    <!-- Hidden File Input for Doctor Photo -->
+                    <InputFile id="profilePicInput" OnChange="HandleProfilePicUpload" accept=".jpg,.jpeg,.png,.webp" style="display:none;" />
+
                     <!-- Doctor Avatar / Photo with Upload Overlay -->
-                    <div class="position-relative d-inline-block mt-3 mb-3">
-                        <div class="rounded-circle shadow border border-3 border-info overflow-hidden d-inline-flex align-items-center justify-content-center"
-                             style="width: 120px; height: 120px; background: linear-gradient(135deg, #0b1c3a, #152d5a); cursor: pointer;"
-                             title="Doctor Profile Photo">
+                    <div class="position-relative d-inline-block mt-3 mb-2">
+                        <label for="profilePicInput" class="rounded-circle shadow border border-3 border-info overflow-hidden d-inline-flex align-items-center justify-content-center position-relative mb-0"
+                             style="width: 125px; height: 125px; background: linear-gradient(135deg, #0b1c3a, #152d5a); cursor: pointer;"
+                             title="Click to upload or change photo">
+                            @if (IsUploadingPic)
+                            {
+                                <div class="position-absolute w-100 h-100 d-flex flex-column align-items-center justify-content-center" style="background: rgba(7, 13, 30, 0.82); z-index: 5;">
+                                    <span class="spinner-border text-info spinner-border-sm mb-1" role="status"></span>
+                                    <span style="font-size: 0.68rem; color: #38bdf8;">Saving...</span>
+                                </div>
+                            }
                             @if (!string.IsNullOrEmpty(Profile?.ProfilePic))
                             {
                                 <img src="@Profile.ProfilePic" alt="@Profile.FullName" class="w-100 h-100" style="object-fit: cover;" />
                             }
                             else
                             {
-                                <div class="user-avatar" style="width: 100%; height: 100%; border-radius: 0; font-size: 2.8rem; background: linear-gradient(135deg, #00f2fe, #4facfe); color: #070d1e;">
+                                <div class="user-avatar" style="width: 100%; height: 100%; border-radius: 0; font-size: 2.8rem; background: linear-gradient(135deg, #00f2fe, #4facfe); color: #070d1e; display: flex; align-items: center; justify-content: center;">
                                     @(Profile?.FullName?.Length > 0 ? Profile.FullName[0] : 'D')
                                 </div>
                             }
-                        </div>
-                        <span class="position-absolute bottom-0 end-0 bg-info text-dark rounded-circle p-2 shadow-sm d-flex align-items-center justify-content-center"
-                              style="width: 32px; height: 32px; transform: translate(-4px, -4px);"
-                              title="Verified Specialist">
+                        </label>
+                        <label for="profilePicInput" class="position-absolute bottom-0 end-0 bg-info text-dark rounded-circle p-2 shadow-sm d-flex align-items-center justify-content-center border border-2 border-dark"
+                              style="width: 34px; height: 34px; transform: translate(-2px, -2px); cursor: pointer;"
+                              title="Click to upload or change photo">
                             <i class="bi bi-camera-fill" style="font-size: 0.85rem;"></i>
-                        </span>
+                        </label>
+                    </div>
+
+                    <!-- Photo Action Buttons (Upload / Edit / Delete) -->
+                    <div class="d-flex flex-wrap align-items-center justify-content-center gap-2 mb-3">
+                        <label for="profilePicInput" class="glass-btn-secondary btn-sm mb-0 d-inline-flex align-items-center gap-1" style="cursor: pointer; font-size: 0.78rem; padding: 5px 12px;">
+                            @if (IsUploadingPic)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1" style="width: 0.75rem; height: 0.75rem;"></span>
+                                <span>Uploading...</span>
+                            }
+                            else
+                            {
+                                <i class="bi bi-pencil-square text-info"></i>
+                                <span>@(string.IsNullOrEmpty(Profile?.ProfilePic) ? "Upload Photo" : "Change Photo")</span>
+                            }
+                        </label>
+
+                        @if (!string.IsNullOrEmpty(Profile?.ProfilePic))
+                        {
+                            <button type="button" class="btn btn-sm d-inline-flex align-items-center gap-1"
+                                    style="border-radius: 10px; font-size: 0.78rem; padding: 5px 12px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5;"
+                                    @onclick="RemoveProfilePic"
+                                    disabled="@(IsUploadingPic || IsSaving)"
+                                    title="Delete current photo">
+                                <i class="bi bi-trash3-fill text-danger"></i>
+                                <span>Delete Photo</span>
+                            </button>
+                        }
                     </div>
 
                     <h4 class="fw-bold mb-1 text-white">@(string.IsNullOrWhiteSpace(Profile?.DisplayName) ? Profile?.FullName : Profile.DisplayName)</h4>
@@ -310,6 +349,7 @@
     private CurrentUserDTO? CurrentUser;
     private CYHDocBrandData.Entities.DoctorProfile Profile = new();
     private bool IsSaving = false;
+    private bool IsUploadingPic = false;
     private string? SuccessMessage;
     private string? ErrorMessage;
 
@@ -417,6 +457,155 @@
         finally
         {
             IsSaving = false;
+        }
+    }
+
+    private async Task HandleProfilePicUpload(InputFileChangeEventArgs e)
+    {
+        IsUploadingPic = true;
+        SuccessMessage = null;
+        ErrorMessage = null;
+
+        try
+        {
+            var file = e.File;
+            if (file == null) return;
+
+            // 1. Validation: Allowed formats
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+            var extension = Path.GetExtension(file.Name).ToLowerInvariant();
+            if (!allowedExtensions.Contains(extension))
+            {
+                ErrorMessage = "Invalid image format. Please select a JPG, JPEG, PNG, or WEBP image.";
+                return;
+            }
+
+            // 2. Validation: Maximum file size (5 MB)
+            const long maxFileSize = 5 * 1024 * 1024;
+            if (file.Size > maxFileSize)
+            {
+                ErrorMessage = "Image size exceeds limit. Maximum allowed size is 5 MB.";
+                return;
+            }
+
+            // 3. Prepare target physical folder
+            var webRoot = WebHostEnvironment.WebRootPath;
+            if (string.IsNullOrWhiteSpace(webRoot))
+            {
+                webRoot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+            }
+
+            var uploadsFolder = Path.Combine(webRoot, "uploads", "doctors");
+            if (!Directory.Exists(uploadsFolder))
+            {
+                Directory.CreateDirectory(uploadsFolder);
+            }
+
+            // Remove existing physical file if locally stored
+            if (!string.IsNullOrEmpty(Profile.ProfilePic) && Profile.ProfilePic.StartsWith("/uploads/doctors/"))
+            {
+                var oldFileName = Path.GetFileName(Profile.ProfilePic);
+                var oldFilePath = Path.Combine(uploadsFolder, oldFileName);
+                if (File.Exists(oldFilePath))
+                {
+                    try { File.Delete(oldFilePath); } catch { }
+                }
+            }
+
+            // 4. Save new image file
+            var docIdentifier = Profile.Id > 0 ? Profile.Id.ToString() : (Profile.UserId ?? "doc");
+            var uniqueFileName = $"doc_{docIdentifier}_{DateTime.UtcNow.Ticks}{extension}";
+            var fullPath = Path.Combine(uploadsFolder, uniqueFileName);
+
+            await using (var fileStream = new FileStream(fullPath, FileMode.Create))
+            {
+                await file.OpenReadStream(maxAllowedSize: maxFileSize).CopyToAsync(fileStream);
+            }
+
+            var relativePath = $"/uploads/doctors/{uniqueFileName}";
+            Profile.ProfilePic = relativePath;
+
+            // 5. Persist to SQL Server database
+            var success = await DoctorRepo.UpdateProfileAsync(Profile);
+            if (success)
+            {
+                if (CurrentUser != null)
+                {
+                    CurrentUser.AvatarUrl = relativePath;
+                    if (AuthStateProvider is CustomAuthenticationStateProvider customAuth)
+                    {
+                        customAuth.SetUser(CurrentUser);
+                    }
+                }
+                SuccessMessage = "Profile picture uploaded and updated successfully in SQL Server!";
+            }
+            else
+            {
+                ErrorMessage = "Image saved locally, but database update returned an unexpected status.";
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error uploading photo: {ex.Message}";
+        }
+        finally
+        {
+            IsUploadingPic = false;
+        }
+    }
+
+    private async Task RemoveProfilePic()
+    {
+        IsUploadingPic = true;
+        SuccessMessage = null;
+        ErrorMessage = null;
+
+        try
+        {
+            if (!string.IsNullOrEmpty(Profile.ProfilePic) && Profile.ProfilePic.StartsWith("/uploads/doctors/"))
+            {
+                var webRoot = WebHostEnvironment.WebRootPath;
+                if (string.IsNullOrWhiteSpace(webRoot))
+                {
+                    webRoot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+                }
+
+                var uploadsFolder = Path.Combine(webRoot, "uploads", "doctors");
+                var oldFileName = Path.GetFileName(Profile.ProfilePic);
+                var oldFilePath = Path.Combine(uploadsFolder, oldFileName);
+                if (File.Exists(oldFilePath))
+                {
+                    try { File.Delete(oldFilePath); } catch { }
+                }
+            }
+
+            Profile.ProfilePic = null;
+
+            var success = await DoctorRepo.UpdateProfileAsync(Profile);
+            if (success)
+            {
+                if (CurrentUser != null)
+                {
+                    CurrentUser.AvatarUrl = null;
+                    if (AuthStateProvider is CustomAuthenticationStateProvider customAuth)
+                    {
+                        customAuth.SetUser(CurrentUser);
+                    }
+                }
+                SuccessMessage = "Profile photo deleted and default avatar restored.";
+            }
+            else
+            {
+                ErrorMessage = "Could not remove profile picture from database.";
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error removing profile photo: {ex.Message}";
+        }
+        finally
+        {
+            IsUploadingPic = false;
         }
     }
 }

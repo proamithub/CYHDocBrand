@@ -38,6 +38,9 @@ public class DoctorRepository : IDoctorRepository
             await using var reader = await cmd.ExecuteReaderAsync();
             if (await reader.ReadAsync())
             {
+                var avatarCol = -1;
+                try { avatarCol = reader.GetOrdinal("AvatarUrl"); } catch { }
+
                 return new CurrentUserDTO
                 {
                     UserId = reader["UserId"]?.ToString() ?? string.Empty,
@@ -45,7 +48,8 @@ public class DoctorRepository : IDoctorRepository
                     FullName = reader["FullName"]?.ToString() ?? string.Empty,
                     Role = reader["Role"]?.ToString() ?? "Doctor",
                     Department = reader["Department"] != DBNull.Value ? reader["Department"]?.ToString() : null,
-                    DoctorProfileId = reader["DoctorProfileId"] != DBNull.Value ? Convert.ToInt32(reader["DoctorProfileId"]) : null
+                    DoctorProfileId = reader["DoctorProfileId"] != DBNull.Value ? Convert.ToInt32(reader["DoctorProfileId"]) : null,
+                    AvatarUrl = avatarCol >= 0 && !reader.IsDBNull(avatarCol) ? reader.GetString(avatarCol) : null
                 };
             }
 
@@ -172,8 +176,13 @@ public class DoctorRepository : IDoctorRepository
                     ConsultationFee = @ConsultationFee, 
                     AvailableDays = @AvailableDays, 
                     AvailableHours = @AvailableHours, 
-                    Bio = @Bio
-                WHERE Id = @Id", con);
+                    Bio = @Bio,
+                    ProfilePic = @ProfilePic
+                WHERE Id = @Id;
+                
+                UPDATE AspNetUsers
+                SET AvatarUrl = @ProfilePic
+                WHERE Id = (SELECT UserId FROM DoctorProfiles WHERE Id = @Id);", con);
 
             cmd.Parameters.AddWithValue("@Id", profile.Id);
             cmd.Parameters.AddWithValue("@FullName", profile.FullName);
@@ -184,6 +193,7 @@ public class DoctorRepository : IDoctorRepository
             cmd.Parameters.AddWithValue("@AvailableDays", profile.AvailableDays ?? string.Empty);
             cmd.Parameters.AddWithValue("@AvailableHours", profile.AvailableHours ?? string.Empty);
             cmd.Parameters.AddWithValue("@Bio", (object?)profile.Bio ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@ProfilePic", (object?)profile.ProfilePic ?? DBNull.Value);
 
             var rows = await cmd.ExecuteNonQueryAsync();
             return rows > 0;
@@ -215,9 +225,22 @@ public class DoctorRepository : IDoctorRepository
 
         try
         {
+            var picCol = reader.GetOrdinal("ProfilePic");
+            if (!reader.IsDBNull(picCol))
+            {
+                doc.ProfilePic = reader.GetString(picCol);
+            }
+        }
+        catch { }
+
+        try
+        {
             var userCol = reader.GetOrdinal("UserName");
             if (!reader.IsDBNull(userCol))
             {
+                var avatarCol = -1;
+                try { avatarCol = reader.GetOrdinal("AvatarUrl"); } catch { }
+
                 doc.User = new ApplicationUser
                 {
                     Id = doc.UserId,
@@ -227,8 +250,14 @@ public class DoctorRepository : IDoctorRepository
                     FullName = reader.IsDBNull(reader.GetOrdinal("FullName")) ? string.Empty : reader.GetString(reader.GetOrdinal("FullName")),
                     Role = reader.IsDBNull(reader.GetOrdinal("Role")) ? "Doctor" : reader.GetString(reader.GetOrdinal("Role")),
                     Department = reader.IsDBNull(reader.GetOrdinal("Department")) ? null : reader.GetString(reader.GetOrdinal("Department")),
-                    IsActive = !reader.IsDBNull(reader.GetOrdinal("IsActive")) && reader.GetBoolean(reader.GetOrdinal("IsActive"))
+                    IsActive = !reader.IsDBNull(reader.GetOrdinal("IsActive")) && reader.GetBoolean(reader.GetOrdinal("IsActive")),
+                    AvatarUrl = avatarCol >= 0 && !reader.IsDBNull(avatarCol) ? reader.GetString(avatarCol) : null
                 };
+
+                if (string.IsNullOrEmpty(doc.ProfilePic) && !string.IsNullOrEmpty(doc.User.AvatarUrl))
+                {
+                    doc.ProfilePic = doc.User.AvatarUrl;
+                }
             }
         }
         catch

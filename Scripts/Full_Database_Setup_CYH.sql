@@ -63,6 +63,7 @@ BEGIN
         [AvailableDays]    NVARCHAR (100)  NOT NULL DEFAULT ('Mon - Sat'),
         [AvailableHours]   NVARCHAR (50)   NOT NULL DEFAULT ('09:00 AM - 04:00 PM'),
         [Bio]              NVARCHAR (500)  NULL,
+        [ProfilePic]       NVARCHAR (MAX)  NULL,
         [IsAvailableToday] BIT             NOT NULL DEFAULT (1),
         [CreatedAt]        DATETIME2 (7)   NOT NULL DEFAULT (SYSUTCDATETIME()),
         CONSTRAINT [PK_DoctorProfiles] PRIMARY KEY CLUSTERED ([Id] ASC),
@@ -135,6 +136,7 @@ BEGIN
             d.Bio,
             d.IsAvailableToday,
             d.CreatedAt,
+            d.ProfilePic,
             u.Id AS AppUserId,
             u.UserName,
             u.Email,
@@ -142,7 +144,8 @@ BEGIN
             u.FullName AS UserFullName,
             u.Role,
             u.Department,
-            u.IsActive
+            u.IsActive,
+            u.AvatarUrl
         FROM DoctorProfiles d
         LEFT JOIN AspNetUsers u ON d.UserId = u.Id
         ORDER BY d.FullName ASC;
@@ -162,6 +165,7 @@ BEGIN
             d.Bio,
             d.IsAvailableToday,
             d.CreatedAt,
+            d.ProfilePic,
             u.Id AS AppUserId,
             u.UserName,
             u.Email,
@@ -169,7 +173,8 @@ BEGIN
             u.FullName AS UserFullName,
             u.Role,
             u.Department,
-            u.IsActive
+            u.IsActive,
+            u.AvatarUrl
         FROM DoctorProfiles d
         LEFT JOIN AspNetUsers u ON d.UserId = u.Id
         WHERE d.Id = @DoctorId;
@@ -189,6 +194,7 @@ BEGIN
             d.Bio,
             d.IsAvailableToday,
             d.CreatedAt,
+            d.ProfilePic,
             u.Id AS AppUserId,
             u.UserName,
             u.Email,
@@ -196,7 +202,8 @@ BEGIN
             u.FullName AS UserFullName,
             u.Role,
             u.Department,
-            u.IsActive
+            u.IsActive,
+            u.AvatarUrl
         FROM DoctorProfiles d
         LEFT JOIN AspNetUsers u ON d.UserId = u.Id
         WHERE d.UserId = @UserId;
