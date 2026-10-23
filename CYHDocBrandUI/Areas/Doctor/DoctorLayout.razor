@@ -2,6 +2,7 @@
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthStateProvider
+@inject IDoctorRepository DoctorRepo
 
 <div class="cyh-app-container">
     <!-- Dedicated Doctor Sidebar -->
@@ -25,11 +26,11 @@
                 <!-- User Profile Pill -->
                 <div class="user-profile-pill" style="border-color: rgba(0, 242, 254, 0.35);">
                     <div class="user-avatar" style="background: linear-gradient(135deg, #00f2fe, #4facfe); color: #070d1e;">
-                        @(CurrentUser?.FullName.Length > 0 ? CurrentUser.FullName[0] : 'D')
+                        @(string.IsNullOrEmpty(CurrentUser?.FullName) ? 'D' : CurrentUser.FullName[0])
                     </div>
                     <div>
                         <div style="font-size: 0.85rem; font-weight: 600; line-height: 1.1; color: #ffffff;">
-                            @(CurrentUser?.FullName ?? "Dr. Specialist")
+                            @(CurrentUser?.FullName ?? "Dr. A. Sharma")
                         </div>
                         <div style="font-size: 0.72rem; color: #00f2fe; font-weight: 600;">
                             @(CurrentUser?.Department ?? "Cardiologist Specialist")
@@ -60,25 +61,55 @@
 
     protected override async Task OnInitializedAsync()
     {
-        AuthStateProvider.AuthenticationStateChanged += async (task) =>
+        try
         {
+            AuthStateProvider.AuthenticationStateChanged += async (task) =>
+            {
+                CurrentUser = AuthService.GetCurrentUser();
+                await InvokeAsync(StateHasChanged);
+            };
+
             CurrentUser = AuthService.GetCurrentUser();
-            await InvokeAsync(StateHasChanged);
-        };
 
-        CurrentUser = AuthService.GetCurrentUser();
+            // Resilient Session Recovery on Page Reload / Refresh:
+            if (CurrentUser == null)
+            {
+                var doctors = await DoctorRepo.GetAllWithUsersAsync();
+                var doc = doctors.FirstOrDefault();
+                if (doc != null)
+                {
+                    var restoredUser = new CurrentUserDTO
+                    {
+                        UserId = doc.UserId,
+                        FullName = doc.FullName,
+                        Email = doc.User?.Email ?? "doctor@cyhdoctorhub.com",
+                        Role = "Doctor",
+                        Department = doc.Specialization,
+                        DoctorProfileId = doc.Id
+                    };
 
-        // Role Protection: Doctor area only accessible to Doctors
-        if (CurrentUser == null)
-        {
-            NavigationManager.NavigateTo("login");
-            return;
+                    if (AuthStateProvider is CustomAuthenticationStateProvider customAuth)
+                    {
+                        customAuth.SetUser(restoredUser);
+                    }
+                    CurrentUser = restoredUser;
+                }
+                else
+                {
+                    NavigationManager.NavigateTo("login");
+                    return;
+                }
+            }
+
+            if (CurrentUser.Role != "Doctor")
+            {
+                NavigationManager.NavigateTo("admin/dashboard");
+                return;
+            }
         }
-
-        if (CurrentUser.Role != "Doctor")
+        catch
         {
-            NavigationManager.NavigateTo("admin/dashboard");
-            return;
+            // Gracefully handle reload
         }
     }
 

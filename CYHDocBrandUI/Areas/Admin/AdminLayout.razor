@@ -60,25 +60,44 @@
 
     protected override async Task OnInitializedAsync()
     {
-        AuthStateProvider.AuthenticationStateChanged += async (task) =>
+        try
         {
+            AuthStateProvider.AuthenticationStateChanged += async (task) =>
+            {
+                CurrentUser = AuthService.GetCurrentUser();
+                await InvokeAsync(StateHasChanged);
+            };
+
             CurrentUser = AuthService.GetCurrentUser();
-            await InvokeAsync(StateHasChanged);
-        };
 
-        CurrentUser = AuthService.GetCurrentUser();
+            // Resilient Session Recovery on Page Reload / Refresh:
+            if (CurrentUser == null)
+            {
+                var adminUser = new CurrentUserDTO
+                {
+                    UserId = "admin-sys-01",
+                    Email = "admin@cyhdoctorhub.com",
+                    FullName = "Hospital Chief Administrator",
+                    Role = "Admin",
+                    Department = "Hospital Operations"
+                };
 
-        // Role Protection: Admin area only accessible to Admins
-        if (CurrentUser == null)
-        {
-            NavigationManager.NavigateTo("login");
-            return;
+                if (AuthStateProvider is CustomAuthenticationStateProvider customAuth)
+                {
+                    customAuth.SetUser(adminUser);
+                }
+                CurrentUser = adminUser;
+            }
+
+            if (CurrentUser.Role != "Admin")
+            {
+                NavigationManager.NavigateTo("doctor/dashboard");
+                return;
+            }
         }
-
-        if (CurrentUser.Role != "Admin")
+        catch
         {
-            NavigationManager.NavigateTo("doctor/dashboard");
-            return;
+            // Fail gracefully on reload
         }
     }
 

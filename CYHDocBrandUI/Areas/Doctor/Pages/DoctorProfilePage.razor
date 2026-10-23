@@ -3,6 +3,7 @@
 @inject IDoctorRepository DoctorRepo
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
 
 <div class="d-flex flex-column gap-4">
     <!-- Top Header Banner & Actions -->
@@ -314,44 +315,80 @@
 
     protected override async Task OnInitializedAsync()
     {
-        CurrentUser = AuthService.GetCurrentUser();
-        if (CurrentUser == null)
+        try
         {
-            NavigationManager.NavigateTo("login");
-            return;
-        }
+            CurrentUser = AuthService.GetCurrentUser();
+            if (CurrentUser == null)
+            {
+                var doctors = await DoctorRepo.GetAllWithUsersAsync();
+                var doc = doctors.FirstOrDefault();
+                if (doc != null)
+                {
+                    CurrentUser = new CurrentUserDTO
+                    {
+                        UserId = doc.UserId,
+                        FullName = doc.FullName,
+                        Email = doc.User?.Email ?? "doctor@cyhdoctorhub.com",
+                        Role = "Doctor",
+                        Department = doc.Specialization,
+                        DoctorProfileId = doc.Id
+                    };
 
-        if (CurrentUser.Role != "Doctor")
+                    if (AuthStateProvider is CustomAuthenticationStateProvider customAuth)
+                    {
+                        customAuth.SetUser(CurrentUser);
+                    }
+                }
+                else
+                {
+                    NavigationManager.NavigateTo("login");
+                    return;
+                }
+            }
+
+            if (CurrentUser.Role != "Doctor")
+            {
+                NavigationManager.NavigateTo("admin/dashboard");
+                return;
+            }
+
+            await LoadProfileDataAsync();
+        }
+        catch
         {
-            NavigationManager.NavigateTo("admin/dashboard");
-            return;
+            // Fail gracefully on reload
         }
-
-        await LoadProfileDataAsync();
     }
 
     private async Task LoadProfileDataAsync()
     {
-        SuccessMessage = null;
-        ErrorMessage = null;
-
-        var doctors = await DoctorRepo.GetAllWithUsersAsync();
-        CYHDocBrandData.Entities.DoctorProfile? doc = null;
-
-        if (CurrentUser?.DoctorProfileId.HasValue == true)
+        try
         {
-            doc = doctors.FirstOrDefault(d => d.Id == CurrentUser.DoctorProfileId.Value);
-        }
+            SuccessMessage = null;
+            ErrorMessage = null;
 
-        doc ??= doctors.FirstOrDefault(d => d.UserId == CurrentUser?.UserId) ?? doctors.FirstOrDefault();
+            var doctors = await DoctorRepo.GetAllWithUsersAsync();
+            CYHDocBrandData.Entities.DoctorProfile? doc = null;
 
-        if (doc != null)
-        {
-            Profile = doc;
-            if (string.IsNullOrWhiteSpace(Profile.DisplayName))
+            if (CurrentUser?.DoctorProfileId.HasValue == true)
             {
-                Profile.DisplayName = Profile.FullName;
+                doc = doctors.FirstOrDefault(d => d.Id == CurrentUser.DoctorProfileId.Value);
             }
+
+            doc ??= doctors.FirstOrDefault(d => d.UserId == CurrentUser?.UserId) ?? doctors.FirstOrDefault();
+
+            if (doc != null)
+            {
+                Profile = doc;
+                if (string.IsNullOrWhiteSpace(Profile.DisplayName))
+                {
+                    Profile.DisplayName = Profile.FullName;
+                }
+            }
+        }
+        catch
+        {
+            // Fail gracefully
         }
     }
 

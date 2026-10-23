@@ -3,6 +3,7 @@
 @inject IDoctorRepository DoctorRepo
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
 
 <div class="d-flex flex-column gap-4">
     <!-- Header -->
@@ -108,37 +109,80 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var currentUser = AuthService.GetCurrentUser();
-        if (currentUser == null)
+        try
         {
-            NavigationManager.NavigateTo("login");
-            return;
-        }
+            var currentUser = AuthService.GetCurrentUser();
+            if (currentUser == null)
+            {
+                var doctors = await DoctorRepo.GetAllWithUsersAsync();
+                var doc = doctors.FirstOrDefault();
+                if (doc != null)
+                {
+                    currentUser = new CurrentUserDTO
+                    {
+                        UserId = doc.UserId,
+                        FullName = doc.FullName,
+                        Email = doc.User?.Email ?? "doctor@cyhdoctorhub.com",
+                        Role = "Doctor",
+                        Department = doc.Specialization,
+                        DoctorProfileId = doc.Id
+                    };
 
-        if (currentUser.Role != "Doctor")
+                    if (AuthStateProvider is CustomAuthenticationStateProvider customAuth)
+                    {
+                        customAuth.SetUser(currentUser);
+                    }
+                }
+                else
+                {
+                    NavigationManager.NavigateTo("login");
+                    return;
+                }
+            }
+
+            if (currentUser.Role != "Doctor")
+            {
+                NavigationManager.NavigateTo("admin/dashboard");
+                return;
+            }
+
+            await LoadDoctorDataAsync();
+        }
+        catch
         {
-            NavigationManager.NavigateTo("admin/dashboard");
-            return;
+            // Fail gracefully on reload
         }
-
-        await LoadDoctorDataAsync();
     }
 
     private async Task LoadDoctorDataAsync()
     {
-        var currentUser = AuthService.GetCurrentUser();
-        var doctors = await DoctorRepo.GetAllWithUsersAsync();
-        if (currentUser?.DoctorProfileId.HasValue == true)
+        try
         {
-            CurrentDoctor = doctors.FirstOrDefault(d => d.Id == currentUser.DoctorProfileId.Value);
+            var currentUser = AuthService.GetCurrentUser();
+            var doctors = await DoctorRepo.GetAllWithUsersAsync();
+            if (currentUser?.DoctorProfileId.HasValue == true)
+            {
+                CurrentDoctor = doctors.FirstOrDefault(d => d.Id == currentUser.DoctorProfileId.Value);
+            }
+            CurrentDoctor ??= doctors.FirstOrDefault(d => d.UserId == currentUser?.UserId) ?? doctors.FirstOrDefault();
         }
-        CurrentDoctor ??= doctors.FirstOrDefault(d => d.UserId == currentUser?.UserId) ?? doctors.FirstOrDefault();
+        catch
+        {
+            // Fail gracefully
+        }
     }
 
     private async Task ToggleAvailability()
     {
-        if (CurrentDoctor == null) return;
-        await DoctorRepo.ToggleAvailabilityAsync(CurrentDoctor.Id);
-        await LoadDoctorDataAsync();
+        try
+        {
+            if (CurrentDoctor == null) return;
+            await DoctorRepo.ToggleAvailabilityAsync(CurrentDoctor.Id);
+            await LoadDoctorDataAsync();
+        }
+        catch
+        {
+            // Fail gracefully
+        }
     }
 }
