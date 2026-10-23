@@ -1,5 +1,6 @@
 @page "/doctor/profile"
 @layout DoctorLayout
+@using CYHDocBrandRepo.Utilities
 @inject IDoctorRepository DoctorRepo
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
@@ -112,7 +113,7 @@
                     </div>
 
                     <!-- Photo Action Buttons (Upload / Edit / Delete) -->
-                    <div class="d-flex flex-wrap align-items-center justify-content-center gap-2 mb-3">
+                    <div class="d-flex flex-wrap align-items-center justify-content-center gap-2 mb-1">
                         <label for="profilePicInput" class="glass-btn-secondary btn-sm mb-0 d-inline-flex align-items-center gap-1" style="cursor: pointer; font-size: 0.78rem; padding: 5px 12px;">
                             @if (IsUploadingPic)
                             {
@@ -138,6 +139,10 @@
                             </button>
                         }
                     </div>
+
+                    <small class="text-white-50 d-block mb-3" style="font-size: 0.7rem;">
+                        <i class="bi bi-shield-check text-info me-1"></i>Max image size: 1 MB (Auto-optimized)
+                    </small>
 
                     <h4 class="fw-bold mb-1 text-white">@(string.IsNullOrWhiteSpace(Profile?.DisplayName) ? Profile?.FullName : Profile.DisplayName)</h4>
                     <p class="text-info fw-semibold small mb-2">@(Profile?.Specialization ?? "Chief Specialist")</p>
@@ -471,77 +476,77 @@
             var file = e.File;
             if (file == null) return;
 
-            // 1. Validation: Allowed formats
-            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
-            var extension = Path.GetExtension(file.Name).ToLowerInvariant();
-            if (!allowedExtensions.Contains(extension))
+            // 1. Validate extension using ImageUtility
+            if (!ImageUtility.IsValidImageExtension(file.Name))
             {
-                ErrorMessage = "Invalid image format. Please select a JPG, JPEG, PNG, or WEBP image.";
+                ErrorMessage = "Invalid image format. Supported formats: JPG, JPEG, PNG, WEBP.";
                 return;
             }
 
-            // 2. Validation: Maximum file size (5 MB)
-            const long maxFileSize = 5 * 1024 * 1024;
-            if (file.Size > maxFileSize)
-            {
-                ErrorMessage = "Image size exceeds limit. Maximum allowed size is 5 MB.";
-                return;
-            }
-
-            // 3. Prepare target physical folder
+            // 2. Prepare physical target directory
             var webRoot = WebHostEnvironment.WebRootPath;
             if (string.IsNullOrWhiteSpace(webRoot))
             {
                 webRoot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
             }
-
             var uploadsFolder = Path.Combine(webRoot, "uploads", "doctors");
-            if (!Directory.Exists(uploadsFolder))
+
+            // 3. Client-side dimension scaling to maintain image size safely under 1 MB
+            IBrowserFile uploadFile = file;
+            var ext = Path.GetExtension(file.Name).ToLowerInvariant();
+            var targetMime = ext == ".png" ? "image/png" : (ext == ".webp" ? "image/webp" : "image/jpeg");
+
+            try
             {
-                Directory.CreateDirectory(uploadsFolder);
+                // Auto-scale to max 1000x1000 pixels (smoothly keeps file size between 60KB and 350KB)
+                uploadFile = await file.RequestImageFileAsync(targetMime, 1000, 1000);
+            }
+            catch
+            {
+                // Fallback to original file if client scaler not applicable
+                uploadFile = file;
             }
 
-            // Remove existing physical file if locally stored
-            if (!string.IsNullOrEmpty(Profile.ProfilePic) && Profile.ProfilePic.StartsWith("/uploads/doctors/"))
-            {
-                var oldFileName = Path.GetFileName(Profile.ProfilePic);
-                var oldFilePath = Path.Combine(uploadsFolder, oldFileName);
-                if (File.Exists(oldFilePath))
-                {
-                    try { File.Delete(oldFilePath); } catch { }
-                }
-            }
+            // 4. Delete existing physical file via ImageUtility
+            ImageUtility.DeletePhysicalImage(webRoot, Profile.ProfilePic);
 
-            // 4. Save new image file
+            // 5. Enforce strict 1 MB limit and write file using ImageUtility
             var docIdentifier = Profile.Id > 0 ? Profile.Id.ToString() : (Profile.UserId ?? "doc");
-            var uniqueFileName = $"doc_{docIdentifier}_{DateTime.UtcNow.Ticks}{extension}";
-            var fullPath = Path.Combine(uploadsFolder, uniqueFileName);
+            await using var stream = uploadFile.OpenReadStream(maxAllowedSize: ImageUtility.MaxImageSizeBytes * 2);
 
-            await using (var fileStream = new FileStream(fullPath, FileMode.Create))
+            var saveResult = await ImageUtility.SaveImageWithinLimitAsync(
+                inputStream: stream,
+                originalFileName: uploadFile.Name,
+                targetDirectory: uploadsFolder,
+                urlPrefix: "/uploads/doctors",
+                fileIdentifier: docIdentifier
+            );
+
+            if (!saveResult.Success)
             {
-                await file.OpenReadStream(maxAllowedSize: maxFileSize).CopyToAsync(fileStream);
+                ErrorMessage = saveResult.ErrorMessage ?? "Could not save image.";
+                return;
             }
 
-            var relativePath = $"/uploads/doctors/{uniqueFileName}";
-            Profile.ProfilePic = relativePath;
+            // 6. Update Profile and SQL Server
+            Profile.ProfilePic = saveResult.RelativePath;
 
-            // 5. Persist to SQL Server database
             var success = await DoctorRepo.UpdateProfileAsync(Profile);
             if (success)
             {
                 if (CurrentUser != null)
                 {
-                    CurrentUser.AvatarUrl = relativePath;
+                    CurrentUser.AvatarUrl = saveResult.RelativePath;
                     if (AuthStateProvider is CustomAuthenticationStateProvider customAuth)
                     {
                         customAuth.SetUser(CurrentUser);
                     }
                 }
-                SuccessMessage = "Profile picture uploaded and updated successfully in SQL Server!";
+                SuccessMessage = $"Profile picture uploaded and saved successfully ({ImageUtility.FormatFileSize(saveResult.FinalSizeBytes)} - strictly under 1 MB)!";
             }
             else
             {
-                ErrorMessage = "Image saved locally, but database update returned an unexpected status.";
+                ErrorMessage = "Image saved to disk, but database profile update encountered an issue.";
             }
         }
         catch (Exception ex)
@@ -562,22 +567,14 @@
 
         try
         {
-            if (!string.IsNullOrEmpty(Profile.ProfilePic) && Profile.ProfilePic.StartsWith("/uploads/doctors/"))
+            var webRoot = WebHostEnvironment.WebRootPath;
+            if (string.IsNullOrWhiteSpace(webRoot))
             {
-                var webRoot = WebHostEnvironment.WebRootPath;
-                if (string.IsNullOrWhiteSpace(webRoot))
-                {
-                    webRoot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
-                }
-
-                var uploadsFolder = Path.Combine(webRoot, "uploads", "doctors");
-                var oldFileName = Path.GetFileName(Profile.ProfilePic);
-                var oldFilePath = Path.Combine(uploadsFolder, oldFileName);
-                if (File.Exists(oldFilePath))
-                {
-                    try { File.Delete(oldFilePath); } catch { }
-                }
+                webRoot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
             }
+
+            // Delete physical file via ImageUtility
+            ImageUtility.DeletePhysicalImage(webRoot, Profile.ProfilePic);
 
             Profile.ProfilePic = null;
 
