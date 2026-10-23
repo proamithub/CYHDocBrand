@@ -36,23 +36,13 @@
         <i class="bi bi-person-badge-fill text-info"></i>
         <span>Hospital Faculty</span>
     </NavLink>
-
-    <div class="cyh-nav-divider" style="color: #cbd5e1;">Session</div>
-
-    <button type="button" class="cyh-nav-item border-0 w-100 text-start bg-transparent" @onclick="Logout">
-        <i class="bi bi-box-arrow-right text-danger"></i>
-        <span>Logout Session</span>
-    </button>
 </div>
 
-<div class="cyh-sidebar-footer" style="border-top: 1px solid rgba(0, 242, 254, 0.2);">
-    <div class="d-flex align-items-center justify-content-between">
-        <div class="d-flex align-items-center gap-2">
-            <span class="badge rounded-pill bg-info" style="width: 8px; height: 8px; padding: 0;"></span>
-            <small style="font-size: 0.75rem; color: #cbd5e1;">Clinical Node Online</small>
-        </div>
-        <span class="badge bg-dark border border-info text-info" style="font-size: 0.7rem;">Doctor Role</span>
-    </div>
+<div class="cyh-sidebar-footer" style="border-top: 1px solid rgba(0, 242, 254, 0.2); padding: 0.9rem 1rem;">
+    <button type="button" class="glass-btn-danger w-100 d-flex align-items-center justify-content-center gap-2 py-2" @onclick="Logout" style="border-radius: 10px; font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease;">
+        <i class="bi bi-box-arrow-right"></i>
+        <span>Logout</span>
+    </button>
 </div>
 
 @code {
