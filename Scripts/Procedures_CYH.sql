@@ -171,8 +171,12 @@ BEGIN
             VALUES (
                 CAST(NEWID() AS NVARCHAR(450)), 'admin@cyhdoctorhub.com', 'ADMIN@CYHDOCTORHUB.COM', 'admin@cyhdoctorhub.com', 'ADMIN@CYHDOCTORHUB.COM', 1,
                 'Hospital Chief Administrator', 'Admin', 'Hospital Operations & Executive',
-                'QWRtaW5AMTIzNDU=', SYSUTCDATETIME(), 1, 0, 0, 0, 0
+                'L4Yq5jzhlap0wTagsBRCUg==', SYSUTCDATETIME(), 1, 0, 0, 0, 0
             );
+        END
+        ELSE
+        BEGIN
+            UPDATE AspNetUsers SET Password = 'L4Yq5jzhlap0wTagsBRCUg==' WHERE Email = 'admin@cyhdoctorhub.com';
         END
 
         -- 2. Doctor 1
@@ -183,7 +187,7 @@ BEGIN
             VALUES (
                 @Doc1UserId, 'doctor@cyhdoctorhub.com', 'DOCTOR@CYHDOCTORHUB.COM', 'doctor@cyhdoctorhub.com', 'DOCTOR@CYHDOCTORHUB.COM', 1,
                 'Dr. A. Sharma', 'Doctor', 'Cardiology',
-                'RG9jdG9yQDEyMzQ1', SYSUTCDATETIME(), 1, 0, 0, 0, 0
+                'n7uoG53mus5DzCXmNgv7NQ==', SYSUTCDATETIME(), 1, 0, 0, 0, 0
             );
 
             IF NOT EXISTS (SELECT 1 FROM DoctorProfiles WHERE FullName = 'Dr. A. Sharma')
@@ -197,6 +201,10 @@ BEGIN
                 );
             END
         END
+        ELSE
+        BEGIN
+            UPDATE AspNetUsers SET Password = 'n7uoG53mus5DzCXmNgv7NQ==' WHERE Email = 'doctor@cyhdoctorhub.com';
+        END
 
         -- 3. Doctor 2
         IF NOT EXISTS (SELECT 1 FROM AspNetUsers WHERE Email = 'priya.patel@cyhdoctorhub.com')
@@ -206,7 +214,7 @@ BEGIN
             VALUES (
                 @Doc2UserId, 'priya.patel@cyhdoctorhub.com', 'PRIYA.PATEL@CYHDOCTORHUB.COM', 'priya.patel@cyhdoctorhub.com', 'PRIYA.PATEL@CYHDOCTORHUB.COM', 1,
                 'Dr. Priya Patel', 'Doctor', 'Neurology',
-                'RG9jdG9yQDEyMzQ1', SYSUTCDATETIME(), 1, 0, 0, 0, 0
+                'n7uoG53mus5DzCXmNgv7NQ==', SYSUTCDATETIME(), 1, 0, 0, 0, 0
             );
 
             IF NOT EXISTS (SELECT 1 FROM DoctorProfiles WHERE FullName = 'Dr. Priya Patel')
@@ -219,6 +227,10 @@ BEGIN
                     1, SYSUTCDATETIME()
                 );
             END
+        END
+        ELSE
+        BEGIN
+            UPDATE AspNetUsers SET Password = 'n7uoG53mus5DzCXmNgv7NQ==' WHERE Email = 'priya.patel@cyhdoctorhub.com';
         END
 
         SELECT 1 AS Status;
