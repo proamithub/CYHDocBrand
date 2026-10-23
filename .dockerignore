@@ -1,0 +1,11 @@
+**/.git
+**/.vs
+**/bin
+**/obj
+**/out
+**/publish
+**/.system_generated
+**/.vscode
+*.user
+*.suo
+Scripts/
