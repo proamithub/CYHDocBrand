@@ -206,7 +206,7 @@
                 currentUser = adminUser;
             }
 
-            if (currentUser.Role != "Admin")
+            if (currentUser?.Role != "Admin")
             {
                 NavigationManager.NavigateTo("doctor/dashboard");
                 return;

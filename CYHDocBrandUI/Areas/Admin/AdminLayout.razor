@@ -1,4 +1,5 @@
 @inherits LayoutComponentBase
+@implements IDisposable
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthStateProvider
@@ -57,16 +58,13 @@
 
 @code {
     private CurrentUserDTO? CurrentUser;
+    private bool _disposed = false;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            AuthStateProvider.AuthenticationStateChanged += async (task) =>
-            {
-                CurrentUser = AuthService.GetCurrentUser();
-                await InvokeAsync(StateHasChanged);
-            };
+            AuthStateProvider.AuthenticationStateChanged += OnAuthStateChanged;
 
             CurrentUser = AuthService.GetCurrentUser();
 
@@ -89,9 +87,9 @@
                 CurrentUser = adminUser;
             }
 
-            if (CurrentUser.Role != "Admin")
+            if (CurrentUser?.Role != "Admin")
             {
-                NavigationManager.NavigateTo("doctor/dashboard");
+                NavigationManager.NavigateTo("doctor/dashboard", forceLoad: true);
                 return;
             }
         }
@@ -101,9 +99,26 @@
         }
     }
 
+    private void OnAuthStateChanged(Task<AuthenticationState> task)
+    {
+        if (_disposed) return;
+        _ = InvokeAsync(() =>
+        {
+            if (_disposed) return;
+            CurrentUser = AuthService.GetCurrentUser();
+            StateHasChanged();
+        });
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        AuthStateProvider.AuthenticationStateChanged -= OnAuthStateChanged;
+    }
+
     private async Task Logout()
     {
         await AuthService.LogoutAsync();
-        NavigationManager.NavigateTo("login");
+        NavigationManager.NavigateTo("login", forceLoad: true);
     }
 }

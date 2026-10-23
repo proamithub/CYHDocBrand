@@ -542,3 +542,33 @@ body {
   text-shadow: none !important;
 }
 
+#blazor-error-ui {
+  background: rgba(15, 23, 42, 0.95) !important;
+  color: #fda4af !important;
+  border-top: 1px solid rgba(244, 63, 94, 0.4) !important;
+  backdrop-filter: blur(12px) !important;
+  bottom: 0;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5) !important;
+  display: none;
+  left: 0;
+  padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+  position: fixed;
+  width: 100%;
+  z-index: 9999;
+  font-size: 0.85rem;
+}
+
+#blazor-error-ui .reload {
+  color: #38bdf8 !important;
+  text-decoration: underline;
+  margin-left: 0.5rem;
+}
+
+#blazor-error-ui .dismiss {
+  cursor: pointer;
+  position: absolute;
+  right: 0.75rem;
+  top: 0.5rem;
+  color: #cbd5e1 !important;
+}
+

@@ -391,7 +391,7 @@
                 }
             }
 
-            if (CurrentUser.Role != "Doctor")
+            if (CurrentUser?.Role != "Doctor")
             {
                 NavigationManager.NavigateTo("admin/dashboard");
                 return;

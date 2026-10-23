@@ -18,7 +18,19 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
 
     public void SetUser(CurrentUserDTO user)
     {
+        bool isSameUser = CurrentUser != null &&
+            CurrentUser.UserId == user.UserId &&
+            CurrentUser.Role == user.Role &&
+            CurrentUser.AvatarUrl == user.AvatarUrl &&
+            CurrentUser.FullName == user.FullName;
+
         CurrentUser = user;
+
+        if (isSameUser)
+        {
+            return;
+        }
+
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, user.UserId),
