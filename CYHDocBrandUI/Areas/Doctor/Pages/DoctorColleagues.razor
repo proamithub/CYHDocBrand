@@ -1,0 +1,105 @@
+@page "/doctor/colleagues"
+@layout DoctorLayout
+@inject IDoctorRepository DoctorRepo
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+
+<div class="d-flex flex-column gap-4">
+    <!-- Header -->
+    <div class="glass-panel p-4 d-flex flex-wrap align-items-center justify-content-between gap-3" style="border-left: 4px solid #00f2fe;">
+        <div>
+            <h3 class="fw-bold mb-1 text-white">
+                <i class="bi bi-person-badge-fill text-info me-2"></i>Hospital Specialists & Faculty
+            </h3>
+            <p class="small mb-0" style="color: #cbd5e1;">Colleague Roster • Clinical Specialties & Duty Status</p>
+        </div>
+        <div>
+            <button class="glass-btn-primary" @onclick="LoadColleaguesAsync">
+                <i class="bi bi-arrow-clockwise"></i> Refresh Faculty
+            </button>
+        </div>
+    </div>
+
+    <!-- Doctor Grid Cards -->
+    @if (Colleagues == null)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-info"></div>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var doc in Colleagues)
+            {
+                <div class="col-12 col-md-6 col-xl-4">
+                    <div class="glass-card h-100 d-flex flex-column justify-content-between p-4">
+                        <div>
+                            <div class="d-flex align-items-start justify-content-between mb-3">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="user-avatar" style="width: 50px; height: 50px; font-size: 1.25rem;">
+                                        @doc.FullName[0]
+                                    </div>
+                                    <div>
+                                        <h5 class="fw-bold text-white mb-0">@doc.FullName</h5>
+                                        <span class="text-info small fw-semibold">@doc.Specialization</span>
+                                    </div>
+                                </div>
+                                <span class="badge @(doc.IsAvailableToday ? "bg-success" : "bg-secondary") rounded-pill px-2 py-1" style="font-size: 0.72rem;">
+                                    @(doc.IsAvailableToday ? "On Duty" : "Away")
+                                </span>
+                            </div>
+
+                            <p class="small mb-3" style="color: #cbd5e1;">
+                                @(string.IsNullOrWhiteSpace(doc.Bio) ? "Experienced specialist dedicated to compassionate medical care." : doc.Bio)
+                            </p>
+
+                            <div class="d-flex flex-column gap-1 small mb-3 border-top pt-2" style="border-color: rgba(255,255,255,0.08) !important; color: #94a3b8;">
+                                <div><i class="bi bi-award text-info me-2"></i>Experience: <strong class="text-white">@doc.ExperienceYears years</strong></div>
+                                <div><i class="bi bi-calendar3 text-info me-2"></i>Available: <span class="text-white">@doc.AvailableDays</span></div>
+                                <div><i class="bi bi-clock text-info me-2"></i>Clinic Hours: <span class="text-white">@doc.AvailableHours</span></div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex align-items-center justify-content-between pt-3 border-top" style="border-color: rgba(255,255,255,0.08) !important;">
+                            <div>
+                                <span class="small" style="color: #94a3b8;">Consultation Fee</span>
+                                <div class="fw-bold text-white fs-5">$@doc.ConsultationFee.ToString("N2")</div>
+                            </div>
+                            <span class="badge bg-dark border border-secondary text-info">
+                                License: @doc.LicenseNumber
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<DoctorProfile>? Colleagues;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var currentUser = AuthService.GetCurrentUser();
+        if (currentUser == null)
+        {
+            NavigationManager.NavigateTo("login");
+            return;
+        }
+
+        if (currentUser.Role != "Doctor")
+        {
+            NavigationManager.NavigateTo("admin/dashboard");
+            return;
+        }
+
+        await LoadColleaguesAsync();
+    }
+
+    private async Task LoadColleaguesAsync()
+    {
+        Colleagues = await DoctorRepo.GetAllWithUsersAsync();
+    }
+}

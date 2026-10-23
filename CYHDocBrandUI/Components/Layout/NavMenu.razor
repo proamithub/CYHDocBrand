@@ -2,54 +2,89 @@
 @inject NavigationManager NavigationManager
 
 <div class="cyh-brand">
-    <div class="cyh-brand-logo">
-        <i class="bi bi-heart-pulse-fill"></i>
+    <div class="cyh-brand-logo" style="@(IsAdmin ? "background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%); color: #070d1e;" : "")">
+        <i class="bi @(IsAdmin ? "bi-shield-shaded" : "bi-heart-pulse-fill")"></i>
     </div>
     <div>
-        <div class="cyh-brand-title">CYH DoctorHub</div>
-        <div class="cyh-brand-subtitle">Healthcare Portal</div>
+        <div class="cyh-brand-title">CYH @(IsAdmin ? "AdminHub" : "DoctorHub")</div>
+        <div class="cyh-brand-subtitle" style="@(IsAdmin ? "color: #fbbf24;" : "")">
+            @(IsAdmin ? "Hospital Command" : "Clinical Portal")
+        </div>
     </div>
 </div>
 
 <div class="cyh-nav">
-    <div class="cyh-nav-divider">Core Navigation</div>
+    @if (IsAdmin)
+    {
+        <div class="cyh-nav-divider" style="color: #cbd5e1;">Hospital Administration</div>
 
-    <NavLink class="cyh-nav-item" href="overview" Match="NavLinkMatch.All">
-        <i class="bi bi-grid-1x2-fill"></i>
-        <span>Overview</span>
-    </NavLink>
+        <NavLink class="cyh-nav-item" href="admin/dashboard" Match="NavLinkMatch.All">
+            <i class="bi bi-speedometer2 text-warning"></i>
+            <span>Admin Dashboard</span>
+        </NavLink>
 
-    <NavLink class="cyh-nav-item" href="doctor/dashboard">
-        <i class="bi bi-hospital"></i>
-        <span>Doctor Dashboard</span>
-    </NavLink>
+        <NavLink class="cyh-nav-item" href="admin/doctors">
+            <i class="bi bi-people-fill text-warning"></i>
+            <span>Manage Specialists</span>
+        </NavLink>
 
-    <NavLink class="cyh-nav-item" href="admin/dashboard">
-        <i class="bi bi-shield-lock-fill"></i>
-        <span>Admin Dashboard</span>
-    </NavLink>
+        <NavLink class="cyh-nav-item" href="admin/system">
+            <i class="bi bi-cpu-fill text-warning"></i>
+            <span>System Infrastructure</span>
+        </NavLink>
+    }
+    else
+    {
+        <div class="cyh-nav-divider" style="color: #cbd5e1;">Clinical Workspace</div>
 
-    <div class="cyh-nav-divider">Clinical Operations</div>
+        <NavLink class="cyh-nav-item" href="doctor/dashboard" Match="NavLinkMatch.All">
+            <i class="bi bi-hospital-fill text-info"></i>
+            <span>Doctor Dashboard</span>
+        </NavLink>
 
-    <NavLink class="cyh-nav-item" href="doctors">
-        <i class="bi bi-person-badge-fill"></i>
-        <span>Doctors Directory</span>
-    </NavLink>
+        <NavLink class="cyh-nav-item" href="doctor/schedule">
+            <i class="bi bi-calendar3-week text-info"></i>
+            <span>OPD Timings & Duty</span>
+        </NavLink>
 
-    <div class="cyh-nav-divider">Account</div>
+        <NavLink class="cyh-nav-item" href="doctor/colleagues">
+            <i class="bi bi-person-badge-fill text-info"></i>
+            <span>Hospital Faculty</span>
+        </NavLink>
+    }
 
-    <NavLink class="cyh-nav-item" href="login">
-        <i class="bi bi-box-arrow-in-right"></i>
-        <span>Login Page</span>
-    </NavLink>
+    <div class="cyh-nav-divider" style="color: #cbd5e1;">Account</div>
+
+    <button type="button" class="cyh-nav-item border-0 w-100 text-start bg-transparent" @onclick="Logout">
+        <i class="bi bi-box-arrow-right text-danger"></i>
+        <span>Logout</span>
+    </button>
 </div>
 
 <div class="cyh-sidebar-footer">
     <div class="d-flex align-items-center justify-content-between">
         <div class="d-flex align-items-center gap-2">
-            <span class="badge rounded-pill bg-success" style="width: 8px; height: 8px; padding: 0;"></span>
-            <small class="text-muted" style="font-size: 0.75rem;">SQL Server Active</small>
+            <span class="badge rounded-pill @(IsAdmin ? "bg-warning" : "bg-success")" style="width: 8px; height: 8px; padding: 0;"></span>
+            <small style="font-size: 0.75rem; color: #cbd5e1;">@(IsAdmin ? "Admin Node" : "Doctor Node")</small>
         </div>
-        <span class="badge bg-dark border border-secondary text-info" style="font-size: 0.7rem;">.NET 10 LTS</span>
+        <span class="badge bg-dark border @(IsAdmin ? "border-warning text-warning" : "border-info text-info")" style="font-size: 0.7rem;">
+            @(IsAdmin ? "Admin Area" : "Doctor Area")
+        </span>
     </div>
 </div>
+
+@code {
+    private CurrentUserDTO? CurrentUser;
+    private bool IsAdmin => CurrentUser?.Role == "Admin";
+
+    protected override void OnInitialized()
+    {
+        CurrentUser = AuthService.GetCurrentUser();
+    }
+
+    private async Task Logout()
+    {
+        await AuthService.LogoutAsync();
+        NavigationManager.NavigateTo("login");
+    }
+}

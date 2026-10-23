@@ -1,0 +1,64 @@
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+
+<div class="cyh-brand" style="border-bottom: 1px solid rgba(0, 242, 254, 0.25);">
+    <div class="cyh-brand-logo" style="background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); box-shadow: 0 0 20px rgba(0, 242, 254, 0.45); color: #070d1e;">
+        <i class="bi bi-heart-pulse-fill"></i>
+    </div>
+    <div>
+        <div class="cyh-brand-title">CYH DoctorHub</div>
+        <div class="cyh-brand-subtitle" style="color: #00f2fe;">Clinical Workspace</div>
+    </div>
+</div>
+
+<div class="px-3 pt-3">
+    <div class="p-2 text-center rounded-3" style="background: rgba(0, 242, 254, 0.12); border: 1px solid rgba(0, 242, 254, 0.35);">
+        <span class="badge" style="background: transparent; color: #00f2fe; font-size: 0.72rem; letter-spacing: 0.8px; font-weight: 700;">
+            <i class="bi bi-person-badge-fill me-1"></i> DOCTOR PORTAL
+        </span>
+    </div>
+</div>
+
+<div class="cyh-nav">
+    <div class="cyh-nav-divider" style="color: #cbd5e1;">Clinical Navigation</div>
+
+    <NavLink class="cyh-nav-item" href="doctor/dashboard" Match="NavLinkMatch.All">
+        <i class="bi bi-hospital-fill text-info"></i>
+        <span>My Clinical Dashboard</span>
+    </NavLink>
+
+    <NavLink class="cyh-nav-item" href="doctor/schedule">
+        <i class="bi bi-calendar3-week text-info"></i>
+        <span>OPD Timings & Duty</span>
+    </NavLink>
+
+    <NavLink class="cyh-nav-item" href="doctor/colleagues">
+        <i class="bi bi-person-badge-fill text-info"></i>
+        <span>Hospital Faculty</span>
+    </NavLink>
+
+    <div class="cyh-nav-divider" style="color: #cbd5e1;">Session</div>
+
+    <button type="button" class="cyh-nav-item border-0 w-100 text-start bg-transparent" @onclick="Logout">
+        <i class="bi bi-box-arrow-right text-danger"></i>
+        <span>Logout Session</span>
+    </button>
+</div>
+
+<div class="cyh-sidebar-footer" style="border-top: 1px solid rgba(0, 242, 254, 0.2);">
+    <div class="d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge rounded-pill bg-info" style="width: 8px; height: 8px; padding: 0;"></span>
+            <small style="font-size: 0.75rem; color: #cbd5e1;">Clinical Node Online</small>
+        </div>
+        <span class="badge bg-dark border border-info text-info" style="font-size: 0.7rem;">Doctor Role</span>
+    </div>
+</div>
+
+@code {
+    private async Task Logout()
+    {
+        await AuthService.LogoutAsync();
+        NavigationManager.NavigateTo("login");
+    }
+}
