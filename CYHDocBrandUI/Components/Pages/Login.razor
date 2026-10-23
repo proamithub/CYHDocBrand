@@ -95,7 +95,7 @@
         <a href="javascript:void(0)" class="text-decoration-none" style="color: #00f2fe; font-weight: 600;">Need Help?</a>
     </div>
 
-    <button class="glass-btn-primary w-100 justify-content-center py-2 fs-6 mb-3" @onclick="HandleLogin" disabled="@IsLoading" style="border-radius: 12px; height: 46px;">
+    <button class="glass-btn-primary w-100 justify-content-center py-2 fs-6" @onclick="HandleLogin" disabled="@IsLoading" style="border-radius: 12px; height: 46px;">
         @if (IsLoading)
         {
             <span class="spinner-border spinner-border-sm me-2"></span>
@@ -107,13 +107,6 @@
             <span>Sign In to @(SelectedRole == "Doctor" ? "Doctor Workspace" : "Admin Console")</span>
         }
     </button>
-
-    <div class="text-center pt-2" style="border-top: 1px solid rgba(255, 255, 255, 0.1);">
-        <span style="font-size: 0.78rem; color: #94a3b8; display: inline-flex; align-items: center; gap: 0.45rem;">
-            <i class="bi bi-shield-check text-info"></i>
-            <span>256-Bit AES Encrypted • SQL Server Direct • .NET 10</span>
-        </span>
-    </div>
 </div>
 
 @code {
