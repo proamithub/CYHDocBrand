@@ -111,38 +111,22 @@
     {
         try
         {
-            var currentUser = AuthService.GetCurrentUser();
+            var currentUser = await AuthService.GetOrRestoreCurrentUserAsync();
             if (currentUser == null)
             {
-                var doctors = await DoctorRepo.GetAllWithUsersAsync();
-                var doc = doctors.FirstOrDefault();
-                if (doc != null)
-                {
-                    currentUser = new CurrentUserDTO
-                    {
-                        UserId = doc.UserId,
-                        FullName = doc.FullName,
-                        Email = doc.User?.Email ?? "doctor@cyhdoctorhub.com",
-                        Role = "Doctor",
-                        Department = doc.Specialization,
-                        DoctorProfileId = doc.Id
-                    };
-
-                    if (AuthStateProvider is CustomAuthenticationStateProvider customAuth)
-                    {
-                        customAuth.SetUser(currentUser);
-                    }
-                }
-                else
-                {
-                    NavigationManager.NavigateTo("login");
-                    return;
-                }
+                NavigationManager.NavigateTo("login");
+                return;
             }
 
-            if (currentUser?.Role != "Doctor")
+            if (currentUser.Role != "Doctor")
             {
                 NavigationManager.NavigateTo("admin/dashboard");
+                return;
+            }
+
+            if (!currentUser.IsActive)
+            {
+                NavigationManager.NavigateTo("doctor/profile");
                 return;
             }
 
@@ -158,13 +142,21 @@
     {
         try
         {
-            var currentUser = AuthService.GetCurrentUser();
-            var doctors = await DoctorRepo.GetAllWithUsersAsync();
-            if (currentUser?.DoctorProfileId.HasValue == true)
+            var currentUser = await AuthService.GetOrRestoreCurrentUserAsync();
+            if (currentUser == null) return;
+
+            DoctorProfile? doc = null;
+            if (currentUser.DoctorProfileId.HasValue)
             {
-                CurrentDoctor = doctors.FirstOrDefault(d => d.Id == currentUser.DoctorProfileId.Value);
+                doc = await DoctorRepo.GetByIdAsync(currentUser.DoctorProfileId.Value);
             }
-            CurrentDoctor ??= doctors.FirstOrDefault(d => d.UserId == currentUser?.UserId) ?? doctors.FirstOrDefault();
+
+            if (doc == null && !string.IsNullOrEmpty(currentUser.UserId))
+            {
+                doc = await DoctorRepo.GetByUserIdAsync(currentUser.UserId);
+            }
+
+            CurrentDoctor = doc;
         }
         catch
         {

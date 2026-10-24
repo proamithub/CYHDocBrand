@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.ResponseCompression;
 using CYHDocBrandData;
 using CYHDocBrandRepo.IRepository;
 using CYHDocBrandRepo.Repository;
@@ -23,18 +24,39 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 // 3. Stored Procedure Repositories (Pure ADO.NET)
 builder.Services.AddScoped<IDoctorRepository, DoctorRepository>();
 builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
+builder.Services.AddScoped<IBannerRepository, BannerRepository>();
+builder.Services.AddScoped<IDoctorAiSettingRepository, DoctorAiSettingRepository>();
 
 // 4. Application & Notification Services
+builder.Services.AddHttpClient();
 builder.Services.AddScoped<ISMSService, SMSService>();
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
+builder.Services.AddScoped<IBannerAiService, BannerAiService>();
 
-// 5. Razor Components (Interactive Server)
+// 5. Performance Optimizations (Compression & SignalR Speed)
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+});
+
+builder.Services.AddSignalR(options =>
+{
+    options.MaximumReceiveMessageSize = 10 * 1024 * 1024; // 10 MB for High-DPI Canvas transfers
+    options.EnableDetailedErrors = builder.Environment.IsDevelopment();
+});
+
+// 6. Razor Components (Interactive Server)
 builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
+    .AddInteractiveServerComponents(options =>
+    {
+        options.JSInteropDefaultCallTimeout = TimeSpan.FromSeconds(30);
+    });
 
 var app = builder.Build();
 
-// 6. Initialize Database via SQL Server Stored Procedure
+// 7. Initialize Database via SQL Server Stored Procedure
 try
 {
     var logger = app.Services.GetRequiredService<ILogger<Program>>();
@@ -46,7 +68,9 @@ catch (Exception ex)
     logger.LogError(ex, "An error occurred while initializing via Stored Procedure.");
 }
 
-// 7. Pipeline Configuration
+// 8. Pipeline Configuration
+app.UseResponseCompression();
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
@@ -55,7 +79,16 @@ if (!app.Environment.IsDevelopment())
 
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
-app.UseStaticFiles();
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        // 7 days browser cache for images, fonts, scripts
+        ctx.Context.Response.Headers.Append("Cache-Control", "public,max-age=604800");
+    }
+});
+
 app.UseAntiforgery();
 
 app.MapRazorComponents<App>()

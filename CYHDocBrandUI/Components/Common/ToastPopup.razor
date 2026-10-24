@@ -1,0 +1,44 @@
+@using CYHDocBrandModel.DTO
+
+@if (Notification != null)
+{
+    <div class="toast-popup-wrapper" style="position: fixed; top: 28px; right: 28px; z-index: 99999; min-width: 360px; max-width: 480px; animation: popupSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);">
+        <div class="glass-panel p-3 rounded-4 shadow-lg d-flex align-items-start gap-3" 
+             style="background: rgba(10, 18, 38, 0.96); backdrop-filter: blur(24px); border: 2px solid @Notification.BorderColor; box-shadow: 0 20px 50px rgba(0,0,0,0.85), 0 0 25px @Notification.GlowColor;">
+            <div class="rounded-circle p-2 d-flex align-items-center justify-content-center" 
+                 style="background: @Notification.IconBg; color: @Notification.IconColor; width: 44px; height: 44px; flex-shrink: 0; font-size: 1.35rem; border: 1px solid @Notification.BorderColor;">
+                <i class="bi @Notification.Icon"></i>
+            </div>
+            <div class="flex-grow-1">
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                    <strong class="text-white fs-6 fw-bold">@Notification.Title</strong>
+                    <button type="button" class="btn-close btn-close-white ms-2" @onclick="OnDismiss" style="font-size: 0.75rem;" aria-label="Close"></button>
+                </div>
+                <div class="small text-light" style="font-size: 0.86rem; line-height: 1.45; opacity: 0.92;">
+                    @Notification.Message
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    @@keyframes popupSlideIn {
+        from {
+            transform: translateX(110%) scale(0.9);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0) scale(1);
+            opacity: 1;
+        }
+    }
+</style>
+
+@code {
+    [Parameter]
+    public ToastNotificationDTO? Notification { get; set; }
+
+    [Parameter]
+    public EventCallback OnDismiss { get; set; }
+}

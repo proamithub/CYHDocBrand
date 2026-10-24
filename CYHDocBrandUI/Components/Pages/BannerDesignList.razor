@@ -1,0 +1,506 @@
+@page "/banner-designs"
+@page "/doctor/banner-designs"
+@page "/admin/banner-designs"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+@using CYHDocBrandModel.DTO
+@using CYHDocBrandUI.Components.Common
+
+@inject IBannerRepository BannerRepo
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+
+<!-- Animated Floating Toast Popup -->
+<ToastPopup Notification="activePopup" OnDismiss="DismissPopup" />
+
+<div class="banner-list-container fade-in">
+    <!-- Header -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge px-3 py-2" style="background: rgba(0, 242, 254, 0.15); border: 1px solid rgba(0, 242, 254, 0.4); color: #00f2fe; border-radius: 8px; font-weight: 700;">
+                    <i class="bi bi-collection-play-fill me-1"></i> SQL DATABASE MANAGED
+                </span>
+                <span class="text-secondary" style="font-size: 0.85rem;">CYH Creative Studio</span>
+            </div>
+            <h2 class="mt-2 mb-1 fw-bold text-white" style="letter-spacing: -0.5px;">
+                Banner Designs <span style="background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Library</span>
+            </h2>
+            <p class="text-secondary mb-0" style="font-size: 0.92rem;">
+                Apne saare Draft aur Published banners ko manage karein. Drafts ko edit karein, aur Published banners ko direct use karein.
+            </p>
+        </div>
+
+        <div class="d-flex gap-2">
+            <NavLink href="@GetCreateUrl()" class="btn btn-info d-flex align-items-center gap-2 px-4 py-2 fw-bold" style="background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); border: none; border-radius: 10px; color: #070d1e;">
+                <i class="bi bi-plus-lg fs-6"></i>
+                <span>Create New Banner</span>
+            </NavLink>
+        </div>
+    </div>
+
+    <!-- Stat Counter Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4 col-12">
+            <div class="glass-panel p-3 rounded-4 d-flex align-items-center justify-content-between" style="background: rgba(14, 25, 48, 0.65); border: 1px solid rgba(255, 255, 255, 0.08);">
+                <div>
+                    <div class="text-secondary" style="font-size: 0.8rem; font-weight: 600;">TOTAL CREATED</div>
+                    <h3 class="fw-bold text-white mb-0 mt-1">@banners.Count</h3>
+                </div>
+                <div class="stat-icon-circle bg-info bg-opacity-10 text-info">
+                    <i class="bi bi-images fs-4"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 col-12">
+            <div class="glass-panel p-3 rounded-4 d-flex align-items-center justify-content-between" style="background: rgba(14, 25, 48, 0.65); border: 1px solid rgba(255, 255, 255, 0.08);">
+                <div>
+                    <div class="text-warning" style="font-size: 0.8rem; font-weight: 600;">IN DRAFT (EDITABLE)</div>
+                    <h3 class="fw-bold text-warning mb-0 mt-1">@banners.Count(b => b.Status == "Draft")</h3>
+                </div>
+                <div class="stat-icon-circle bg-warning bg-opacity-10 text-warning">
+                    <i class="bi bi-pencil-square fs-4"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 col-12">
+            <div class="glass-panel p-3 rounded-4 d-flex align-items-center justify-content-between" style="background: rgba(14, 25, 48, 0.65); border: 1px solid rgba(255, 255, 255, 0.08);">
+                <div>
+                    <div class="text-success" style="font-size: 0.8rem; font-weight: 600;">FINAL PUBLISHED</div>
+                    <h3 class="fw-bold text-success mb-0 mt-1">@banners.Count(b => b.Status == "Published")</h3>
+                </div>
+                <div class="stat-icon-circle bg-success bg-opacity-10 text-success">
+                    <i class="bi bi-check2-all fs-4"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Bar & Search -->
+    <div class="glass-panel p-3 rounded-4 mb-4" style="background: rgba(14, 25, 48, 0.65); border: 1px solid rgba(255, 255, 255, 0.08);">
+        <div class="row g-3 align-items-center">
+            <!-- Filter Pills -->
+            <div class="col-md-6 col-12">
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-sm px-3 py-2 rounded-3 @(currentStatusFilter == "All" ? "btn-info text-dark fw-bold" : "btn-outline-secondary text-white")" @onclick='() => SetFilter("All")'>
+                        All Banners (@banners.Count)
+                    </button>
+                    <button type="button" class="btn btn-sm px-3 py-2 rounded-3 @(currentStatusFilter == "Draft" ? "btn-warning text-dark fw-bold" : "btn-outline-secondary text-white")" @onclick='() => SetFilter("Draft")'>
+                        <i class="bi bi-pencil-fill me-1"></i> Drafts (@banners.Count(b => b.Status == "Draft"))
+                    </button>
+                    <button type="button" class="btn btn-sm px-3 py-2 rounded-3 @(currentStatusFilter == "Published" ? "btn-success text-white fw-bold" : "btn-outline-secondary text-white")" @onclick='() => SetFilter("Published")'>
+                        <i class="bi bi-check-circle-fill me-1"></i> Published (@banners.Count(b => b.Status == "Published"))
+                    </button>
+                </div>
+            </div>
+
+            <!-- Search input -->
+            <div class="col-md-6 col-12">
+                <div class="input-group">
+                    <span class="input-group-text bg-dark border-secondary text-secondary">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" class="form-control bg-dark text-white border-secondary" placeholder="Search by heading, doctor name, or category..." @bind="searchQuery" @bind:event="oninput" @bind:after="ApplySearch" />
+                    @if (!string.IsNullOrEmpty(searchQuery))
+                    {
+                        <button class="btn btn-outline-secondary" type="button" @onclick="ClearSearch">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Banners Grid -->
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-info" style="width: 3rem; height: 3rem;" role="status"></div>
+            <p class="text-secondary mt-3">Loading banner designs from database...</p>
+        </div>
+    }
+    else if (!filteredBanners.Any())
+    {
+        <div class="glass-panel text-center py-5 rounded-4" style="background: rgba(14, 25, 48, 0.4); border: 1px dashed rgba(255, 255, 255, 0.15);">
+            <i class="bi bi-images text-secondary" style="font-size: 3.5rem;"></i>
+            <h4 class="text-white mt-3 fw-bold">No Banners Found</h4>
+            <p class="text-secondary mb-3" style="max-width: 450px; margin: 0 auto; font-size: 0.9rem;">
+                @(string.IsNullOrEmpty(searchQuery) ? "Aapke paas abhi koi banner nahi hai. Naya AI banner banane ke liye neeche button par click karein." : "Search criteria se match karta hua koi banner nahi mila.")
+            </p>
+            <NavLink href="@GetCreateUrl()" class="btn btn-info px-4 py-2 fw-semibold" style="background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); border: none; border-radius: 10px; color: #070d1e;">
+                <i class="bi bi-magic me-1"></i> Create First Banner
+            </NavLink>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var item in filteredBanners)
+            {
+                <div class="col-xl-4 col-md-6 col-12">
+                    <div class="glass-panel rounded-4 h-100 d-flex flex-column banner-card overflow-hidden" style="background: rgba(14, 25, 48, 0.7); border: 1px solid rgba(255, 255, 255, 0.08);">
+                        <!-- Thumbnail Header with badges -->
+                        <div class="banner-thumbnail-header p-3 position-relative" style="background: @(string.IsNullOrWhiteSpace(item.BackgroundImageUrl) ? "linear-gradient(135deg, rgba(7, 13, 30, 0.9) 0%, rgba(11, 22, 44, 0.95) 100%)" : $"linear-gradient(180deg, rgba(7, 13, 30, 0.7) 0%, rgba(11, 22, 44, 0.95) 100%), url('{item.BackgroundImageUrl}') center/cover no-repeat"); min-height: 140px; border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <!-- Status Badge -->
+                                @if (item.Status == "Published")
+                                {
+                                    <span class="badge px-3 py-1 rounded-pill" style="background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.5); color: #10b981; font-weight: 700; font-size: 0.75rem;">
+                                        <i class="bi bi-check-circle-fill me-1"></i> PUBLISHED
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge px-3 py-1 rounded-pill" style="background: rgba(245, 158, 11, 0.2); border: 1px solid rgba(245, 158, 11, 0.5); color: #fbbf24; font-weight: 700; font-size: 0.75rem;">
+                                        <i class="bi bi-pencil-fill me-1"></i> DRAFT
+                                    </span>
+                                }
+
+                                <div class="d-flex gap-1">
+                                    <span class="badge bg-dark text-info border border-secondary" style="font-size: 0.72rem;">@item.AspectRatio</span>
+                                    <span class="badge bg-dark text-secondary border border-secondary" style="font-size: 0.72rem;">@item.TemplateType</span>
+                                </div>
+                            </div>
+
+                            <div class="mt-3">
+                                <h5 class="fw-bold text-white text-truncate mb-1" title="@item.Heading">@item.Heading</h5>
+                                <div class="text-secondary text-truncate" style="font-size: 0.82rem;">
+                                    <i class="bi bi-person-badge text-info me-1"></i> @item.DoctorName
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card Body -->
+                        <div class="p-3 flex-grow-1 d-flex flex-column justify-content-between">
+                            <p class="text-secondary small mb-3 text-truncate-2" style="font-size: 0.82rem; min-height: 38px;">
+                                @(string.IsNullOrWhiteSpace(item.Subtitle) ? "No description provided." : item.Subtitle)
+                            </p>
+
+                            <div class="d-flex align-items-center justify-content-between text-secondary pt-2 border-top border-secondary border-opacity-25" style="font-size: 0.75rem;">
+                                <span><i class="bi bi-clock me-1"></i> @item.UpdatedAt.ToLocalTime().ToString("dd MMM yyyy, hh:mm tt")</span>
+                                <span class="badge bg-dark text-secondary">#@item.Id</span>
+                            </div>
+                        </div>
+
+                        <!-- Card Footer Action Buttons -->
+                        <div class="p-3 pt-0 d-flex gap-2">
+                            <!-- Edit Button (Always available) -->
+                            <button type="button" class="btn btn-outline-info flex-grow-1 d-flex align-items-center justify-content-center gap-1 py-2" @onclick="() => EditBanner(item.Id)" style="border-radius: 8px; font-size: 0.85rem; font-weight: 600;">
+                                <i class="bi bi-pencil-square"></i>
+                                <span>Edit & Customize</span>
+                            </button>
+
+                            <!-- Publish Quick Action (If Draft) -->
+                            @if (item.Status == "Draft")
+                            {
+                                <button type="button" class="btn btn-outline-success d-flex align-items-center justify-content-center gap-1 px-3 py-2" @onclick="() => QuickPublish(item.Id)" title="Publish this banner" style="border-radius: 8px; font-size: 0.85rem;">
+                                    <i class="bi bi-send-check"></i>
+                                    <span>Publish</span>
+                                </button>
+                            }
+
+                            <!-- Delete Button -->
+                            <button type="button" class="btn btn-outline-danger d-flex align-items-center justify-content-center px-3 py-2" @onclick="() => ConfirmDeleteBanner(item.Id, item.Heading)" title="Delete banner" style="border-radius: 8px; font-size: 0.85rem;">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    <!-- Delete Confirmation Modal -->
+    @if (pendingDeleteId.HasValue)
+    {
+        <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(5px); z-index: 1060;">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content glass-panel" style="background: rgba(14, 25, 48, 0.95); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 16px;">
+                    <div class="modal-header border-secondary border-opacity-25 pb-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-exclamation-triangle-fill text-danger fs-4"></i>
+                            <h5 class="modal-title text-white fw-bold mb-0">Confirm Banner Deletion</h5>
+                        </div>
+                        <button type="button" class="btn-close btn-close-white" @onclick="CancelDelete"></button>
+                    </div>
+                    <div class="modal-body p-4 text-center">
+                        <p class="text-white fs-6 mb-2">Kya aap waqai is banner ko SQL database se delete karna chahte hain?</p>
+                        <p class="text-warning fw-semibold mb-0" style="font-size: 0.9rem;">"@pendingDeleteTitle"</p>
+                        <p class="text-secondary small mt-2">Ye action permanent hai aur isse undo nahi kiya ja sakta.</p>
+                    </div>
+                    <div class="modal-footer border-secondary border-opacity-25 justify-content-center gap-2 pt-2">
+                        <button type="button" class="btn btn-outline-secondary px-4 py-2" @onclick="CancelDelete" style="border-radius: 8px;">Cancel</button>
+                        <button type="button" class="btn btn-danger px-4 py-2 fw-semibold" @onclick="ExecuteDelete" style="border-radius: 8px;">
+                            <i class="bi bi-trash-fill me-1"></i> Delete Permanently
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .banner-list-container {
+        padding: 0.5rem 0.5rem 3rem 0.5rem;
+    }
+
+    .fade-in {
+        animation: fadeIn 0.25s ease-in-out;
+    }
+
+    @@keyframes fadeIn {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .banner-card {
+        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .banner-card:hover {
+        transform: translateY(-3px);
+        border-color: rgba(0, 242, 254, 0.4) !important;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+
+    .stat-icon-circle {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .text-truncate-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+</style>
+
+@code {
+    private List<BannerDesignRecordDTO> banners = new();
+    private List<BannerDesignRecordDTO> filteredBanners = new();
+    private bool isLoading = true;
+    private string currentStatusFilter = "All";
+    private string searchQuery = string.Empty;
+    private string? feedbackMessage;
+
+    // Toast Popup Notification State
+    private ToastNotificationDTO? activePopup;
+    private CancellationTokenSource? popupCts;
+
+    private void ShowPopup(string title, string message, string type = "save")
+    {
+        popupCts?.Cancel();
+        popupCts = new CancellationTokenSource();
+        var token = popupCts.Token;
+
+        activePopup = new ToastNotificationDTO
+        {
+            Title = title,
+            Message = message,
+            Type = type
+        };
+        StateHasChanged();
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(4000, token);
+                if (!token.IsCancellationRequested)
+                {
+                    await InvokeAsync(() =>
+                    {
+                        activePopup = null;
+                        StateHasChanged();
+                    });
+                }
+            }
+            catch { }
+        });
+    }
+
+    private void DismissPopup()
+    {
+        popupCts?.Cancel();
+        activePopup = null;
+        StateHasChanged();
+    }
+    private CurrentUserDTO? currentUser;
+    private int? pendingDeleteId;
+    private string pendingDeleteTitle = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        currentUser = await AuthService.GetOrRestoreCurrentUserAsync();
+        if (currentUser != null && !currentUser.IsActive && currentUser.Role == "Doctor")
+        {
+            NavigationManager.NavigateTo("doctor/profile");
+            return;
+        }
+
+        var relPath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri).ToLowerInvariant();
+        if (currentUser?.Role == "Doctor" && !relPath.StartsWith("doctor"))
+        {
+            NavigationManager.NavigateTo("doctor/banner-designs");
+            return;
+        }
+        if (currentUser?.Role == "Admin" && !relPath.StartsWith("admin"))
+        {
+            NavigationManager.NavigateTo("admin/banner-designs");
+            return;
+        }
+
+        await LoadBannersAsync();
+    }
+
+    private async Task LoadBannersAsync()
+    {
+        isLoading = true;
+        try
+        {
+            banners = await BannerRepo.GetAllBannersAsync(currentUser?.UserId);
+            ApplyFilters();
+        }
+        catch (Exception ex)
+        {
+            feedbackMessage = $"Error loading banners: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void SetFilter(string status)
+    {
+        currentStatusFilter = status;
+        ApplyFilters();
+    }
+
+    private void ApplySearch()
+    {
+        ApplyFilters();
+    }
+
+    private void ClearSearch()
+    {
+        searchQuery = string.Empty;
+        ApplyFilters();
+    }
+
+    private void ApplyFilters()
+    {
+        var result = banners.AsEnumerable();
+
+        if (currentStatusFilter != "All")
+        {
+            result = result.Where(b => b.Status.Equals(currentStatusFilter, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (!string.IsNullOrWhiteSpace(searchQuery))
+        {
+            var q = searchQuery.Trim().ToLower();
+            result = result.Where(b => 
+                (b.Heading?.ToLower().Contains(q) ?? false) ||
+                (b.DoctorName?.ToLower().Contains(q) ?? false) ||
+                (b.TemplateType?.ToLower().Contains(q) ?? false) ||
+                (b.Subtitle?.ToLower().Contains(q) ?? false)
+            );
+        }
+
+        filteredBanners = result.ToList();
+    }
+
+    private void EditBanner(int id)
+    {
+        var relPath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri).ToLowerInvariant();
+        var prefix = (currentUser?.Role == "Doctor" || relPath.StartsWith("doctor")) ? "doctor/" : 
+                     ((currentUser?.Role == "Admin" || relPath.StartsWith("admin")) ? "admin/" : "");
+        NavigationManager.NavigateTo($"{prefix}banner-design?id={id}");
+    }
+
+    private string GetCreateUrl()
+    {
+        var relPath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri).ToLowerInvariant();
+        if (currentUser?.Role == "Doctor" || relPath.StartsWith("doctor")) return "doctor/banner-design";
+        if (currentUser?.Role == "Admin" || relPath.StartsWith("admin")) return "admin/banner-design";
+        return "banner-design";
+    }
+
+    private async Task QuickPublish(int id)
+    {
+        try
+        {
+            var success = await BannerRepo.PublishBannerAsync(id, currentUser?.UserId);
+            if (success)
+            {
+                feedbackMessage = $"Banner #{id} published successfully! Ab ye download aur share ke liye ready hai.";
+                ShowPopup("Banner Published!", $"Banner #{id} published successfully! Download aur Share ab active hain.", "save");
+                await LoadBannersAsync();
+            }
+            else
+            {
+                feedbackMessage = "Failed to publish banner.";
+                ShowPopup("Publish Failed", "Banner publish nahi ho saka.", "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            feedbackMessage = $"Error: {ex.Message}";
+            ShowPopup("Error", ex.Message, "error");
+        }
+    }
+
+    private void ConfirmDeleteBanner(int id, string title)
+    {
+        pendingDeleteId = id;
+        pendingDeleteTitle = title;
+    }
+
+    private void CancelDelete()
+    {
+        pendingDeleteId = null;
+        pendingDeleteTitle = string.Empty;
+    }
+
+    private async Task ExecuteDelete()
+    {
+        if (!pendingDeleteId.HasValue) return;
+        var id = pendingDeleteId.Value;
+        CancelDelete();
+        await DeleteBanner(id);
+    }
+
+    private async Task DeleteBanner(int id)
+    {
+        try
+        {
+            var success = await BannerRepo.DeleteBannerAsync(id, currentUser?.UserId);
+            if (success)
+            {
+                feedbackMessage = $"Banner #{id} deleted successfully from database.";
+                ShowPopup("Banner Deleted!", $"Banner #{id} SQL database se permanently delete kar diya gaya hai.", "delete");
+                await LoadBannersAsync();
+            }
+            else
+            {
+                feedbackMessage = "Failed to delete banner.";
+                ShowPopup("Delete Failed", "Banner delete nahi ho saka.", "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            feedbackMessage = $"Error: {ex.Message}";
+            ShowPopup("Delete Error", ex.Message, "error");
+        }
+    }
+}

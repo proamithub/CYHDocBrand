@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 80" width="360" height="80">
+  <defs>
+    <linearGradient id="cyanBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00f2fe" />
+      <stop offset="100%" stop-color="#4facfe" />
+    </linearGradient>
+    <linearGradient id="bgPill" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a192f" stop-opacity="0.92" />
+      <stop offset="100%" stop-color="#070d1e" stop-opacity="0.96" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Pill Background -->
+  <rect x="2" y="2" width="356" height="76" rx="38" fill="url(#bgPill)" stroke="#00f2fe" stroke-width="2" stroke-opacity="0.4" />
+  
+  <!-- Heartbeat / Cross Medical Icon Badge -->
+  <circle cx="42" cy="40" r="26" fill="url(#cyanBlue)" />
+  <path d="M42 26 C36 26 31 31 31 37 C31 46 42 54 42 54 C42 54 53 46 53 37 C53 31 48 26 42 26 Z" fill="#070d1e" />
+  <path d="M37 40 L40 40 L41.5 35 L43.5 44 L45 38 L47 40" fill="none" stroke="#00f2fe" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+
+  <!-- Brand Typography -->
+  <text x="82" y="37" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="900" font-size="22" fill="#ffffff" letter-spacing="1">
+    CYH <tspan fill="#00f2fe">DoctorHub</tspan>
+  </text>
+  <text x="83" y="55" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="600" font-size="11" fill="#94a3b8" letter-spacing="2">
+    HEALTHCARE BRANDING
+  </text>
+</svg>

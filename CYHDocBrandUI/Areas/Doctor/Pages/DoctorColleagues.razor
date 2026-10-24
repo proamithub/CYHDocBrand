@@ -85,38 +85,22 @@
     {
         try
         {
-            var currentUser = AuthService.GetCurrentUser();
+            var currentUser = await AuthService.GetOrRestoreCurrentUserAsync();
             if (currentUser == null)
             {
-                var doctors = await DoctorRepo.GetAllWithUsersAsync();
-                var doc = doctors.FirstOrDefault();
-                if (doc != null)
-                {
-                    currentUser = new CurrentUserDTO
-                    {
-                        UserId = doc.UserId,
-                        FullName = doc.FullName,
-                        Email = doc.User?.Email ?? "doctor@cyhdoctorhub.com",
-                        Role = "Doctor",
-                        Department = doc.Specialization,
-                        DoctorProfileId = doc.Id
-                    };
-
-                    if (AuthStateProvider is CustomAuthenticationStateProvider customAuth)
-                    {
-                        customAuth.SetUser(currentUser);
-                    }
-                }
-                else
-                {
-                    NavigationManager.NavigateTo("login");
-                    return;
-                }
+                NavigationManager.NavigateTo("login");
+                return;
             }
 
-            if (currentUser?.Role != "Doctor")
+            if (currentUser.Role != "Doctor")
             {
                 NavigationManager.NavigateTo("admin/dashboard");
+                return;
+            }
+
+            if (!currentUser.IsActive)
+            {
+                NavigationManager.NavigateTo("doctor/profile");
                 return;
             }
 

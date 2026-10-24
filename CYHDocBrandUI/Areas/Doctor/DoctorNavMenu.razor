@@ -1,46 +1,147 @@
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
 
+<style>
+    .cyh-locked-item {
+        transition: all 0.2s ease;
+    }
+    .cyh-locked-item:hover {
+        background: rgba(245, 158, 11, 0.1) !important;
+        border-color: rgba(245, 158, 11, 0.6) !important;
+        transform: translateX(3px);
+    }
+</style>
+
 <div class="cyh-brand" style="border-bottom: 1px solid rgba(0, 242, 254, 0.25);">
     <div class="cyh-brand-logo" style="background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); box-shadow: 0 0 20px rgba(0, 242, 254, 0.45); color: #070d1e;">
         <i class="bi bi-heart-pulse-fill"></i>
     </div>
     <div>
-        <div class="cyh-brand-title">CYH DoctorHub</div>
-        <div class="cyh-brand-subtitle" style="color: #00f2fe;">Clinical Workspace</div>
+        <div class="cyh-brand-title">CYH Pannel</div>
+        @* <div class="cyh-brand-subtitle" style="color: #00f2fe;">Clinical Workspace</div> *@
     </div>
 </div>
 
 <div class="px-3 pt-3">
-    <div class="p-2 text-center rounded-3" style="background: rgba(0, 242, 254, 0.12); border: 1px solid rgba(0, 242, 254, 0.35);">
-        <span class="badge" style="background: transparent; color: #00f2fe; font-size: 0.72rem; letter-spacing: 0.8px; font-weight: 700;">
-            <i class="bi bi-person-badge-fill me-1"></i> DOCTOR PORTAL
-        </span>
-    </div>
+    @if (IsActive)
+    {
+        <div class="p-2 text-center rounded-3" style="background: rgba(0, 242, 254, 0.12); border: 1px solid rgba(0, 242, 254, 0.35);">
+            <span class="badge" style="background: transparent; color: #00f2fe; font-size: 0.72rem; letter-spacing: 0.8px; font-weight: 700;">
+                <i class="bi bi-person-badge-fill me-1"></i> DOCTOR PORTAL • ACTIVE
+            </span>
+        </div>
+    }
+    else
+    {
+        <div class="p-2 text-center rounded-3" style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.45); box-shadow: 0 0 15px rgba(245, 158, 11, 0.15);">
+            <div class="d-flex align-items-center justify-content-center gap-1 text-warning fw-bold" style="font-size: 0.72rem; letter-spacing: 0.5px;">
+                <i class="bi bi-clock-history"></i> APPROVAL PENDING
+            </div>
+            <div style="font-size: 0.68rem; color: #cbd5e1; margin-top: 3px;">
+                Only <strong class="text-warning">Profile</strong> is unlocked
+            </div>
+        </div>
+    }
 </div>
 
 <div class="cyh-nav">
     <div class="cyh-nav-divider" style="color: #cbd5e1;">Navigation</div>
 
-    <NavLink class="cyh-nav-item" href="doctor/dashboard" Match="NavLinkMatch.All">
-        <i class="bi bi-hospital-fill text-info"></i>
-        <span>My Clinical Dashboard</span>
-    </NavLink>
+    @if (IsActive)
+    {
+        <NavLink class="cyh-nav-item" href="doctor/dashboard" Match="NavLinkMatch.All">
+            <i class="bi bi-hospital-fill text-info"></i>
+            <span>My Clinical Dashboard</span>
+        </NavLink>
 
-    <NavLink class="cyh-nav-item" href="doctor/profile">
-        <i class="bi bi-person-circle text-info"></i>
-        <span>My Profile</span>
-    </NavLink>
+        <NavLink class="cyh-nav-item" href="doctor/profile">
+            <i class="bi bi-person-circle text-info"></i>
+            <span>My Profile</span>
+        </NavLink>
 
-    <NavLink class="cyh-nav-item" href="doctor/schedule">
-        <i class="bi bi-calendar3-week text-info"></i>
-        <span>OPD Timings & Duty</span>
-    </NavLink>
+        <NavLink class="cyh-nav-item" href="doctor/banner-design">
+            <i class="bi bi-palette-fill text-info"></i>
+            <span>AI Banner Studio</span>
+        </NavLink>
 
-    <NavLink class="cyh-nav-item" href="doctor/colleagues">
-        <i class="bi bi-person-badge-fill text-info"></i>
-        <span>Hospital Faculty</span>
-    </NavLink>
+        <NavLink class="cyh-nav-item" href="doctor/banner-designs">
+            <i class="bi bi-collection-play-fill text-info"></i>
+            <span>Banner Designs List</span>
+        </NavLink>
+
+        <NavLink class="cyh-nav-item" href="doctor/schedule">
+            <i class="bi bi-calendar3-week text-info"></i>
+            <span>OPD Timings & Duty</span>
+        </NavLink>
+
+        <NavLink class="cyh-nav-item" href="doctor/colleagues">
+            <i class="bi bi-person-badge-fill text-info"></i>
+            <span>Hospital Faculty</span>
+        </NavLink>
+    }
+    else
+    {
+        <!-- Locked Mode: Profile unlocked, other modules clearly readable with distinct LOCKED badge -->
+        <div class="cyh-nav-item cyh-locked-item" style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; background: rgba(255, 255, 255, 0.04); border: 1px dashed rgba(245, 158, 11, 0.35); border-radius: 8px; margin-bottom: 6px; padding: 0.65rem 0.85rem;" @onclick='() => ShowLockedNotice("My Clinical Dashboard")' title="Click to view lock details">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-hospital-fill" style="color: #94a3b8; font-size: 1rem;"></i>
+                <span style="color: #e2e8f0; font-weight: 500; font-size: 0.88rem;">My Clinical Dashboard</span>
+            </div>
+            <span class="badge" style="background: rgba(245, 158, 11, 0.22); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.5); font-size: 0.68rem; font-weight: 700; padding: 3px 7px;">
+                <i class="bi bi-lock-fill me-1"></i> LOCKED
+            </span>
+        </div>
+
+        <NavLink class="cyh-nav-item" href="doctor/profile" style="display: flex; align-items: center; justify-content: space-between; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.45); border-radius: 8px; margin-bottom: 6px; padding: 0.65rem 0.85rem;">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-person-circle text-info" style="font-size: 1.05rem;"></i>
+                <span class="fw-bold text-white" style="font-size: 0.88rem;">My Profile</span>
+            </div>
+            <span class="badge" style="background: rgba(16, 185, 129, 0.25); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.5); font-size: 0.68rem; font-weight: 700; padding: 3px 7px;">
+                <i class="bi bi-unlock-fill me-1"></i> UNLOCKED
+            </span>
+        </NavLink>
+
+        <div class="cyh-nav-item cyh-locked-item" style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; background: rgba(255, 255, 255, 0.04); border: 1px dashed rgba(245, 158, 11, 0.35); border-radius: 8px; margin-bottom: 6px; padding: 0.65rem 0.85rem;" @onclick='() => ShowLockedNotice("AI Banner Studio")' title="Click to view lock details">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-palette-fill" style="color: #94a3b8; font-size: 1rem;"></i>
+                <span style="color: #e2e8f0; font-weight: 500; font-size: 0.88rem;">AI Banner Studio</span>
+            </div>
+            <span class="badge" style="background: rgba(245, 158, 11, 0.22); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.5); font-size: 0.68rem; font-weight: 700; padding: 3px 7px;">
+                <i class="bi bi-lock-fill me-1"></i> LOCKED
+            </span>
+        </div>
+
+        <div class="cyh-nav-item cyh-locked-item" style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; background: rgba(255, 255, 255, 0.04); border: 1px dashed rgba(245, 158, 11, 0.35); border-radius: 8px; margin-bottom: 6px; padding: 0.65rem 0.85rem;" @onclick='() => ShowLockedNotice("Banner Designs List")' title="Click to view lock details">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-collection-play-fill" style="color: #94a3b8; font-size: 1rem;"></i>
+                <span style="color: #e2e8f0; font-weight: 500; font-size: 0.88rem;">Banner Designs List</span>
+            </div>
+            <span class="badge" style="background: rgba(245, 158, 11, 0.22); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.5); font-size: 0.68rem; font-weight: 700; padding: 3px 7px;">
+                <i class="bi bi-lock-fill me-1"></i> LOCKED
+            </span>
+        </div>
+
+        <div class="cyh-nav-item cyh-locked-item" style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; background: rgba(255, 255, 255, 0.04); border: 1px dashed rgba(245, 158, 11, 0.35); border-radius: 8px; margin-bottom: 6px; padding: 0.65rem 0.85rem;" @onclick='() => ShowLockedNotice("OPD Timings & Duty")' title="Click to view lock details">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-calendar3-week" style="color: #94a3b8; font-size: 1rem;"></i>
+                <span style="color: #e2e8f0; font-weight: 500; font-size: 0.88rem;">OPD Timings & Duty</span>
+            </div>
+            <span class="badge" style="background: rgba(245, 158, 11, 0.22); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.5); font-size: 0.68rem; font-weight: 700; padding: 3px 7px;">
+                <i class="bi bi-lock-fill me-1"></i> LOCKED
+            </span>
+        </div>
+
+        <div class="cyh-nav-item cyh-locked-item" style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; background: rgba(255, 255, 255, 0.04); border: 1px dashed rgba(245, 158, 11, 0.35); border-radius: 8px; margin-bottom: 6px; padding: 0.65rem 0.85rem;" @onclick='() => ShowLockedNotice("Hospital Faculty")' title="Click to view lock details">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-people-fill" style="color: #94a3b8; font-size: 1rem;"></i>
+                <span style="color: #e2e8f0; font-weight: 500; font-size: 0.88rem;">Hospital Faculty</span>
+            </div>
+            <span class="badge" style="background: rgba(245, 158, 11, 0.22); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.5); font-size: 0.68rem; font-weight: 700; padding: 3px 7px;">
+                <i class="bi bi-lock-fill me-1"></i> LOCKED
+            </span>
+        </div>
+    }
 </div>
 
 <div class="cyh-sidebar-footer" style="border-top: 1px solid rgba(0, 242, 254, 0.2); padding: 0.9rem 1rem;">
@@ -51,6 +152,28 @@
 </div>
 
 @code {
+    [Parameter]
+    public EventCallback<string> OnLockedClicked { get; set; }
+
+    private bool IsActive = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var currentUser = await AuthService.GetOrRestoreCurrentUserAsync();
+        if (currentUser != null)
+        {
+            IsActive = currentUser.IsActive;
+        }
+    }
+
+    private async Task ShowLockedNotice(string moduleName)
+    {
+        if (OnLockedClicked.HasDelegate)
+        {
+            await OnLockedClicked.InvokeAsync(moduleName);
+        }
+    }
+
     private async Task Logout()
     {
         await AuthService.LogoutAsync();

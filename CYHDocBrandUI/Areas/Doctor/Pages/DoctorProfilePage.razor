@@ -19,9 +19,9 @@
             </nav>
             <h3 class="fw-bold mb-1 text-white d-flex align-items-center gap-2">
                 <i class="bi bi-person-badge-fill text-info"></i>
-                <span>Doctor Profile &amp; Clinical Branding</span>
+                <span>Doctor Profile</span>
             </h3>
-            <p class="small mb-0" style="color: #cbd5e1;">Manage your professional clinical identity, clinic details, qualifications, and available platform credits.</p>
+
         </div>
 
         <div class="d-flex flex-wrap align-items-center gap-2">
@@ -30,13 +30,22 @@
                  style="background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); font-size: 0.82rem; font-weight: 700;"
                  title="Available AI Generation Credits">
                 <i class="bi bi-lightning-charge-fill text-warning fs-6"></i>
-                <span>Credits: <strong style="color: #ffffff; font-size: 0.92rem;">@(Profile?.AiCredits ?? 25)</strong></span>
+                <span>Credits: <strong style="color: #ffffff; font-size: 0.92rem;">@Profile.AiCredits</strong></span>
             </div>
 
-            <!-- Verified Badge -->
-            <span class="badge bg-success bg-opacity-25 text-success border border-success px-3 py-2 rounded-pill" style="font-size: 0.8rem;">
-                <i class="bi bi-patch-check-fill me-1"></i> Verified Specialist
-            </span>
+            <!-- Account Verification Status Badge -->
+            @if (CurrentUser != null && !CurrentUser.IsActive)
+            {
+                <span class="badge rounded-pill px-3 py-2" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); font-size: 0.8rem;">
+                    <i class="bi bi-clock-history me-1"></i> Pending Admin Activation
+                </span>
+            }
+            else
+            {
+                <span class="badge bg-success bg-opacity-25 text-success border border-success px-3 py-2 rounded-pill" style="font-size: 0.8rem;">
+                    <i class="bi bi-patch-check-fill me-1"></i> Verified Specialist
+                </span>
+            }
 
             <button type="button" class="glass-btn-primary" @onclick="SaveChanges" disabled="@IsSaving">
                 @if (IsSaving)
@@ -53,26 +62,11 @@
         </div>
     </div>
 
-    <!-- Feedback Alerts -->
-    @if (!string.IsNullOrEmpty(SuccessMessage))
-    {
-        <div class="alert alert-success py-2 px-3 d-flex align-items-center gap-2 mb-0" style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.35); color: #34d399; border-radius: 12px;">
-            <i class="bi bi-check-circle-fill fs-5"></i>
-            <span>@SuccessMessage</span>
-        </div>
-    }
-
-    @if (!string.IsNullOrEmpty(ErrorMessage))
-    {
-        <div class="alert alert-danger py-2 px-3 d-flex align-items-center gap-2 mb-0" style="background: rgba(244, 63, 94, 0.15); border: 1px solid rgba(244, 63, 94, 0.35); color: #fda4af; border-radius: 12px;">
-            <i class="bi bi-exclamation-triangle-fill fs-5"></i>
-            <span>@ErrorMessage</span>
-        </div>
-    }
+   
 
     <!-- 2-Column Main Workspace -->
     <div class="row g-4">
-        <!-- ── LEFT COLUMN: Avatar, Photo & Brand Card ── -->
+        <!-- â”€â”€ LEFT COLUMN: Avatar, Photo & Brand Card â”€â”€ -->
         <div class="col-12 col-lg-4">
             <div class="d-flex flex-column gap-4">
                 <!-- Profile Identity Card -->
@@ -159,10 +153,7 @@
                             </span>
                         </div>
 
-                        <div class="glass-card p-2 d-flex justify-content-between align-items-center">
-                            <span style="color: #94a3b8; font-size: 0.82rem;"><i class="bi bi-currency-dollar text-success me-1"></i> Fee:</span>
-                            <span class="text-success fw-bold">$@(Profile?.ConsultationFee.ToString("N2") ?? "85.00")</span>
-                        </div>
+                      
 
                         <div class="glass-card p-2 d-flex justify-content-between align-items-center">
                             <span style="color: #94a3b8; font-size: 0.82rem;"><i class="bi bi-award-fill text-info me-1"></i> Experience:</span>
@@ -172,13 +163,13 @@
                         <div class="glass-card p-2 d-flex justify-content-between align-items-center">
                             <span style="color: #94a3b8; font-size: 0.82rem;"><i class="bi bi-activity text-info me-1"></i> Duty Status:</span>
                             <span class="badge @(Profile?.IsAvailableToday == true ? "bg-success" : "bg-secondary") rounded-pill">
-                                @(Profile?.IsAvailableToday == true ? "● On Duty" : "○ Off Duty")
+                                @(Profile?.IsAvailableToday == true ? "â— On Duty" : "â—‹ Off Duty")
                             </span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Doctor Branding Palette Card -->
+           @*      <!-- Doctor Branding Palette Card -->
                 <div class="glass-panel p-4">
                     <h6 class="fw-bold text-white mb-3 text-uppercase" style="font-size: 0.8rem; letter-spacing: 0.8px;">
                         <i class="bi bi-palette-fill text-info me-2"></i>Brand Identity &amp; Styling
@@ -187,29 +178,29 @@
                         <div class="d-flex align-items-center justify-content-between glass-card p-2">
                             <span style="color: #cbd5e1;">Primary Accent:</span>
                             <div class="d-flex align-items-center gap-2">
-                                <span class="rounded" style="width: 22px; height: 22px; background: @(Profile?.PrimaryColorHex ?? "#00f2fe"); border: 1px solid rgba(255,255,255,0.3);"></span>
-                                <span class="text-white fw-semibold">@(Profile?.PrimaryColorHex ?? "#00f2fe")</span>
+                                <span class="rounded" style="width: 22px; height: 22px; background: @(Profile!.PrimaryColorHex ?? "#00f2fe"); border: 1px solid rgba(255,255,255,0.3);"></span>
+                                <span class="text-white fw-semibold">@(Profile!.PrimaryColorHex ?? "#00f2fe")</span>
                             </div>
                         </div>
 
                         <div class="d-flex align-items-center justify-content-between glass-card p-2">
                             <span style="color: #cbd5e1;">Secondary Accent:</span>
                             <div class="d-flex align-items-center gap-2">
-                                <span class="rounded" style="width: 22px; height: 22px; background: @(Profile?.SecondaryColorHex ?? "#4facfe"); border: 1px solid rgba(255,255,255,0.3);"></span>
-                                <span class="text-white fw-semibold">@(Profile?.SecondaryColorHex ?? "#4facfe")</span>
+                                <span class="rounded" style="width: 22px; height: 22px; background: @(Profile!.SecondaryColorHex ?? "#4facfe"); border: 1px solid rgba(255,255,255,0.3);"></span>
+                                <span class="text-white fw-semibold">@(Profile!.SecondaryColorHex ?? "#4facfe")</span>
                             </div>
                         </div>
 
                         <div class="d-flex align-items-center justify-content-between glass-card p-2">
                             <span style="color: #cbd5e1;">Brand Typography:</span>
-                            <span class="text-info fw-semibold">@(Profile?.PreferredFont ?? "Inter / Modern")</span>
+                            <span class="text-info fw-semibold">@(Profile!.PreferredFont ?? "Inter / Modern")</span>
                         </div>
                     </div>
-                </div>
+                </div> *@
             </div>
         </div>
 
-        <!-- ── RIGHT COLUMN: Detailed Profile & Clinic Form ── -->
+        <!-- â”€â”€ RIGHT COLUMN: Detailed Profile & Clinic Form â”€â”€ -->
         <div class="col-12 col-lg-8">
             <div class="d-flex flex-column gap-4">
                 <!-- Section 1: Personal & Medical Credentials -->
@@ -221,7 +212,7 @@
                     <div class="row g-3">
                         <div class="col-12 col-md-6">
                             <label class="form-label small fw-semibold text-white">Full Name</label>
-                            <input type="text" class="glass-input" @bind="Profile.FullName" placeholder="Dr. Full Name" />
+                            <input type="text" class="glass-input" @bind="Profile!.FullName" placeholder="Dr. Full Name" />
                         </div>
 
                         <div class="col-12 col-md-6">
@@ -362,36 +353,14 @@
     {
         try
         {
-            CurrentUser = AuthService.GetCurrentUser();
+            CurrentUser = await AuthService.GetOrRestoreCurrentUserAsync();
             if (CurrentUser == null)
             {
-                var doctors = await DoctorRepo.GetAllWithUsersAsync();
-                var doc = doctors.FirstOrDefault();
-                if (doc != null)
-                {
-                    CurrentUser = new CurrentUserDTO
-                    {
-                        UserId = doc.UserId,
-                        FullName = doc.FullName,
-                        Email = doc.User?.Email ?? "doctor@cyhdoctorhub.com",
-                        Role = "Doctor",
-                        Department = doc.Specialization,
-                        DoctorProfileId = doc.Id
-                    };
-
-                    if (AuthStateProvider is CustomAuthenticationStateProvider customAuth)
-                    {
-                        customAuth.SetUser(CurrentUser);
-                    }
-                }
-                else
-                {
-                    NavigationManager.NavigateTo("login");
-                    return;
-                }
+                NavigationManager.NavigateTo("login");
+                return;
             }
 
-            if (CurrentUser?.Role != "Doctor")
+            if (CurrentUser.Role != "Doctor")
             {
                 NavigationManager.NavigateTo("admin/dashboard");
                 return;
@@ -412,15 +381,18 @@
             SuccessMessage = null;
             ErrorMessage = null;
 
-            var doctors = await DoctorRepo.GetAllWithUsersAsync();
-            CYHDocBrandData.Entities.DoctorProfile? doc = null;
+            if (CurrentUser == null) return;
 
-            if (CurrentUser?.DoctorProfileId.HasValue == true)
+            DoctorProfile? doc = null;
+            if (CurrentUser.DoctorProfileId.HasValue)
             {
-                doc = doctors.FirstOrDefault(d => d.Id == CurrentUser.DoctorProfileId.Value);
+                doc = await DoctorRepo.GetByIdAsync(CurrentUser.DoctorProfileId.Value);
             }
 
-            doc ??= doctors.FirstOrDefault(d => d.UserId == CurrentUser?.UserId) ?? doctors.FirstOrDefault();
+            if (doc == null && !string.IsNullOrEmpty(CurrentUser.UserId))
+            {
+                doc = await DoctorRepo.GetByUserIdAsync(CurrentUser.UserId);
+            }
 
             if (doc != null)
             {
@@ -428,6 +400,10 @@
                 if (string.IsNullOrWhiteSpace(Profile.DisplayName))
                 {
                     Profile.DisplayName = Profile.FullName;
+                }
+                if (string.IsNullOrWhiteSpace(Profile.WebsiteUrl))
+                {
+                    Profile.WebsiteUrl = "https://www.clickyourhospital.com";
                 }
             }
         }
@@ -445,19 +421,45 @@
 
         try
         {
+            if (string.IsNullOrWhiteSpace(Profile.WebsiteUrl))
+            {
+                Profile.WebsiteUrl = "https://www.clickyourhospital.com";
+            }
+            if (string.IsNullOrWhiteSpace(Profile.UserId) && CurrentUser != null)
+            {
+                Profile.UserId = CurrentUser.UserId;
+            }
+            if (Profile.Id <= 0 && CurrentUser?.DoctorProfileId.HasValue == true)
+            {
+                Profile.Id = CurrentUser.DoctorProfileId.Value;
+            }
+
             var success = await DoctorRepo.UpdateProfileAsync(Profile);
             if (success)
             {
+                if (CurrentUser != null)
+                {
+                    CurrentUser.FullName = Profile.FullName;
+                    CurrentUser.Department = Profile.Specialization;
+                    if (!string.IsNullOrEmpty(Profile.ProfilePic))
+                    {
+                        CurrentUser.AvatarUrl = Profile.ProfilePic;
+                    }
+                }
+
                 SuccessMessage = "Doctor profile and clinical information successfully updated and saved to SQL Server!";
+                ShowPopup("Profile Saved", "Doctor profile and clinical settings updated successfully in SQL Server!", "save");
             }
             else
             {
                 ErrorMessage = "Could not update profile. Please verify connection and retry.";
+                ShowPopup("Save Failed", "Could not update profile in database.", "error");
             }
         }
         catch (Exception ex)
         {
             ErrorMessage = "Error saving profile: " + ex.Message;
+            ShowPopup("Save Failed", ex.Message, "error");
         }
         finally
         {
@@ -590,6 +592,7 @@
                     }
                 }
                 SuccessMessage = "Profile photo deleted and default avatar restored.";
+                ShowPopup("Photo Removed", "Profile photo removed and default avatar restored.", "delete");
             }
             else
             {
@@ -605,4 +608,49 @@
             IsUploadingPic = false;
         }
     }
+
+    private ToastNotificationDTO? ActivePopup;
+    private CancellationTokenSource? popupCts;
+
+    private void ShowPopup(string title, string message, string type = "save")
+    {
+        popupCts?.Cancel();
+        popupCts?.Dispose();
+        popupCts = new CancellationTokenSource();
+
+        ActivePopup = new ToastNotificationDTO
+        {
+            Title = title,
+            Message = message,
+            Type = type
+        };
+        StateHasChanged();
+
+        var token = popupCts.Token;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(4500, token);
+                if (!token.IsCancellationRequested)
+                {
+                    await InvokeAsync(() =>
+                    {
+                        ActivePopup = null;
+                        StateHasChanged();
+                    });
+                }
+            }
+            catch (TaskCanceledException) { }
+        }, token);
+    }
+
+    private void DismissPopup()
+    {
+        popupCts?.Cancel();
+        ActivePopup = null;
+    }
 }
+
+<!-- Floating Toast Notification Popup -->
+<ToastPopup Notification="ActivePopup" OnDismiss="DismissPopup" />

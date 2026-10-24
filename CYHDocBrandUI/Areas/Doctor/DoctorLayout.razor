@@ -8,7 +8,7 @@
 <div class="cyh-app-container">
     <!-- Dedicated Doctor Sidebar -->
     <aside class="cyh-sidebar" style="border-right: 1px solid rgba(0, 242, 254, 0.2);">
-        <DoctorNavMenu />
+        <DoctorNavMenu OnLockedClicked="HandleLockedNotice" />
     </aside>
 
     <!-- Main Content Area -->
@@ -18,7 +18,7 @@
             <div class="d-flex align-items-center gap-3">
                 <div class="d-flex align-items-center gap-2">
                     <span class="badge" style="background: rgba(0, 242, 254, 0.15); color: #38bdf8; border: 1px solid rgba(0, 242, 254, 0.35); padding: 0.45rem 0.85rem; font-size: 0.82rem; font-weight: 700;">
-                        <i class="bi bi-heart-pulse-fill me-1"></i> Doctor Clinical Workspace
+                    
                     </span>
                 </div>
             </div>
@@ -51,6 +51,28 @@
             </div>
         </header>
 
+        <!-- Pending Activation Notice Bar -->
+@*         @if (CurrentUser != null && !CurrentUser.IsActive)
+        {
+            <div class="p-3 px-4 d-flex align-items-center justify-content-between flex-wrap gap-3" style="background: rgba(245, 158, 11, 0.14); border-bottom: 1px solid rgba(245, 158, 11, 0.4);">
+                <div class="d-flex align-items-center gap-3">
+                    <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(245, 158, 11, 0.25); color: #fbbf24; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0;">
+                        <i class="bi bi-clock-history"></i>
+                    </div>
+                    <div>
+                        <div class="fw-bold text-white small d-flex align-items-center gap-2">
+                            <span>Account Status: Pending Admin Activation</span>
+                            <span class="badge bg-warning text-dark px-2 py-0" style="font-size: 0.65rem;">LOCKED MODE</span>
+                        </div>
+                        <div class="small" style="color: #cbd5e1;">Your doctor profile is registered. Only your <strong>Profile</strong> is unlocked. All workspace modules will unlock when Hospital Admin activates your account.</div>
+                    </div>
+                </div>
+                <a href="doctor/profile" class="btn btn-sm btn-outline-warning fw-semibold px-3" style="border-radius: 8px;">
+                    <i class="bi bi-person-circle me-1"></i>Go to Profile
+                </a>
+            </div>
+        } *@
+
         <!-- Body Content -->
         <main class="cyh-body">
             @Body
@@ -58,11 +80,7 @@
     </div>
 </div>
 
-<div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
-</div>
+
 
 @code {
     private CurrentUserDTO? CurrentUser;
@@ -74,48 +92,45 @@
         {
             AuthStateProvider.AuthenticationStateChanged += OnAuthStateChanged;
 
-            CurrentUser = AuthService.GetCurrentUser();
-
             // Resilient Session Recovery on Page Reload / Refresh:
+            CurrentUser = await AuthService.GetOrRestoreCurrentUserAsync();
+
             if (CurrentUser == null)
             {
-                var doctors = await DoctorRepo.GetAllWithUsersAsync();
-                var doc = doctors.FirstOrDefault();
-                if (doc != null)
-                {
-                    var restoredUser = new CurrentUserDTO
-                    {
-                        UserId = doc.UserId,
-                        FullName = doc.FullName,
-                        Email = doc.User?.Email ?? "doctor@cyhdoctorhub.com",
-                        Role = "Doctor",
-                        Department = doc.Specialization,
-                        DoctorProfileId = doc.Id,
-                        AvatarUrl = doc.ProfilePic ?? doc.User?.AvatarUrl
-                    };
-
-                    if (AuthStateProvider is CustomAuthenticationStateProvider customAuth)
-                    {
-                        customAuth.SetUser(restoredUser);
-                    }
-                    CurrentUser = restoredUser;
-                }
-                else
-                {
-                    NavigationManager.NavigateTo("login", forceLoad: true);
-                    return;
-                }
+                NavigationManager.NavigateTo("login", forceLoad: true);
+                return;
             }
 
-            if (CurrentUser?.Role != "Doctor")
+            if (CurrentUser.Role != "Doctor")
             {
                 NavigationManager.NavigateTo("admin/dashboard", forceLoad: true);
                 return;
             }
+
+            CheckAccess();
         }
         catch
         {
             // Gracefully handle reload
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        CheckAccess();
+    }
+
+    private void CheckAccess()
+    {
+        if (CurrentUser != null && !CurrentUser.IsActive)
+        {
+            var uri = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+            if (!uri.StartsWith("doctor/profile", StringComparison.OrdinalIgnoreCase) &&
+                !uri.StartsWith("login", StringComparison.OrdinalIgnoreCase) &&
+                !string.IsNullOrWhiteSpace(uri))
+            {
+                NavigationManager.NavigateTo("doctor/profile");
+            }
         }
     }
 
@@ -130,9 +145,53 @@
         });
     }
 
+    private void DismissPopup()
+    {
+        popupCts?.Cancel();
+        ActivePopup = null;
+    }
+
+    private ToastNotificationDTO? ActivePopup;
+    private CancellationTokenSource? popupCts;
+
+    private void HandleLockedNotice(string moduleName)
+    {
+        popupCts?.Cancel();
+        popupCts?.Dispose();
+        popupCts = new CancellationTokenSource();
+
+        ActivePopup = new ToastNotificationDTO
+        {
+            Title = "Module Locked (Pending Approval)",
+            Message = $"'{moduleName}' is locked. Your doctor account is pending activation by Hospital Admin. Only your Profile page is accessible until activated.",
+            Type = "warning"
+        };
+        StateHasChanged();
+
+        var token = popupCts.Token;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(5000, token);
+                if (!token.IsCancellationRequested)
+                {
+                    await InvokeAsync(() =>
+                    {
+                        ActivePopup = null;
+                        StateHasChanged();
+                    });
+                }
+            }
+            catch (TaskCanceledException) { }
+        }, token);
+    }
+
     public void Dispose()
     {
         _disposed = true;
+        popupCts?.Cancel();
+        popupCts?.Dispose();
         AuthStateProvider.AuthenticationStateChanged -= OnAuthStateChanged;
     }
 
@@ -142,3 +201,6 @@
         NavigationManager.NavigateTo("login", forceLoad: true);
     }
 }
+
+<!-- Floating Toast Notification Popup (Rendered at Root Layout, Top-Right Viewport) -->
+<ToastPopup Notification="ActivePopup" OnDismiss="DismissPopup" />

@@ -1,0 +1,51 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CYHDocBrandModel", "..\CYHDocBrandModel\CYHDocBrandModel.csproj", "{7946D65F-D272-4D00-8CDD-84C63F6371FF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CYHDocBrandData", "..\CYHDocBrandData\CYHDocBrandData.csproj", "{2F0D2DEF-D7E8-4D80-BB92-74E4F0BE7585}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CYHDocBrandRepo", "..\CYHDocBrandRepo\CYHDocBrandRepo.csproj", "{E5434D4E-1C25-4FC4-B825-24351061B0ED}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CYHDocBrandSMS", "..\CYHDocBrandSMS\CYHDocBrandSMS.csproj", "{6B68C6E5-90BB-4427-8BE1-0E87332C4D7B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CYHDocBrandUI", "CYHDocBrandUI.csproj", "{F67D9C05-7D74-49CD-9EA3-7105FA7C1561}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CYHDocBrandAPI", "..\CYHDocBrandAPI\CYHDocBrandAPI.csproj", "{AC75871A-6307-4D0D-A2A5-7F8225972A14}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7946D65F-D272-4D00-8CDD-84C63F6371FF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7946D65F-D272-4D00-8CDD-84C63F6371FF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7946D65F-D272-4D00-8CDD-84C63F6371FF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7946D65F-D272-4D00-8CDD-84C63F6371FF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2F0D2DEF-D7E8-4D80-BB92-74E4F0BE7585}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2F0D2DEF-D7E8-4D80-BB92-74E4F0BE7585}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2F0D2DEF-D7E8-4D80-BB92-74E4F0BE7585}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2F0D2DEF-D7E8-4D80-BB92-74E4F0BE7585}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E5434D4E-1C25-4FC4-B825-24351061B0ED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E5434D4E-1C25-4FC4-B825-24351061B0ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E5434D4E-1C25-4FC4-B825-24351061B0ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E5434D4E-1C25-4FC4-B825-24351061B0ED}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6B68C6E5-90BB-4427-8BE1-0E87332C4D7B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6B68C6E5-90BB-4427-8BE1-0E87332C4D7B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6B68C6E5-90BB-4427-8BE1-0E87332C4D7B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6B68C6E5-90BB-4427-8BE1-0E87332C4D7B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F67D9C05-7D74-49CD-9EA3-7105FA7C1561}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F67D9C05-7D74-49CD-9EA3-7105FA7C1561}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F67D9C05-7D74-49CD-9EA3-7105FA7C1561}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F67D9C05-7D74-49CD-9EA3-7105FA7C1561}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AC75871A-6307-4D0D-A2A5-7F8225972A14}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AC75871A-6307-4D0D-A2A5-7F8225972A14}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AC75871A-6307-4D0D-A2A5-7F8225972A14}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AC75871A-6307-4D0D-A2A5-7F8225972A14}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,755 @@
+@page "/admin/ai-settings"
+@layout AdminLayout
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+@using CYHDocBrandData.Entities
+@using CYHDocBrandModel.DTO
+@using CYHDocBrandRepo.IRepository
+@using CYHDocBrandUI.Components.Common
+
+@inject IDoctorAiSettingRepository DoctorAiRepo
+@inject IDoctorRepository DoctorRepo
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+
+<!-- Animated Floating Toast Popup -->
+<ToastPopup Notification="activePopup" OnDismiss="DismissPopup" />
+
+<div class="d-flex flex-column gap-4 fade-in">
+    <!-- Header -->
+    <div class="glass-panel p-4 d-flex flex-wrap align-items-center justify-content-between gap-3" style="border-left: 4px solid #f59e0b; background: rgba(14, 25, 48, 0.85); backdrop-filter: blur(16px); border-radius: 16px;">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge px-2 py-1" style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); color: #fbbf24; font-size: 0.72rem; font-weight: 700;">
+                    <i class="bi bi-shield-lock-fill me-1"></i> ADMIN CONSOLE
+                </span>
+                <span class="badge px-2 py-1" style="background: rgba(0, 242, 254, 0.15); border: 1px solid rgba(0, 242, 254, 0.4); color: #00f2fe; font-size: 0.72rem; font-weight: 700;">
+                    <i class="bi bi-person-badge-fill me-1"></i> DOCTOR-WISE MAPPING
+                </span>
+            </div>
+            <h3 class="fw-bold mb-1 text-white">
+                <i class="bi bi-key-fill text-warning me-2"></i>Doctor-Wise AI API Key Management
+            </h3>
+            <p class="small mb-0" style="color: #cbd5e1;">
+                Hospital Admin yahan har **Doctor ke liye dedicated Gemini aur OpenAI API Keys** SQL database mein save aur manage kar sakta hai.
+            </p>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-warning d-flex align-items-center gap-2 px-3 py-2" @onclick="LoadDataAsync" disabled="@isLoading" style="border-radius: 10px;">
+                <i class="bi bi-arrow-clockwise"></i>
+                <span>Refresh</span>
+            </button>
+            <NavLink href="banner-design" class="btn btn-outline-info d-flex align-items-center gap-2 px-3 py-2" style="border-radius: 10px;">
+                <i class="bi bi-palette-fill"></i>
+                <span>Banner Studio</span>
+            </NavLink>
+        </div>
+    </div>
+
+    <!-- PRIMARY SECTION: CONFIGURE DOCTOR API KEYS (DOCTOR-WISE FORM) -->
+    <div class="glass-panel p-4 rounded-4" style="background: rgba(14, 25, 48, 0.85); border: 2px solid rgba(245, 158, 11, 0.35); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);">
+        <div class="d-flex align-items-center justify-content-between mb-3 border-bottom border-secondary border-opacity-25 pb-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="stat-icon-circle" style="width: 46px; height: 46px; border-radius: 12px; background: rgba(245, 158, 11, 0.15); color: #fbbf24; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">
+                    <i class="bi bi-person-fill-gear"></i>
+                </div>
+                <div>
+                    <h5 class="fw-bold text-white mb-0">Doctor-Wise API Key Configuration Form</h5>
+                    <span class="text-secondary small">Select a specialist and configure their dedicated AI API Keys in SQL Server</span>
+                </div>
+            </div>
+            <span class="badge px-3 py-2" style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #10b981; border-radius: 8px;">
+                <i class="bi bi-database-check me-1"></i> SQL Stored Procedure Active
+            </span>
+        </div>
+
+        <!-- 1. Doctor Selection Dropdown -->
+        <div class="row g-3 mb-4">
+            <div class="col-12 col-md-7">
+                <label class="form-label text-warning fw-bold mb-1" style="font-size: 0.92rem;">
+                    <i class="bi bi-person-badge-fill me-1"></i> Select Specialist Doctor *
+                </label>
+                <select class="form-select bg-dark text-white border-warning py-2" @bind="selectedDoctorId" @bind:after="OnDoctorSelected" style="border-radius: 10px; font-size: 0.95rem;">
+                    <option value="0">-- Select Doctor from Hospital Directory --</option>
+                    @foreach (var doc in doctors)
+                    {
+                        <option value="@doc.Id">Dr. @doc.FullName — @doc.Specialization (@(string.IsNullOrEmpty(doc.ClinicName) ? "Hospital" : doc.ClinicName))</option>
+                    }
+                </select>
+                <small class="text-secondary">Jis doctor ke liye keys save karni hain, unhe list se chunein.</small>
+            </div>
+
+            <!-- Active Selected Doctor Quick Badge -->
+            <div class="col-12 col-md-5 d-flex align-items-end">
+                @if (currentDoctor != null)
+                {
+                    <div class="p-2 px-3 rounded-3 w-100 d-flex align-items-center justify-content-between" style="background: rgba(7, 13, 30, 0.7); border: 1px solid rgba(0, 242, 254, 0.3);">
+                        <div>
+                            <div class="text-white fw-bold" style="font-size: 0.88rem;">Dr. @currentDoctor.FullName</div>
+                            <div class="text-secondary small" style="font-size: 0.75rem;">Doc ID: #@currentDoctor.Id | User ID: @currentDoctor.UserId</div>
+                        </div>
+                        <span class="badge bg-info text-dark fw-bold">Selected</span>
+                    </div>
+                }
+                else
+                {
+                    <div class="p-2 px-3 rounded-3 w-100 text-secondary small d-flex align-items-center gap-2" style="background: rgba(7, 13, 30, 0.5); border: 1px dashed rgba(255, 255, 255, 0.15);">
+                        <i class="bi bi-arrow-left text-warning"></i>
+                        <span>Upar se doctor select karein</span>
+                    </div>
+                }
+            </div>
+        </div>
+
+        @if (currentDoctor != null)
+        {
+            <div class="p-3 mb-4 rounded-3" style="background: rgba(7, 13, 30, 0.65); border: 1px solid rgba(255, 255, 255, 0.08);">
+                <div class="row g-4">
+                    <!-- Google Gemini API Key for Selected Doctor -->
+                    <div class="col-12 col-lg-6">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <label class="form-label text-white fw-semibold mb-0" style="font-size: 0.9rem;">
+                                <i class="bi bi-google text-info me-2"></i>Google Gemini API Key (Imagen 3)
+                            </label>
+                            @if (!string.IsNullOrWhiteSpace(docGeminiKeyInput))
+                            {
+                                <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50">
+                                    <i class="bi bi-check-circle me-1"></i> Dedicated Key Set
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary bg-opacity-25 text-secondary border border-secondary border-opacity-50">
+                                    Inheriting Hospital Global Key
+                                </span>
+                            }
+                        </div>
+
+                        <div class="input-group mb-2">
+                            <span class="input-group-text bg-dark border-secondary text-info">
+                                <i class="bi bi-key-fill"></i>
+                            </span>
+                            <input type="@(showDocGemini ? "text" : "password")" class="form-control bg-dark text-white border-secondary" placeholder="Enter Dr. @currentDoctor.FullName's Gemini Key (AIzaSy...)" @bind="docGeminiKeyInput" />
+                            <button class="btn btn-outline-secondary" type="button" @onclick="() => showDocGemini = !showDocGemini">
+                                <i class="bi @(showDocGemini ? "bi-eye-slash" : "bi-eye")"></i>
+                            </button>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <small class="text-secondary">Dr. @currentDoctor.FullName ke Imagen 3 banners ke liye use hoga.</small>
+                            @if (!string.IsNullOrWhiteSpace(docGeminiKeyInput))
+                            {
+                                <button type="button" class="btn btn-link text-danger p-0 small text-decoration-none" @onclick="() => docGeminiKeyInput = string.Empty">Clear Key</button>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- OpenAI API Key for Selected Doctor -->
+                    <div class="col-12 col-lg-6">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <label class="form-label text-white fw-semibold mb-0" style="font-size: 0.9rem;">
+                                <i class="bi bi-openai text-success me-2"></i>OpenAI API Key (DALL-E 3)
+                            </label>
+                            @if (!string.IsNullOrWhiteSpace(docOpenAiKeyInput))
+                            {
+                                <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50">
+                                    <i class="bi bi-check-circle me-1"></i> Dedicated Key Set
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary bg-opacity-25 text-secondary border border-secondary border-opacity-50">
+                                    Inheriting Hospital Global Key
+                                </span>
+                            }
+                        </div>
+
+                        <div class="input-group mb-2">
+                            <span class="input-group-text bg-dark border-secondary text-success">
+                                <i class="bi bi-key-fill"></i>
+                            </span>
+                            <input type="@(showDocOpenAi ? "text" : "password")" class="form-control bg-dark text-white border-secondary" placeholder="Enter Dr. @currentDoctor.FullName's OpenAI Key (sk-proj-...)" @bind="docOpenAiKeyInput" />
+                            <button class="btn btn-outline-secondary" type="button" @onclick="() => showDocOpenAi = !showDocOpenAi">
+                                <i class="bi @(showDocOpenAi ? "bi-eye-slash" : "bi-eye")"></i>
+                            </button>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <small class="text-secondary">Dr. @currentDoctor.FullName ke DALL-E 3 graphic banners ke liye use hoga.</small>
+                            @if (!string.IsNullOrWhiteSpace(docOpenAiKeyInput))
+                            {
+                                <button type="button" class="btn btn-link text-danger p-0 small text-decoration-none" @onclick="() => docOpenAiKeyInput = string.Empty">Clear Key</button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons for Selected Doctor -->
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 pt-2">
+                <div class="text-secondary small">
+                    <i class="bi bi-info-circle text-info me-1"></i>
+                    Ye keys SQL Server table <code>[DoctorAiSettings_CYH]</code> mein <strong>DoctorId: @currentDoctor.Id</strong> ke sath store hongi.
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-danger d-flex align-items-center gap-2 px-3 py-2" @onclick="ResetDoctorKeysAsync" disabled="@isSavingDoctor" style="border-radius: 10px;">
+                        <i class="bi bi-trash"></i>
+                        <span>Reset to Hospital Default</span>
+                    </button>
+
+                    <button type="button" class="btn btn-warning d-flex align-items-center gap-2 px-4 py-2 fw-bold" @onclick="SaveCurrentDoctorSettingsAsync" disabled="@isSavingDoctor" style="background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%); border: none; border-radius: 10px; color: #070d1e;">
+                        @if (isSavingDoctor)
+                        {
+                            <span class="spinner-border spinner-border-sm" role="status"></span>
+                            <span>Saving to SQL...</span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-save2-fill"></i>
+                            <span>Save Dr. @currentDoctor.FullName's Keys to SQL</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- SECTION 2: DOCTOR-WISE DIRECTORY & ACTIVE MAPPINGS TABLE -->
+    <div class="glass-panel p-4 rounded-4" style="background: rgba(14, 25, 48, 0.75); border: 1px solid rgba(255, 255, 255, 0.08);">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3 border-bottom border-secondary border-opacity-25 pb-3">
+            <div>
+                <h5 class="fw-bold text-white mb-1">
+                    <i class="bi bi-table text-warning me-2"></i>All Doctors AI API Keys Directory
+                </h5>
+                <p class="text-secondary small mb-0">
+                    Hospital ke sabhi doctors ki configured keys ki live SQL report. Kisi bhi doctor par "Edit Keys" click karke unhe form me load karein.
+                </p>
+            </div>
+
+            <!-- Search Filter -->
+            <div class="d-flex align-items-center gap-2">
+                <div class="input-group" style="max-width: 280px;">
+                    <span class="input-group-text bg-dark border-secondary text-secondary">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" class="form-control bg-dark text-white border-secondary" placeholder="Search doctor by name..." @bind="searchTerm" @bind:event="oninput" style="font-size: 0.85rem;" />
+                </div>
+            </div>
+        </div>
+
+        @if (isLoading)
+        {
+            <div class="text-center py-5">
+                <div class="spinner-border text-warning" role="status"></div>
+                <div class="text-secondary mt-2 small">Loading specialists and AI settings from SQL...</div>
+            </div>
+        }
+        else if (!FilteredDoctors.Any())
+        {
+            <div class="text-center py-5 text-secondary">
+                <i class="bi bi-person-x fs-2 d-block mb-2 text-muted"></i>
+                Koi specialist nahi mila.
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-dark table-hover align-middle mb-0" style="background: transparent;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.1); color: #94a3b8; font-size: 0.8rem; text-transform: uppercase;">
+                            <th class="py-3">Specialist Doctor</th>
+                            <th class="py-3">Gemini API Key (SQL)</th>
+                            <th class="py-3">OpenAI API Key (SQL)</th>
+                            <th class="py-3 text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var doc in FilteredDoctors)
+                        {
+                            var docGemini = allSettings.FirstOrDefault(s => s.DoctorId == doc.Id && s.Provider.Equals("Gemini", StringComparison.OrdinalIgnoreCase));
+                            var docOpenAi = allSettings.FirstOrDefault(s => s.DoctorId == doc.Id && s.Provider.Equals("OpenAI", StringComparison.OrdinalIgnoreCase));
+                            bool isCurrentRow = (selectedDoctorId == doc.Id);
+
+                            <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.05); @(isCurrentRow ? "background: rgba(245, 158, 11, 0.08);" : "")">
+                                <td class="py-3">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="user-avatar" style="width: 42px; height: 42px; font-size: 1rem; background: linear-gradient(135deg, #f59e0b, #fbbf24); color: #070d1e; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold;">
+                                            @doc.FullName[0]
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold text-white fs-6">Dr. @doc.FullName</div>
+                                            <div class="text-warning small" style="font-size: 0.78rem;">@doc.Specialization</div>
+                                            <div class="text-secondary" style="font-size: 0.72rem;">ID: #@doc.Id | @doc.ClinicName</div>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <td class="py-3">
+                                    @if (docGemini != null && !string.IsNullOrWhiteSpace(docGemini.ApiKey))
+                                    {
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50">
+                                                <i class="bi bi-check-circle-fill me-1"></i> Dedicated Key
+                                            </span>
+                                            <code class="text-info small">@MaskKey(docGemini.ApiKey)</code>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-dark text-secondary border border-secondary">
+                                            <i class="bi bi-arrow-return-right me-1"></i> Inherits Hospital Default
+                                        </span>
+                                    }
+                                </td>
+
+                                <td class="py-3">
+                                    @if (docOpenAi != null && !string.IsNullOrWhiteSpace(docOpenAi.ApiKey))
+                                    {
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50">
+                                                <i class="bi bi-check-circle-fill me-1"></i> Dedicated Key
+                                            </span>
+                                            <code class="text-success small">@MaskKey(docOpenAi.ApiKey)</code>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-dark text-secondary border border-secondary">
+                                            <i class="bi bi-arrow-return-right me-1"></i> Inherits Hospital Default
+                                        </span>
+                                    }
+                                </td>
+
+                                <td class="py-3 text-end">
+                                    <button type="button" class="btn btn-outline-warning btn-sm px-3 py-1 fw-semibold d-inline-flex align-items-center gap-1" @onclick="() => SelectDoctorById(doc.Id)" style="border-radius: 8px;">
+                                        <i class="bi bi-pencil-square"></i>
+                                        <span>Edit Keys</span>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    <!-- SECTION 3: GLOBAL HOSPITAL FALLBACK KEYS (OPTIONAL BACKUP) -->
+    <div class="glass-panel p-4 rounded-4" style="background: rgba(14, 25, 48, 0.65); border: 1px solid rgba(255, 255, 255, 0.08);">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3 border-bottom border-secondary border-opacity-25 pb-3">
+            <div>
+                <h5 class="fw-bold text-white mb-1">
+                    <i class="bi bi-hospital text-info me-2"></i>Hospital Global Fallback Keys (Backup)
+                </h5>
+                <p class="text-secondary small mb-0">
+                    Agar kisi doctor ka individual API key map nahi hoga, to system automatically is Global Hospital key ko use karega.
+                </p>
+            </div>
+            <span class="badge px-3 py-2" style="background: rgba(0, 242, 254, 0.12); border: 1px solid rgba(0, 242, 254, 0.3); color: #00f2fe; border-radius: 8px;">
+                <i class="bi bi-database me-1"></i> DoctorId = NULL (Global)
+            </span>
+        </div>
+
+        <div class="row g-4">
+            <!-- Global Gemini Key -->
+            <div class="col-12 col-md-6">
+                <div class="p-3 rounded-3" style="background: rgba(7, 13, 30, 0.65); border: 1px solid rgba(255, 255, 255, 0.1);">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <label class="form-label text-white fw-bold mb-0" style="font-size: 0.88rem;">
+                            <i class="bi bi-google text-info me-2"></i>Hospital Default Gemini API Key
+                        </label>
+                        @if (!string.IsNullOrWhiteSpace(globalGeminiKey))
+                        {
+                            <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50">Active</span>
+                        }
+                    </div>
+
+                    <div class="input-group mb-2">
+                        <span class="input-group-text bg-dark border-secondary text-info">
+                            <i class="bi bi-key-fill"></i>
+                        </span>
+                        <input type="@(showGlobalGemini ? "text" : "password")" class="form-control bg-dark text-white border-secondary" placeholder="Global Gemini API Key (AIzaSy...)" @bind="globalGeminiKey" />
+                        <button class="btn btn-outline-secondary" type="button" @onclick="() => showGlobalGemini = !showGlobalGemini">
+                            <i class="bi @(showGlobalGemini ? "bi-eye-slash" : "bi-eye")"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Global OpenAI Key -->
+            <div class="col-12 col-md-6">
+                <div class="p-3 rounded-3" style="background: rgba(7, 13, 30, 0.65); border: 1px solid rgba(255, 255, 255, 0.1);">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <label class="form-label text-white fw-bold mb-0" style="font-size: 0.88rem;">
+                            <i class="bi bi-openai text-success me-2"></i>Hospital Default OpenAI API Key
+                        </label>
+                        @if (!string.IsNullOrWhiteSpace(globalOpenAiKey))
+                        {
+                            <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50">Active</span>
+                        }
+                    </div>
+
+                    <div class="input-group mb-2">
+                        <span class="input-group-text bg-dark border-secondary text-success">
+                            <i class="bi bi-key-fill"></i>
+                        </span>
+                        <input type="@(showGlobalOpenAi ? "text" : "password")" class="form-control bg-dark text-white border-secondary" placeholder="Global OpenAI API Key (sk-proj-...)" @bind="globalOpenAiKey" />
+                        <button class="btn btn-outline-secondary" type="button" @onclick="() => showGlobalOpenAi = !showGlobalOpenAi">
+                            <i class="bi @(showGlobalOpenAi ? "bi-eye-slash" : "bi-eye")"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end mt-3">
+            <button class="btn btn-outline-warning d-flex align-items-center gap-2 px-4 py-2 fw-semibold" @onclick="SaveGlobalSettingsAsync" disabled="@isSavingGlobal" style="border-radius: 10px;">
+                @if (isSavingGlobal)
+                {
+                    <span class="spinner-border spinner-border-sm" role="status"></span>
+                    <span>Saving...</span>
+                }
+                else
+                {
+                    <i class="bi bi-save2"></i>
+                    <span>Update Hospital Default Keys</span>
+                }
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .fade-in {
+        animation: fadeIn 0.25s ease-in-out;
+    }
+
+    @@keyframes fadeIn {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+
+@code {
+    private bool isLoading = true;
+    private bool isSavingGlobal = false;
+    private bool isSavingDoctor = false;
+    private string? feedbackMessage;
+
+    // Toast Popup Notification State
+    private ToastNotificationDTO? activePopup;
+    private CancellationTokenSource? popupCts;
+
+    private void ShowPopup(string title, string message, string type = "save")
+    {
+        popupCts?.Cancel();
+        popupCts = new CancellationTokenSource();
+        var token = popupCts.Token;
+
+        activePopup = new ToastNotificationDTO
+        {
+            Title = title,
+            Message = message,
+            Type = type
+        };
+        StateHasChanged();
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(4000, token);
+                if (!token.IsCancellationRequested)
+                {
+                    await InvokeAsync(() =>
+                    {
+                        activePopup = null;
+                        StateHasChanged();
+                    });
+                }
+            }
+            catch { }
+        });
+    }
+
+    private void DismissPopup()
+    {
+        popupCts?.Cancel();
+        activePopup = null;
+        StateHasChanged();
+    }
+
+    // Doctor Selection & Form State
+    private int selectedDoctorId = 0;
+    private DoctorProfile? currentDoctor;
+    private string docGeminiKeyInput = string.Empty;
+    private string docOpenAiKeyInput = string.Empty;
+    private bool showDocGemini = false;
+    private bool showDocOpenAi = false;
+
+    // Global Fallback Keys State
+    private string globalGeminiKey = string.Empty;
+    private string globalOpenAiKey = string.Empty;
+    private bool showGlobalGemini = false;
+    private bool showGlobalOpenAi = false;
+
+    private List<DoctorProfile> doctors = new();
+    private List<DoctorAiSettingDTO> allSettings = new();
+    private string searchTerm = string.Empty;
+
+    private IEnumerable<DoctorProfile> FilteredDoctors =>
+        string.IsNullOrWhiteSpace(searchTerm)
+            ? doctors
+            : doctors.Where(d => d.FullName.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                                 d.Specialization.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                                 (d.ClinicName != null && d.ClinicName.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)));
+
+    protected override async Task OnInitializedAsync()
+    {
+        var currentUser = AuthService.GetCurrentUser();
+        if (currentUser == null)
+        {
+            NavigationManager.NavigateTo("login");
+            return;
+        }
+
+        if (currentUser.Role != "Admin")
+        {
+            NavigationManager.NavigateTo("doctor/dashboard");
+            return;
+        }
+
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        isLoading = true;
+        feedbackMessage = null;
+        try
+        {
+            doctors = await DoctorRepo.GetAllWithUsersAsync();
+            allSettings = await DoctorAiRepo.GetAllSettingsAsync();
+
+            // Load global hospital keys (where DoctorId is null)
+            var globalGemini = allSettings.FirstOrDefault(s => s.DoctorId == null && s.Provider.Equals("Gemini", StringComparison.OrdinalIgnoreCase));
+            globalGeminiKey = globalGemini?.ApiKey ?? string.Empty;
+
+            var globalOpenAi = allSettings.FirstOrDefault(s => s.DoctorId == null && s.Provider.Equals("OpenAI", StringComparison.OrdinalIgnoreCase));
+            globalOpenAiKey = globalOpenAi?.ApiKey ?? string.Empty;
+
+            // If a doctor was selected, refresh their inputs
+            if (selectedDoctorId > 0)
+            {
+                OnDoctorSelected();
+            }
+            else if (doctors.Any())
+            {
+                // Auto-select first doctor for ease of use
+                selectedDoctorId = doctors.First().Id;
+                OnDoctorSelected();
+            }
+        }
+        catch (Exception ex)
+        {
+            feedbackMessage = $"Error loading data: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void SelectDoctorById(int doctorId)
+    {
+        selectedDoctorId = doctorId;
+        OnDoctorSelected();
+        if (currentDoctor != null)
+        {
+            ShowPopup("Doctor Selected for Edit", $"Dr. {currentDoctor.FullName} form mein load ho gaye hain. Ab aap unki keys edit kar sakte hain.", "edit");
+        }
+    }
+
+    private void OnDoctorSelected()
+    {
+        currentDoctor = doctors.FirstOrDefault(d => d.Id == selectedDoctorId);
+        if (currentDoctor == null)
+        {
+            docGeminiKeyInput = string.Empty;
+            docOpenAiKeyInput = string.Empty;
+            return;
+        }
+
+        var curGemini = allSettings.FirstOrDefault(s => s.DoctorId == currentDoctor.Id && s.Provider.Equals("Gemini", StringComparison.OrdinalIgnoreCase));
+        docGeminiKeyInput = curGemini?.ApiKey ?? string.Empty;
+
+        var curOpenAi = allSettings.FirstOrDefault(s => s.DoctorId == currentDoctor.Id && s.Provider.Equals("OpenAI", StringComparison.OrdinalIgnoreCase));
+        docOpenAiKeyInput = curOpenAi?.ApiKey ?? string.Empty;
+
+        showDocGemini = false;
+        showDocOpenAi = false;
+    }
+
+    private async Task SaveCurrentDoctorSettingsAsync()
+    {
+        if (currentDoctor == null) return;
+        isSavingDoctor = true;
+        feedbackMessage = null;
+
+        try
+        {
+            var curGemini = allSettings.FirstOrDefault(s => s.DoctorId == currentDoctor.Id && s.Provider.Equals("Gemini", StringComparison.OrdinalIgnoreCase));
+            if (!string.IsNullOrWhiteSpace(docGeminiKeyInput))
+            {
+                await DoctorAiRepo.SaveSettingAsync(new DoctorAiSettingDTO
+                {
+                    DoctorId = currentDoctor.Id,
+                    UserId = currentDoctor.UserId,
+                    DoctorName = currentDoctor.FullName,
+                    Provider = "Gemini",
+                    ApiKey = docGeminiKeyInput.Trim(),
+                    ModelName = "imagen-3.0-generate-002",
+                    IsActive = true
+                });
+            }
+            else if (curGemini != null)
+            {
+                await DoctorAiRepo.DeleteSettingAsync(curGemini.Id);
+            }
+
+            var curOpenAi = allSettings.FirstOrDefault(s => s.DoctorId == currentDoctor.Id && s.Provider.Equals("OpenAI", StringComparison.OrdinalIgnoreCase));
+            if (!string.IsNullOrWhiteSpace(docOpenAiKeyInput))
+            {
+                await DoctorAiRepo.SaveSettingAsync(new DoctorAiSettingDTO
+                {
+                    DoctorId = currentDoctor.Id,
+                    UserId = currentDoctor.UserId,
+                    DoctorName = currentDoctor.FullName,
+                    Provider = "OpenAI",
+                    ApiKey = docOpenAiKeyInput.Trim(),
+                    ModelName = "dall-e-3",
+                    IsActive = true
+                });
+            }
+            else if (curOpenAi != null)
+            {
+                await DoctorAiRepo.DeleteSettingAsync(curOpenAi.Id);
+            }
+
+            feedbackMessage = $"✅ Dr. {currentDoctor.FullName} ke liye AI API Keys SQL Server me successfully save ho gayi hain!";
+            ShowPopup("Doctor AI Keys Saved!", $"Dr. {currentDoctor.FullName} ke liye AI API Keys SQL Server mein successfully save ho gayi hain!", "save");
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            feedbackMessage = $"Error saving keys for Dr. {currentDoctor.FullName}: {ex.Message}";
+            ShowPopup("Error Saving Keys", ex.Message, "error");
+        }
+        finally
+        {
+            isSavingDoctor = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ResetDoctorKeysAsync()
+    {
+        if (currentDoctor == null) return;
+        isSavingDoctor = true;
+        feedbackMessage = null;
+
+        try
+        {
+            var doctorSettings = allSettings.Where(s => s.DoctorId == currentDoctor.Id).ToList();
+            foreach (var s in doctorSettings)
+            {
+                await DoctorAiRepo.DeleteSettingAsync(s.Id);
+            }
+
+            docGeminiKeyInput = string.Empty;
+            docOpenAiKeyInput = string.Empty;
+
+            feedbackMessage = $"Dr. {currentDoctor.FullName} ke custom keys reset kar diye gaye hain. Ab ye Hospital Global keys use karenge.";
+            ShowPopup("Keys Reset / Deleted", $"Dr. {currentDoctor.FullName} ke custom keys delete/reset ho gaye hain. Ab Hospital Global keys use hongi.", "delete");
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            feedbackMessage = $"Error resetting doctor keys: {ex.Message}";
+            ShowPopup("Error Resetting Keys", ex.Message, "error");
+        }
+        finally
+        {
+            isSavingDoctor = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SaveGlobalSettingsAsync()
+    {
+        isSavingGlobal = true;
+        feedbackMessage = null;
+        try
+        {
+            bool okGemini = true;
+            if (!string.IsNullOrWhiteSpace(globalGeminiKey))
+            {
+                okGemini = await DoctorAiRepo.SaveSettingAsync(new DoctorAiSettingDTO
+                {
+                    DoctorId = null,
+                    UserId = null,
+                    DoctorName = "Global Hospital Default",
+                    Provider = "Gemini",
+                    ApiKey = globalGeminiKey.Trim(),
+                    ModelName = "imagen-3.0-generate-002",
+                    IsActive = true
+                });
+            }
+
+            bool okOpenAi = true;
+            if (!string.IsNullOrWhiteSpace(globalOpenAiKey))
+            {
+                okOpenAi = await DoctorAiRepo.SaveSettingAsync(new DoctorAiSettingDTO
+                {
+                    DoctorId = null,
+                    UserId = null,
+                    DoctorName = "Global Hospital Default",
+                    Provider = "OpenAI",
+                    ApiKey = globalOpenAiKey.Trim(),
+                    ModelName = "dall-e-3",
+                    IsActive = true
+                });
+            }
+
+            if (okGemini && okOpenAi)
+            {
+                feedbackMessage = "Hospital Global Default Keys successfully updated in SQL Server!";
+                ShowPopup("Hospital Keys Updated", "Hospital Global Default Keys successfully updated in SQL Server!", "save");
+                await LoadDataAsync();
+            }
+            else
+            {
+                feedbackMessage = "Failed to update global keys.";
+                ShowPopup("Error", "Failed to update global keys.", "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            feedbackMessage = $"Error saving global keys: {ex.Message}";
+            ShowPopup("Error Saving Global Keys", ex.Message, "error");
+        }
+        finally
+        {
+            isSavingGlobal = false;
+            StateHasChanged();
+        }
+    }
+
+    private string MaskKey(string key)
+    {
+        if (string.IsNullOrWhiteSpace(key)) return string.Empty;
+        if (key.Length <= 8) return "••••••••";
+        return key.Substring(0, 4) + "••••••••" + key.Substring(key.Length - 4);
+    }
+}

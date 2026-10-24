@@ -1,6 +1,20 @@
-﻿<Router AppAssembly="typeof(Program).Assembly" NotFoundPage="typeof(Pages.NotFound)">
+@inject NavigationManager NavigationManager
+
+<Router AppAssembly="typeof(Program).Assembly" NotFoundPage="typeof(Pages.NotFound)">
     <Found Context="routeData">
-        <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
+        <RouteView RouteData="routeData" DefaultLayout="GetDefaultLayout(NavigationManager.ToBaseRelativePath(NavigationManager.Uri))" />
         <FocusOnNavigate RouteData="routeData" Selector="h1" />
     </Found>
 </Router>
+
+@code {
+    private Type GetDefaultLayout(string relativePath)
+    {
+        var path = relativePath.TrimStart('/').ToLowerInvariant();
+        if (path.StartsWith("doctor/") || path == "doctor")
+            return typeof(DoctorLayout);
+        if (path.StartsWith("admin/") || path == "admin")
+            return typeof(AdminLayout);
+        return typeof(Layout.MainLayout);
+    }
+}

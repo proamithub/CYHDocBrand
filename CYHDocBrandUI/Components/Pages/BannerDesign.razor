@@ -1,0 +1,1343 @@
+@page "/banner-design"
+@page "/doctor/banner-design"
+@page "/admin/banner-design"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@implements IDisposable
+
+@using CYHDocBrandModel.DTO
+@using CYHDocBrandUI.Components.Common
+
+@inject IBannerAiService BannerAiService
+@inject IBannerRepository BannerRepo
+@inject IDoctorRepository DoctorRepo
+@inject IAuthService AuthService
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+
+<!-- Animated Floating Toast Popup -->
+<ToastPopup Notification="activePopup" OnDismiss="DismissPopup" />
+
+<div class="banner-studio-container fade-in">
+    <!-- Studio Header & Action Bar -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge px-3 py-2" style="background: rgba(0, 242, 254, 0.15); border: 1px solid rgba(0, 242, 254, 0.4); color: #00f2fe; border-radius: 8px; font-weight: 700; letter-spacing: 0.5px;">
+                    <i class="bi bi-stars me-1"></i> AI POWERED
+                </span>
+                
+                @if (IsPublished)
+                {
+                    <span class="badge px-3 py-2" style="background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.5); color: #10b981; border-radius: 8px; font-weight: 700;">
+                        <i class="bi bi-shield-check me-1"></i> PUBLISHED
+                    </span>
+                }
+                else
+                {
+                    <span class="badge px-3 py-2" style="background: rgba(245, 158, 11, 0.2); border: 1px solid rgba(245, 158, 11, 0.5); color: #fbbf24; border-radius: 8px; font-weight: 700;">
+                        <i class="bi bi-pencil-fill me-1"></i> DRAFT (EDIT ACTIVE)
+                    </span>
+                }
+
+                @if (state.Id > 0)
+                {
+                    <span class="text-secondary" style="font-size: 0.8rem;">#ID: @state.Id</span>
+                }
+            </div>
+
+            <h2 class="mt-2 mb-1 fw-bold text-white" style="letter-spacing: -0.5px;">
+                Healthcare <span style="background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Banner Design Studio</span>
+            </h2>
+            <p class="text-secondary mb-0" style="font-size: 0.92rem;">
+                Right side canvas mein Heading, Doctor Card, aur Photos ko **mouse se drag** karke position set karein.
+            </p>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2">
+            <NavLink href="@GetListUrl()" class="btn btn-outline-secondary d-flex align-items-center gap-2 px-3 py-2" style="border-radius: 10px;">
+                <i class="bi bi-collection-fill text-info"></i>
+                <span>My Banners</span>
+            </NavLink>
+
+            <!-- Save Draft -->
+            <button type="button" class="btn btn-outline-warning d-flex align-items-center gap-2 px-3 py-2 fw-semibold" @onclick="SaveDraftAsync" disabled="@isSaving" style="border-radius: 10px;">
+                @if (isSaving && savingMode == "draft")
+                {
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    <span>Saving Draft...</span>
+                }
+                else
+                {
+                    <i class="bi bi-save2"></i>
+                    <span>@(state.Id > 0 ? "Update Draft" : "Save Draft")</span>
+                }
+            </button>
+
+            <!-- Final Publish Button -->
+            <button type="button" class="btn btn-success d-flex align-items-center gap-2 px-3 py-2 fw-semibold" @onclick="PublishBannerAsync" disabled="@isSaving" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; border-radius: 10px;">
+                @if (isSaving && savingMode == "publish")
+                {
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    <span>Publishing...</span>
+                }
+                else
+                {
+                    <i class="bi bi-send-check-fill"></i>
+                    <span>Publish Banner</span>
+                }
+            </button>
+
+            <!-- Reset Drag Positions -->
+            <button type="button" class="btn btn-outline-secondary d-flex align-items-center gap-1 px-2 py-2" @onclick="ResetPositions" title="Reset mouse drag positions to default layout" style="border-radius: 10px;">
+                <i class="bi bi-crosshair"></i>
+                <span class="d-none d-lg-inline">Reset Layout</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main 2-Column Grid Layout -->
+    <div class="row g-4">
+        <!-- LEFT COLUMN: EDITABLE CONTROLS & TABS (5 Cols) -->
+        <div class="col-xl-5 col-lg-6 col-12">
+            <div class="glass-panel p-3 p-md-4 rounded-4" style="background: rgba(14, 25, 48, 0.7); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08);">
+                
+                <!-- Tab Navigation Pill Bar -->
+                <ul class="nav nav-pills nav-fill p-1 rounded-3 mb-4" style="background: rgba(7, 13, 30, 0.65); border: 1px solid rgba(255, 255, 255, 0.06); pointer-events: auto;">
+                    <li class="nav-item">
+                        <button class="nav-link py-2 @(activeTab == "ai" ? "active" : "")" @onclick='() => SetActiveTab("ai")' style="font-size: 0.85rem; font-weight: 600; border-radius: 8px;">
+                            <i class="bi bi-cpu-fill me-1"></i> AI & Presets
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link py-2 @(activeTab == "content" ? "active" : "")" @onclick='() => SetActiveTab("content")' style="font-size: 0.85rem; font-weight: 600; border-radius: 8px;">
+                            <i class="bi bi-pencil-square me-1"></i> Content
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link py-2 @(activeTab == "images" ? "active" : "")" @onclick='() => SetActiveTab("images")' style="font-size: 0.85rem; font-weight: 600; border-radius: 8px;">
+                            <i class="bi bi-images me-1"></i> Photos (@state.OverlayImages.Count)
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link py-2 @(activeTab == "branding" ? "active" : "")" @onclick='() => SetActiveTab("branding")' style="font-size: 0.85rem; font-weight: 600; border-radius: 8px;">
+                            <i class="bi bi-shield-check me-1"></i> Branding
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link py-2 @(activeTab == "styles" ? "active" : "")" @onclick='() => SetActiveTab("styles")' style="font-size: 0.85rem; font-weight: 600; border-radius: 8px;">
+                            <i class="bi bi-palette-fill me-1"></i> Styles
+                        </button>
+                    </li>
+                </ul>
+
+                <!-- TAB 1: AI PROVIDER & PRESETS -->
+                @if (activeTab == "ai")
+                {
+                    <div class="tab-pane-content fade-in">
+                        <div class="mb-3">
+                            <label class="form-label text-secondary fw-semibold" style="font-size: 0.85rem;">
+                                <i class="bi bi-robot text-info me-1"></i> AI Image Provider
+                            </label>
+                            <div class="row g-2">
+                                <div class="col-4">
+                                    <div class="provider-card p-2 text-center rounded-3 @(aiRequest.Provider == "Gemini" ? "active-provider" : "")" @onclick='() => SelectProvider("Gemini")'>
+                                        <i class="bi bi-google fs-4 d-block mb-1 text-info"></i>
+                                        <span class="fw-bold" style="font-size: 0.82rem;">Gemini</span>
+                                        <div class="text-secondary" style="font-size: 0.7rem;">Imagen 3</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="provider-card p-2 text-center rounded-3 @(aiRequest.Provider == "OpenAI" ? "active-provider" : "")" @onclick='() => SelectProvider("OpenAI")'>
+                                        <i class="bi bi-openai fs-4 d-block mb-1 text-success"></i>
+                                        <span class="fw-bold" style="font-size: 0.82rem;">OpenAI</span>
+                                        <div class="text-secondary" style="font-size: 0.7rem;">DALL-E 3</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="provider-card p-2 text-center rounded-3 @(aiRequest.Provider == "Custom" ? "active-provider" : "")" @onclick='() => SelectProvider("Custom")'>
+                                        <i class="bi bi-sliders fs-4 d-block mb-1 text-warning"></i>
+                                        <span class="fw-bold" style="font-size: 0.82rem;">Custom API</span>
+                                        <div class="text-secondary" style="font-size: 0.7rem;">Preset Mock</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Image Dimensions / Aspect Ratio -->
+                        <div class="mb-3">
+                            <label class="form-label text-secondary fw-semibold" style="font-size: 0.85rem;">
+                                <i class="bi bi-aspect-ratio text-info me-1"></i> Dimensions & Aspect Ratio
+                            </label>
+                            <div class="row g-2">
+                                <div class="col-3">
+                                    <div class="ratio-box p-2 text-center rounded-3 @(state.AspectRatio == "1:1" ? "active-ratio" : "")" @onclick='() => SetAspectRatio("1:1")'>
+                                        <div class="ratio-icon mx-auto square-box"></div>
+                                        <div class="fw-bold mt-1" style="font-size: 0.82rem;">1:1</div>
+                                        <div class="text-secondary" style="font-size: 0.68rem;">Square</div>
+                                    </div>
+                                </div>
+                                <div class="col-3">
+                                    <div class="ratio-box p-2 text-center rounded-3 @(state.AspectRatio == "4:5" ? "active-ratio" : "")" @onclick='() => SetAspectRatio("4:5")'>
+                                        <div class="ratio-icon mx-auto portrait-box"></div>
+                                        <div class="fw-bold mt-1" style="font-size: 0.82rem;">4:5</div>
+                                        <div class="text-secondary" style="font-size: 0.68rem;">Portrait</div>
+                                    </div>
+                                </div>
+                                <div class="col-3">
+                                    <div class="ratio-box p-2 text-center rounded-3 @(state.AspectRatio == "9:16" ? "active-ratio" : "")" @onclick='() => SetAspectRatio("9:16")'>
+                                        <div class="ratio-icon mx-auto story-box"></div>
+                                        <div class="fw-bold mt-1" style="font-size: 0.82rem;">9:16</div>
+                                        <div class="text-secondary" style="font-size: 0.68rem;">Story/Reel</div>
+                                    </div>
+                                </div>
+                                <div class="col-3">
+                                    <div class="ratio-box p-2 text-center rounded-3 @(state.AspectRatio == "16:9" ? "active-ratio" : "")" @onclick='() => SetAspectRatio("16:9")'>
+                                        <div class="ratio-icon mx-auto landscape-box"></div>
+                                        <div class="fw-bold mt-1" style="font-size: 0.82rem;">16:9</div>
+                                        <div class="text-secondary" style="font-size: 0.68rem;">Landscape</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Template Presets -->
+                        <div class="mb-3">
+                            <label class="form-label text-secondary fw-semibold" style="font-size: 0.85rem;">
+                                <i class="bi bi-collection text-info me-1"></i> Medical Category Template
+                            </label>
+                            <select class="form-select bg-dark text-white border-secondary" @bind="state.TemplateType" @bind:after="OnTemplateChanged" style="border-radius: 8px;">
+                                <option value="Doctor">Doctor Profile & OPD Consultation</option>
+                                <option value="Hospital">Hospital Facility & Multispecialty</option>
+                                <option value="Clinic">Specialty Clinic & Diagnostics</option>
+                                <option value="Lab">Pathology & Advanced Diagnostics Lab</option>
+                                <option value="Awareness">Health Awareness & Disease Prevention</option>
+                                <option value="Promotional">Promotional Checkup Camp / Health Package</option>
+                            </select>
+                        </div>
+
+                        <!-- Trigger AI Generation Button -->
+                        <div class="mb-3">
+                            <button type="button" class="btn btn-outline-info w-100 py-2 d-flex align-items-center justify-content-center gap-2 fw-semibold" @onclick="TriggerAiGeneration" disabled="@isGenerating" style="border-radius: 8px;">
+                                @if (isGenerating)
+                                {
+                                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                    <span>Synthesizing Background with AI...</span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-magic"></i>
+                                    <span>Generate AI Background</span>
+                                }
+                            </button>
+                        </div>
+                    </div>
+                }
+
+                <!-- TAB 2: EDITABLE CONTENT -->
+                @if (activeTab == "content")
+                {
+                    <div class="tab-pane-content fade-in">
+                        <div class="p-2 mb-3 rounded-2 text-info" style="background: rgba(0, 242, 254, 0.08); font-size: 0.78rem;">
+                            <i class="bi bi-cursor-fill me-1"></i> <strong>Tip:</strong> Aap Heading, Doctor Card, aur Badges ko right preview canvas mein mouse se drag karke kahin bhi shift kar sakte hain!
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-secondary fw-semibold" style="font-size: 0.85rem;">Main Heading / Topic</label>
+                            <input type="text" class="form-control bg-dark text-white border-secondary" @bind="state.Heading" @bind:after="RenderCanvas" placeholder="e.g. World Heart Day Awareness" style="border-radius: 8px;" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-secondary fw-semibold" style="font-size: 0.85rem;">Subtitle / Description</label>
+                            <textarea class="form-control bg-dark text-white border-secondary" rows="2" @bind="state.Subtitle" @bind:after="RenderCanvas" placeholder="Brief clinical message or advice" style="border-radius: 8px; font-size: 0.85rem;"></textarea>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-7">
+                                <label class="form-label text-secondary fw-semibold" style="font-size: 0.85rem;">Doctor Name & Degree</label>
+                                <input type="text" class="form-control bg-dark text-white border-secondary" @bind="state.DoctorName" @bind:after="RenderCanvas" style="border-radius: 8px;" />
+                            </div>
+                            <div class="col-5">
+                                <label class="form-label text-secondary fw-semibold" style="font-size: 0.85rem;">Category Badge</label>
+                                <input type="text" class="form-control bg-dark text-white border-secondary" @bind="state.BadgeText" @bind:after="RenderCanvas" style="border-radius: 8px;" />
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-secondary fw-semibold" style="font-size: 0.85rem;">Specialization / Department</label>
+                            <input type="text" class="form-control bg-dark text-white border-secondary" @bind="state.Specialization" @bind:after="RenderCanvas" style="border-radius: 8px;" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-secondary fw-semibold" style="font-size: 0.85rem;">Hospital / Clinic Name</label>
+                            <input type="text" class="form-control bg-dark text-white border-secondary" @bind="state.HospitalName" @bind:after="RenderCanvas" style="border-radius: 8px;" />
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label text-secondary fw-semibold" style="font-size: 0.85rem;">Contact / OPD Booking</label>
+                                <input type="text" class="form-control bg-dark text-white border-secondary" @bind="state.ContactPhone" @bind:after="RenderCanvas" style="border-radius: 8px;" />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label text-secondary fw-semibold" style="font-size: 0.85rem;">Emergency Helpline</label>
+                                <input type="text" class="form-control bg-dark text-white border-secondary" @bind="state.EmergencyPhone" @bind:after="RenderCanvas" style="border-radius: 8px;" />
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label text-secondary fw-semibold" style="font-size: 0.85rem;">Official Website URL</label>
+                                <input type="text" class="form-control bg-dark text-white border-secondary" @bind="state.Website" @bind:after="RenderCanvas" placeholder="https://www.clickyourhospital.com" style="border-radius: 8px;" />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label text-secondary fw-semibold" style="font-size: 0.85rem;">Clinic / Chamber Address</label>
+                                <input type="text" class="form-control bg-dark text-white border-secondary" @bind="state.Address" @bind:after="RenderCanvas" placeholder="Clinic Address" style="border-radius: 8px;" />
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <!-- TAB 3: MULTIPLE PHOTOS & OVERLAYS -->
+                @if (activeTab == "images")
+                {
+                    <div class="tab-pane-content fade-in">
+                        <div class="p-3 mb-3 rounded-3" style="background: rgba(0, 242, 254, 0.08); border: 1px dashed rgba(0, 242, 254, 0.35);">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <span class="fw-bold text-white" style="font-size: 0.9rem;">
+                                    <i class="bi bi-image-fill text-info me-1"></i> Add Doctor Photo / Badges / QR
+                                </span>
+                                <span class="badge bg-info text-dark">Multiple Support</span>
+                            </div>
+                            <p class="text-secondary mb-2" style="font-size: 0.78rem;">
+                                Apni device se images upload karein. Har photo canvas par aayegi aur aap use **mouse se drag** karke kahin bhi fit kar sakte hain!
+                            </p>
+                            
+                            <label class="btn btn-outline-info btn-sm w-100 py-2 d-flex align-items-center justify-content-center gap-2" style="border-radius: 8px; cursor: pointer;">
+                                <i class="bi bi-cloud-arrow-up-fill fs-6"></i>
+                                <span>Upload Images (+ Add)</span>
+                                <InputFile OnChange="HandleOverlayImagesUpload" multiple accept="image/*" style="display: none;" />
+                            </label>
+                        </div>
+
+                        <!-- List of Added Overlays -->
+                        @if (!state.OverlayImages.Any())
+                        {
+                            <div class="text-center py-4 text-secondary" style="font-size: 0.82rem;">
+                                <i class="bi bi-images fs-3 d-block mb-1 text-muted"></i>
+                                Koi extra image add nahi hui hai. Upar se doctor photo ya clinic badge upload karein.
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="d-flex flex-column gap-2">
+                                @for (int i = 0; i < state.OverlayImages.Count; i++)
+                                {
+                                    var idx = i;
+                                    var img = state.OverlayImages[idx];
+
+                                    <div class="p-2 rounded-3" style="background: rgba(7, 13, 30, 0.7); border: 1px solid rgba(255, 255, 255, 0.08);">
+                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <img src="@img.ImageUrl" style="width: 38px; height: 38px; object-fit: cover; border-radius: @(img.IsCircle ? "50%" : "6px"); border: 1px solid #00f2fe;" />
+                                                <div>
+                                                    <div class="text-white fw-semibold" style="font-size: 0.82rem;">@img.Name</div>
+                                                    <div class="text-secondary" style="font-size: 0.7rem;">Pos: X: @((int)img.X), Y: @((int)img.Y)</div>
+                                                </div>
+                                            </div>
+
+                                            <div class="d-flex align-items-center gap-2">
+                                                <button type="button" class="btn btn-sm @(img.IsCircle ? "btn-info text-dark" : "btn-outline-secondary")" @onclick="() => ToggleImageCircle(idx)" title="Toggle Circle or Square shape" style="font-size: 0.72rem; padding: 2px 8px;">
+                                                    @(img.IsCircle ? "Circle" : "Square")
+                                                </button>
+
+                                                <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => RemoveOverlayImage(idx)" title="Remove Image" style="padding: 2px 8px;">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="text-secondary" style="font-size: 0.72rem;">Size:</span>
+                                            <input type="range" class="form-range" min="80" max="380" step="10" @bind="img.Width" @bind:after="() => OnImageSizeChanged(idx)" />
+                                            <span class="text-info" style="font-size: 0.75rem; width: 45px;">@((int)img.Width)px</span>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+
+                <!-- TAB 4: BRANDING & FIXED LOGO -->
+                @if (activeTab == "branding")
+                {
+                    <div class="tab-pane-content fade-in">
+                        <div class="p-3 mb-3 rounded-3" style="background: rgba(0, 242, 254, 0.08); border: 1px dashed rgba(0, 242, 254, 0.35);">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <span class="fw-bold text-white" style="font-size: 0.9rem;">
+                                    <i class="bi bi-shield-lock-fill text-info me-1"></i> Company Fixed Branding
+                                </span>
+                                <span class="badge bg-info text-dark">Automated</span>
+                            </div>
+                            <p class="text-secondary mb-2" style="font-size: 0.78rem;">
+                                Official transparent vector logo automatically bottom position par embed hota hai.
+                            </p>
+                            <img src="@state.LogoUrl" alt="CYH Logo" style="height: 38px; background: rgba(7, 13, 30, 0.8); padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(0, 242, 254, 0.3);" />
+                        </div>
+
+                        <!-- Logo Placement Selector -->
+                        <div class="mb-3">
+                            <label class="form-label text-secondary fw-semibold" style="font-size: 0.85rem;">Logo Position</label>
+                            <div class="row g-2">
+                                <div class="col-4">
+                                    <button type="button" class="btn w-100 py-2 @(state.LogoPosition == "bottom-left" ? "btn-info text-dark fw-bold" : "btn-outline-secondary")" @onclick='() => SetLogoPosition("bottom-left")' style="font-size: 0.8rem; border-radius: 8px;">
+                                        Bottom Left
+                                    </button>
+                                </div>
+                                <div class="col-4">
+                                    <button type="button" class="btn w-100 py-2 @(state.LogoPosition == "bottom-center" ? "btn-info text-dark fw-bold" : "btn-outline-secondary")" @onclick='() => SetLogoPosition("bottom-center")' style="font-size: 0.8rem; border-radius: 8px;">
+                                        Bottom Center
+                                    </button>
+                                </div>
+                                <div class="col-4">
+                                    <button type="button" class="btn w-100 py-2 @(state.LogoPosition == "bottom-right" ? "btn-info text-dark fw-bold" : "btn-outline-secondary")" @onclick='() => SetLogoPosition("bottom-right")' style="font-size: 0.8rem; border-radius: 8px;">
+                                        Bottom Right
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Logo Size & Padding Sliders -->
+                        <div class="row g-3 mb-3">
+                            <div class="col-6">
+                                <label class="form-label text-secondary fw-semibold d-flex justify-content-between" style="font-size: 0.85rem;">
+                                    <span>Logo Scale</span>
+                                    <span class="text-info">@state.LogoSizePercent%</span>
+                                </label>
+                                <input type="range" class="form-range" min="8" max="22" step="1" @bind="state.LogoSizePercent" @bind:after="RenderCanvas" />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label text-secondary fw-semibold d-flex justify-content-between" style="font-size: 0.85rem;">
+                                    <span>Bottom Offset</span>
+                                    <span class="text-info">@state.LogoPaddingBottom px</span>
+                                </label>
+                                <input type="range" class="form-range" min="15" max="70" step="5" @bind="state.LogoPaddingBottom" @bind:after="RenderCanvas" />
+                            </div>
+                        </div>
+
+                        <!-- Micro Tagline Text -->
+                        <div class="mb-3">
+                            <label class="form-label text-secondary fw-semibold" style="font-size: 0.85rem;">Footer Micro Tagline</label>
+                            <input type="text" class="form-control bg-dark text-white border-secondary" @bind="state.LogoBadgeText" @bind:after="RenderCanvas" placeholder="e.g. CYH DOCTORHUB OFFICIAL BRANDING" style="border-radius: 8px;" />
+                        </div>
+                    </div>
+                }
+
+                <!-- TAB 5: STYLES & COLORS -->
+                @if (activeTab == "styles")
+                {
+                    <div class="tab-pane-content fade-in">
+                        <div class="mb-3">
+                            <label class="form-label text-secondary fw-semibold" style="font-size: 0.85rem;">Color Accents</label>
+                            <div class="d-flex gap-2 mb-3">
+                                <div class="color-chip" style="background: #00f2fe;" @onclick='() => SetPrimaryColor("#00f2fe")' title="Cyber Cyan"></div>
+                                <div class="color-chip" style="background: #10b981;" @onclick='() => SetPrimaryColor("#10b981")' title="Emerald Health"></div>
+                                <div class="color-chip" style="background: #3b82f6;" @onclick='() => SetPrimaryColor("#3b82f6")' title="Royal Sapphire"></div>
+                                <div class="color-chip" style="background: #f59e0b;" @onclick='() => SetPrimaryColor("#f59e0b")' title="Warm Amber"></div>
+                                <div class="color-chip" style="background: #f43f5e;" @onclick='() => SetPrimaryColor("#f43f5e")' title="Rose Cardiology"></div>
+                                <div class="color-chip" style="background: #8b5cf6;" @onclick='() => SetPrimaryColor("#8b5cf6")' title="Purple Wellness"></div>
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label text-secondary fw-semibold" style="font-size: 0.85rem;">Accent Color</label>
+                                <div class="input-group">
+                                    <input type="color" class="form-control form-control-color bg-dark border-secondary p-1" @bind="state.PrimaryColor" @bind:after="RenderCanvas" style="width: 48px; border-radius: 8px 0 0 8px;" />
+                                    <input type="text" class="form-control bg-dark text-white border-secondary" @bind="state.PrimaryColor" @bind:after="RenderCanvas" style="border-radius: 0 8px 8px 0;" />
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label text-secondary fw-semibold" style="font-size: 0.85rem;">Headline Color</label>
+                                <div class="input-group">
+                                    <input type="color" class="form-control form-control-color bg-dark border-secondary p-1" @bind="state.TextColor" @bind:after="RenderCanvas" style="width: 48px; border-radius: 8px 0 0 8px;" />
+                                    <input type="text" class="form-control bg-dark text-white border-secondary" @bind="state.TextColor" @bind:after="RenderCanvas" style="border-radius: 0 8px 8px 0;" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: INTERACTIVE CANVAS PREVIEW & EXPORT ACTIONS (7 Cols) -->
+        <div class="col-xl-7 col-lg-6 col-12">
+            <div class="glass-panel p-3 p-md-4 rounded-4 position-sticky" style="top: 20px; background: rgba(14, 25, 48, 0.7); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08);">
+                
+                <!-- Preview Canvas Header -->
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="live-dot" style="@(IsPublished ? "background-color: #10b981; box-shadow: 0 0 8px #10b981;" : "background-color: #f59e0b; box-shadow: 0 0 8px #f59e0b;")"></span>
+                        <span class="fw-bold text-white" style="font-size: 0.95rem;">Live Interactive Canvas</span>
+                        <span class="badge bg-dark text-secondary border border-secondary" style="font-size: 0.72rem;">@state.AspectRatio â€¢ HD 1080p</span>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge px-2 py-1" style="background: rgba(0, 242, 254, 0.15); border: 1px solid rgba(0, 242, 254, 0.4); color: #00f2fe; font-size: 0.72rem;">
+                            <i class="bi bi-hand-index-thumb me-1"></i> Mouse Drag & Drop Active
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Canvas Preview Viewport -->
+                <div class="canvas-viewport d-flex align-items-center justify-content-center p-2 rounded-3 mb-3 position-relative" style="background: #050a17; min-height: 480px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.08);">
+                    @if (isGenerating)
+                    {
+                        <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center" style="background: rgba(7, 13, 30, 0.85); backdrop-filter: blur(8px); z-index: 10;">
+                            <div class="spinner-border text-info mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+                            <h5 class="text-white fw-bold">Generating Background with AI...</h5>
+                            <p class="text-secondary mb-0" style="font-size: 0.85rem;">Using @aiRequest.Provider to synthesize medical aesthetic</p>
+                        </div>
+                    }
+
+                    <canvas id="bannerCanvas" class="shadow-lg rounded-2 banner-interactive-canvas"></canvas>
+                </div>
+
+                <!-- Action Toolbar: Download, Share, Re-generate -->
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 pt-2 border-top border-secondary border-opacity-25">
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-info d-flex align-items-center gap-2 px-3 py-2" @onclick="TriggerAiGeneration" disabled="@isGenerating" style="border-radius: 10px; font-size: 0.88rem;">
+                            <i class="bi bi-arrow-repeat"></i>
+                            <span>Regenerate Background</span>
+                        </button>
+                    </div>
+
+                    <!-- Download & Share Buttons -->
+                    <div class="d-flex align-items-center gap-2 ms-auto">
+                        @if (!IsPublished)
+                        {
+                            <button type="button" class="btn btn-success d-flex align-items-center gap-2 px-3 py-2 fw-semibold" @onclick="PublishBannerAsync" disabled="@isSaving" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; border-radius: 10px; font-size: 0.88rem;">
+                                <i class="bi bi-send-check-fill"></i>
+                                <span>Publish</span>
+                            </button>
+                        }
+
+                        <button type="button" class="btn btn-outline-success d-flex align-items-center gap-2 px-3 py-2 fw-semibold" @onclick="ShareOnSocialMedia" style="border-radius: 10px; font-size: 0.88rem;">
+                            <i class="bi bi-share-fill"></i>
+                            <span>Share</span>
+                        </button>
+
+                        <button type="button" class="btn btn-info d-flex align-items-center gap-2 px-3 py-2 fw-bold" @onclick="DownloadBannerPng" style="background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); border: none; border-radius: 10px; color: #070d1e; font-size: 0.88rem;">
+                            <i class="bi bi-download"></i>
+                            <span>Download PNG (HD)</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .banner-studio-container {
+        padding: 0.5rem 0.5rem 3rem 0.5rem;
+    }
+
+    .fade-in {
+        animation: fadeIn 0.25s ease-in-out;
+    }
+
+    @@keyframes fadeIn {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .provider-card {
+        background: rgba(7, 13, 30, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .provider-card:hover {
+        background: rgba(14, 25, 48, 0.9);
+        border-color: rgba(0, 242, 254, 0.4);
+        transform: translateY(-2px);
+    }
+
+    .active-provider {
+        background: rgba(0, 242, 254, 0.15) !important;
+        border-color: #00f2fe !important;
+        box-shadow: 0 0 15px rgba(0, 242, 254, 0.25);
+    }
+
+    .ratio-box {
+        background: rgba(7, 13, 30, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .ratio-box:hover {
+        background: rgba(14, 25, 48, 0.9);
+        border-color: rgba(0, 242, 254, 0.4);
+    }
+
+    .active-ratio {
+        background: rgba(0, 242, 254, 0.15) !important;
+        border-color: #00f2fe !important;
+        box-shadow: 0 0 15px rgba(0, 242, 254, 0.25);
+    }
+
+    .ratio-icon {
+        border: 2px solid rgba(255, 255, 255, 0.5);
+        border-radius: 3px;
+    }
+
+    .square-box { width: 22px; height: 22px; }
+    .portrait-box { width: 18px; height: 24px; }
+    .story-box { width: 14px; height: 25px; }
+    .landscape-box { width: 26px; height: 16px; }
+
+    .color-chip {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        cursor: pointer;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .color-chip:hover {
+        transform: scale(1.15);
+        border-color: #ffffff;
+    }
+
+    .banner-interactive-canvas {
+        display: block;
+        max-width: 100%;
+        max-height: 580px;
+        width: auto;
+        height: auto;
+        cursor: grab;
+        touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+        border: 2px solid rgba(0, 242, 254, 0.25);
+        border-radius: 12px;
+    }
+
+    .live-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+    }
+
+    @@keyframes pulse {
+        0% { transform: scale(0.95); opacity: 0.8; }
+        50% { transform: scale(1.2); opacity: 1; }
+        100% { transform: scale(0.95); opacity: 0.8; }
+    }
+</style>
+
+@code {
+    [SupplyParameterFromQuery]
+    public int? Id { get; set; }
+
+    private string activeTab = "content";
+    private bool isGenerating = false;
+    private bool isSaving = false;
+    private string savingMode = "";
+    private string? statusMessage;
+
+    // Toast Popup Notification State
+    private ToastNotificationDTO? activePopup;
+    private CancellationTokenSource? popupCts;
+
+    private void ShowPopup(string title, string message, string type = "save")
+    {
+        popupCts?.Cancel();
+        popupCts = new CancellationTokenSource();
+        var token = popupCts.Token;
+
+        activePopup = new ToastNotificationDTO
+        {
+            Title = title,
+            Message = message,
+            Type = type
+        };
+        StateHasChanged();
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(4000, token);
+                if (!token.IsCancellationRequested)
+                {
+                    await InvokeAsync(() =>
+                    {
+                        activePopup = null;
+                        StateHasChanged();
+                    });
+                }
+            }
+            catch { }
+        });
+    }
+
+    private void DismissPopup()
+    {
+        popupCts?.Cancel();
+        activePopup = null;
+        StateHasChanged();
+    }
+
+    private BannerGenerateRequest aiRequest = new();
+    private BannerCustomizationState state = new();
+    private CurrentUserDTO? currentUser;
+    private DotNetObjectReference<BannerDesign>? dotNetRef;
+
+    private bool IsPublished => state.Status == "Published";
+    private int? loadedId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        currentUser = await AuthService.GetOrRestoreCurrentUserAsync();
+        if (currentUser != null && !currentUser.IsActive && currentUser.Role == "Doctor")
+        {
+            NavigationManager.NavigateTo("doctor/profile");
+            return;
+        }
+
+        var relPath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri).ToLowerInvariant();
+        if (currentUser?.Role == "Doctor" && !relPath.StartsWith("doctor"))
+        {
+            var q = Id.HasValue ? $"?id={Id.Value}" : "";
+            NavigationManager.NavigateTo($"doctor/banner-design{q}");
+            return;
+        }
+        if (currentUser?.Role == "Admin" && !relPath.StartsWith("admin"))
+        {
+            var q = Id.HasValue ? $"?id={Id.Value}" : "";
+            NavigationManager.NavigateTo($"admin/banner-design{q}");
+            return;
+        }
+
+        dotNetRef = DotNetObjectReference.Create(this);
+
+        await LoadBannerRecordAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Id != loadedId)
+        {
+            await LoadBannerRecordAsync();
+        }
+    }
+
+    private async Task LoadBannerRecordAsync()
+    {
+        loadedId = Id;
+        if (Id.HasValue && Id.Value > 0)
+        {
+            var existingRecord = await BannerRepo.GetBannerByIdAsync(Id.Value);
+            if (existingRecord != null)
+            {
+                if (!string.IsNullOrWhiteSpace(existingRecord.ConfigJson))
+                {
+                    try
+                    {
+                        var loadedState = System.Text.Json.JsonSerializer.Deserialize<BannerCustomizationState>(existingRecord.ConfigJson);
+                        if (loadedState != null)
+                        {
+                            state = loadedState;
+                        }
+                    }
+                    catch { }
+                }
+                state.Id = existingRecord.Id;
+                state.Status = existingRecord.Status;
+                state.Heading = existingRecord.Heading;
+                state.DoctorName = existingRecord.DoctorName;
+                state.HospitalName = existingRecord.HospitalName;
+                state.TemplateType = existingRecord.TemplateType;
+                state.AspectRatio = existingRecord.AspectRatio;
+                state.PrimaryColor = existingRecord.PrimaryColor;
+                state.BackgroundImageUrl = existingRecord.BackgroundImageUrl;
+                aiRequest.AspectRatio = existingRecord.AspectRatio;
+                aiRequest.TemplateType = existingRecord.TemplateType;
+
+                statusMessage = $"Loaded #{state.Id} '{state.Heading}' in {state.Status.ToUpper()} mode.";
+                await RenderCanvas();
+                return;
+            }
+        }
+
+        if (currentUser != null)
+        {
+            try
+            {
+                DoctorProfile? doc = null;
+                if (currentUser.DoctorProfileId.HasValue)
+                {
+                    doc = await DoctorRepo.GetByIdAsync(currentUser.DoctorProfileId.Value);
+                }
+                if (doc == null && !string.IsNullOrEmpty(currentUser.UserId))
+                {
+                    doc = await DoctorRepo.GetByUserIdAsync(currentUser.UserId);
+                }
+
+                if (doc != null)
+                {
+                    state.DoctorName = !string.IsNullOrWhiteSpace(doc.DisplayName) ? doc.DisplayName : doc.FullName;
+                    if (!string.IsNullOrWhiteSpace(doc.Qualifications) && !state.DoctorName.Contains(doc.Qualifications))
+                    {
+                        state.DoctorName += $", {doc.Qualifications}";
+                    }
+                    if (!string.IsNullOrWhiteSpace(doc.Specialization))
+                    {
+                        state.Specialization = doc.Specialization;
+                    }
+                    if (!string.IsNullOrWhiteSpace(doc.ClinicName))
+                    {
+                        state.HospitalName = doc.ClinicName;
+                    }
+                    if (!string.IsNullOrWhiteSpace(doc.MobileNo))
+                    {
+                        state.ContactPhone = doc.MobileNo;
+                    }
+                    if (!string.IsNullOrWhiteSpace(doc.ClinicAddress))
+                    {
+                        state.Address = doc.ClinicAddress;
+                    }
+                    if (!string.IsNullOrWhiteSpace(doc.WebsiteUrl))
+                    {
+                        state.Website = doc.WebsiteUrl;
+                    }
+                    if (!string.IsNullOrWhiteSpace(doc.ProfilePic))
+                    {
+                        if (!state.OverlayImages.Any(x => x.Name == "Doctor Profile Photo"))
+                        {
+                            state.OverlayImages.Add(new BannerOverlayImage
+                            {
+                                Name = "Doctor Profile Photo",
+                                ImageUrl = doc.ProfilePic,
+                                X = 780,
+                                Y = 400,
+                                Width = 220,
+                                Height = 220,
+                                IsCircle = true,
+                                IsVisible = true
+                            });
+                        }
+                    }
+                }
+                else
+                {
+                    if (!string.IsNullOrWhiteSpace(currentUser.FullName))
+                    {
+                        state.DoctorName = currentUser.Role == "Doctor" ? $"Dr. {currentUser.FullName}" : currentUser.FullName;
+                    }
+                    if (!string.IsNullOrWhiteSpace(currentUser.Department))
+                    {
+                        state.Specialization = currentUser.Department;
+                    }
+                }
+            }
+            catch { }
+        }
+
+        ApplyTemplatePreset(state.TemplateType);
+        await RenderCanvas();
+    }
+
+    private async Task<bool> EnsureBannerStudioLoadedAsync()
+    {
+        for (int i = 0; i < 25; i++)
+        {
+            try
+            {
+                var isReady = await JSRuntime.InvokeAsync<bool>("eval", 
+                    "typeof window.bannerStudio !== 'undefined' && typeof window.bannerStudio.init === 'function'");
+                if (isReady) return true;
+            }
+            catch { }
+            await Task.Delay(50);
+        }
+
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("eval", @"
+                if (!document.getElementById('banner-studio-dynamic-script')) {
+                    const s = document.createElement('script');
+                    s.id = 'banner-studio-dynamic-script';
+                    s.src = 'js/bannerStudio.js?v=" + DateTime.UtcNow.Ticks + @"';
+                    document.head.appendChild(s);
+                }
+            ");
+            await Task.Delay(150);
+            return await JSRuntime.InvokeAsync<bool>("eval", 
+                "typeof window.bannerStudio !== 'undefined' && typeof window.bannerStudio.init === 'function'");
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (dotNetRef != null)
+        {
+            try
+            {
+                var ready = await EnsureBannerStudioLoadedAsync();
+                if (ready)
+                {
+                    await JSRuntime.InvokeVoidAsync("bannerStudio.init", "bannerCanvas", dotNetRef);
+                    if (firstRender)
+                    {
+                        await RenderCanvas();
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Warning: bannerStudio was not ready after retries.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"bannerStudio.init error: {ex.Message}");
+            }
+        }
+    }
+
+    [JSInvokable]
+    public void OnElementPositionChanged(string elementId, double x, double y)
+    {
+        if (state.Status == "Published")
+        {
+            state.Status = "Draft";
+            statusMessage = "Banner un-locked to Draft mode for editing. New position updated!";
+            StateHasChanged();
+        }
+
+        if (elementId == "heading")
+        {
+            state.HeadingX = x;
+            state.HeadingY = y;
+        }
+        else if (elementId == "subtitle")
+        {
+            state.SubtitleX = x;
+            state.SubtitleY = y;
+        }
+        else if (elementId == "doctorCard")
+        {
+            state.DoctorCardX = x;
+            state.DoctorCardY = y;
+        }
+        else if (elementId == "badge")
+        {
+            state.BadgeX = x;
+            state.BadgeY = y;
+        }
+        else if (elementId == "hospitalName")
+        {
+            state.HospitalNameX = x;
+            state.HospitalNameY = y;
+        }
+        else if (elementId.StartsWith("overlay_"))
+        {
+            var overlayId = elementId.Substring("overlay_".Length);
+            var overlay = state.OverlayImages.FirstOrDefault(o => o.Id == overlayId);
+            if (overlay != null)
+            {
+                overlay.X = x;
+                overlay.Y = y;
+            }
+        }
+        StateHasChanged();
+    }
+
+    private void EnsureDraftMode()
+    {
+        if (state.Status == "Published")
+        {
+            state.Status = "Draft";
+            statusMessage = "Editing enabled â€” banner converted to Draft mode.";
+            ShowPopup("Draft Edit Active", "Banner draft mode mein unlock ho gaya hai. Ab aap text edit aur mouse drag kar sakte hain.", "edit");
+        }
+    }
+
+    private void SetActiveTab(string tab)
+    {
+        activeTab = tab;
+    }
+
+    private void SelectProvider(string provider)
+    {
+        EnsureDraftMode();
+        aiRequest.Provider = provider;
+    }
+
+    private async Task SetAspectRatio(string ratio)
+    {
+        EnsureDraftMode();
+        state.AspectRatio = ratio;
+        aiRequest.AspectRatio = ratio;
+        await RenderCanvas();
+    }
+
+    private async Task SetLogoPosition(string pos)
+    {
+        EnsureDraftMode();
+        state.LogoPosition = pos;
+        await RenderCanvas();
+    }
+
+    private async Task SetPrimaryColor(string hex)
+    {
+        EnsureDraftMode();
+        state.PrimaryColor = hex;
+        await RenderCanvas();
+    }
+
+    private async Task OnTemplateChanged()
+    {
+        EnsureDraftMode();
+        ApplyTemplatePreset(state.TemplateType);
+        await RenderCanvas();
+    }
+
+    private void ApplyTemplatePreset(string template)
+    {
+        aiRequest.TemplateType = template;
+        switch (template)
+        {
+            case "Doctor":
+                state.Heading = "Expert Medical Care & Consultation";
+                state.Subtitle = "Book your priority appointment with our senior healthcare specialist.";
+                state.BadgeText = "DOCTOR CONSULTATION";
+                state.PrimaryColor = "#00f2fe";
+                break;
+            case "Hospital":
+                state.Heading = "World-Class Healthcare Infrastructure";
+                state.Subtitle = "24/7 Advanced Emergency, ICU, and Modular Surgical Suites.";
+                state.BadgeText = "MULTISPECIALTY HOSPITAL";
+                state.PrimaryColor = "#3b82f6";
+                break;
+            case "Clinic":
+                state.Heading = "Comprehensive Family Health Clinic";
+                state.Subtitle = "Compassionate care, diagnostic testing, and preventive health checks.";
+                state.BadgeText = "CLINICAL EXCELLENCE";
+                state.PrimaryColor = "#10b981";
+                break;
+            case "Lab":
+                state.Heading = "Precision Pathology & Diagnostics";
+                state.Subtitle = "Accurate NABL accredited diagnostic tests with same-day digital reports.";
+                state.BadgeText = "DIAGNOSTICS & LAB";
+                state.PrimaryColor = "#8b5cf6";
+                break;
+            case "Awareness":
+                state.Heading = "World Heart Day: Protect Your Heart";
+                state.Subtitle = "Regular cardiac checkups and healthy lifestyle reduce cardiac risk by 80%.";
+                state.BadgeText = "HEALTH AWARENESS";
+                state.PrimaryColor = "#f43f5e";
+                break;
+            case "Promotional":
+                state.Heading = "Full Body Wellness Checkup Package";
+                state.Subtitle = "70+ Vital Tests including Lipid, Liver, Kidney & Sugar Profile at 50% Off.";
+                state.BadgeText = "SPECIAL HEALTH PACKAGE";
+                state.PrimaryColor = "#f59e0b";
+                break;
+        }
+    }
+
+    private async Task HandleOverlayImagesUpload(InputFileChangeEventArgs e)
+    {
+        EnsureDraftMode();
+
+        var files = e.GetMultipleFiles(5); // up to 5 images
+        foreach (var file in files)
+        {
+            if (file.Size > 5 * 1024 * 1024) continue; // max 5MB per file
+
+            var format = file.ContentType;
+            var buffer = new byte[file.Size];
+            await file.OpenReadStream(5 * 1024 * 1024).ReadExactlyAsync(buffer);
+            var base64 = $"data:{format};base64,{Convert.ToBase64String(buffer)}";
+
+            var initialY = 380 + (state.OverlayImages.Count * 30);
+            var initialX = 100 + (state.OverlayImages.Count * 40);
+
+            state.OverlayImages.Add(new BannerOverlayImage
+            {
+                Name = file.Name,
+                ImageUrl = base64,
+                X = initialX,
+                Y = initialY,
+                Width = 180,
+                Height = 180,
+                IsCircle = true,
+                IsVisible = true
+            });
+        }
+
+        await RenderCanvas();
+        statusMessage = "Photo(s) added! Right preview canvas par mouse se drag karke position set karein.";
+    }
+
+    private async Task ToggleImageCircle(int index)
+    {
+        EnsureDraftMode();
+        if (index < 0 || index >= state.OverlayImages.Count) return;
+        state.OverlayImages[index].IsCircle = !state.OverlayImages[index].IsCircle;
+        await RenderCanvas();
+    }
+
+    private async Task OnImageSizeChanged(int index)
+    {
+        EnsureDraftMode();
+        if (index < 0 || index >= state.OverlayImages.Count) return;
+        state.OverlayImages[index].Height = state.OverlayImages[index].Width; // keep 1:1 aspect
+        await RenderCanvas();
+    }
+
+    private async Task RemoveOverlayImage(int index)
+    {
+        EnsureDraftMode();
+        if (index < 0 || index >= state.OverlayImages.Count) return;
+        state.OverlayImages.RemoveAt(index);
+        await RenderCanvas();
+    }
+
+    private async Task ResetPositions()
+    {
+        EnsureDraftMode();
+        state.HeadingX = null;
+        state.HeadingY = null;
+        state.SubtitleX = null;
+        state.SubtitleY = null;
+        state.DoctorCardX = null;
+        state.DoctorCardY = null;
+        state.BadgeX = null;
+        state.BadgeY = null;
+        state.HospitalNameX = null;
+        state.HospitalNameY = null;
+        await RenderCanvas();
+        statusMessage = "Default auto-layout positions restored.";
+        ShowPopup("Layout Reset", "Default auto-layout positions restore kar di gayi hain.", "delete");
+    }
+
+    private async Task UnlockForEditing()
+    {
+        state.Status = "Draft";
+        if (state.Id > 0)
+        {
+            await BannerRepo.SaveDraftAsync(state, currentUser?.UserId);
+        }
+        await RenderCanvas();
+        statusMessage = "Banner converted to Draft mode! Mouse drag and text editing are now UNLOCKED.";
+        ShowPopup("Draft Mode Active", "Banner editing ke liye unlock ho gaya hai.", "edit");
+    }
+
+    private async Task SaveDraftAsync()
+    {
+        isSaving = true;
+        savingMode = "draft";
+        statusMessage = null;
+
+        try
+        {
+            state.Status = "Draft";
+            var savedId = await BannerRepo.SaveDraftAsync(state, currentUser?.UserId);
+            if (savedId > 0)
+            {
+                state.Id = savedId;
+                statusMessage = $"Banner draft #{savedId} saved successfully in SQL database! Mouse positions and photos saved.";
+                ShowPopup("Draft Saved!", $"Banner draft #{savedId} SQL database mein successfully save ho gaya hai!", "save");
+            }
+            else
+            {
+                statusMessage = "Failed to save draft to database.";
+                ShowPopup("Save Failed", "Draft database mein save nahi ho saka.", "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error saving draft: {ex.Message}";
+            ShowPopup("Save Error", ex.Message, "error");
+        }
+        finally
+        {
+            isSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    private string GetListUrl()
+    {
+        var relPath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri).ToLowerInvariant();
+        if (currentUser?.Role == "Doctor" || relPath.StartsWith("doctor")) return "doctor/banner-designs";
+        if (currentUser?.Role == "Admin" || relPath.StartsWith("admin")) return "admin/banner-designs";
+        return "banner-designs";
+    }
+
+    private async Task PublishBannerAsync()
+    {
+        isSaving = true;
+        savingMode = "publish";
+        statusMessage = null;
+
+        try
+        {
+            state.Status = "Published";
+            var savedId = await BannerRepo.SaveDraftAsync(state, currentUser?.UserId);
+            if (savedId > 0)
+            {
+                state.Id = savedId;
+                var pubSuccess = await BannerRepo.PublishBannerAsync(savedId, currentUser?.UserId);
+                if (pubSuccess)
+                {
+                    await RenderCanvas();
+                    statusMessage = $"🎉 Banner #{savedId} successfully Published & LOCKED! Download and Social Share are now active.";
+                    ShowPopup("Banner Published!", $"🎉 Banner #{savedId} successfully publish ho gaya hai! HD Export aur Share ready hain.", "save");
+                }
+                else
+                {
+                    statusMessage = "Banner saved as draft, but could not update status to Published.";
+                    ShowPopup("Publish Incomplete", "Status update failed in database.", "warning");
+                }
+            }
+            else
+            {
+                statusMessage = "Failed to publish banner.";
+                ShowPopup("Publish Failed", "Banner publish nahi ho saka.", "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error publishing: {ex.Message}";
+            ShowPopup("Publish Error", ex.Message, "error");
+        }
+        finally
+        {
+            isSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task TriggerAiGeneration()
+    {
+        EnsureDraftMode();
+
+        isGenerating = true;
+        statusMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            aiRequest.DoctorId = currentUser?.DoctorProfileId;
+            aiRequest.UserId = currentUser?.UserId;
+            aiRequest.DoctorName = state.DoctorName;
+
+            var result = await BannerAiService.GenerateBannerAsync(aiRequest);
+            if (result.Success)
+            {
+                state.BackgroundImageUrl = !string.IsNullOrEmpty(result.ImageBase64) 
+                    ? result.ImageBase64 
+                    : result.ImageUrl;
+
+                await RenderCanvas();
+                statusMessage = $"Background generated successfully with {result.ProviderUsed}!";
+            }
+            else
+            {
+                statusMessage = $"Generation error: {result.ErrorMessage}";
+            }
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Unexpected error: {ex.Message}";
+        }
+        finally
+        {
+            isGenerating = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RenderCanvas()
+    {
+        try
+        {
+            var isReady = await JSRuntime.InvokeAsync<bool>("eval", 
+                "typeof window.bannerStudio !== 'undefined' && typeof window.bannerStudio.renderBanner === 'function'");
+            if (isReady)
+            {
+                await JSRuntime.InvokeVoidAsync("bannerStudio.renderBanner", "bannerCanvas", state);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error rendering canvas: {ex.Message}");
+        }
+    }
+
+    private async Task DownloadBannerPng()
+    {
+        try
+        {
+            var filename = $"CYH_Banner_{state.TemplateType}_{DateTime.UtcNow:yyyyMMdd_HHmmss}.png";
+            await JSRuntime.InvokeVoidAsync("bannerStudio.downloadBanner", "bannerCanvas", filename);
+            statusMessage = "Banner downloaded successfully in high resolution PNG!";
+            ShowPopup("PNG Downloaded", "High-Resolution PNG banner successfully download ho gaya hai!", "save");
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Failed to download banner: {ex.Message}";
+            ShowPopup("Download Error", ex.Message, "error");
+        }
+    }
+
+    private async Task ShareOnSocialMedia()
+    {
+        try
+        {
+            var shareTitle = $"{state.Heading} â€” {state.HospitalName}";
+            var shareText = $"{state.Heading}\n{state.Subtitle}\nConsult {state.DoctorName} at {state.HospitalName}.\nHelpline: {state.ContactPhone}";
+            
+            var res = await JSRuntime.InvokeAsync<ShareResult>("bannerStudio.shareBanner", "bannerCanvas", shareTitle, shareText);
+            if (res.Success)
+            {
+                statusMessage = res.Message;
+                ShowPopup("Shared Successfully", res.Message, "save");
+            }
+            else
+            {
+                statusMessage = res.Message;
+                ShowPopup("Share Info", res.Message, "warning");
+            }
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Share error: {ex.Message}";
+            ShowPopup("Share Error", ex.Message, "error");
+        }
+    }
+
+    public void Dispose()
+    {
+        dotNetRef?.Dispose();
+    }
+
+    private class ShareResult
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+    }
+}

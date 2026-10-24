@@ -1,5 +1,6 @@
 @page "/admin/doctors"
 @layout AdminLayout
+@using CYHDocBrandRepo.Utilities
 @inject IDoctorRepository DoctorRepo
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
@@ -11,33 +12,69 @@
             <h3 class="fw-bold mb-1 text-white">
                 <i class="bi bi-people-fill text-warning me-2"></i>Manage Hospital Specialists
             </h3>
-            <p class="small mb-0" style="color: #cbd5e1;">Hospital Administration Directory • Control Specialist Availability & Roster</p>
+            <p class="small mb-0" style="color: #cbd5e1;">Hospital Administration Directory • Control Specialist Activation Status, Availability & Roster</p>
         </div>
-        <div class="d-flex gap-2">
+        <div class="d-flex flex-wrap gap-2">
+            <button class="glass-btn-secondary" @onclick="OpenDecryptModal" style="border-color: rgba(0, 242, 254, 0.4); color: #38bdf8;">
+                <i class="bi bi-unlock-fill me-1"></i> Decrypt Password Tool
+            </button>
+            <button class="glass-btn-secondary" @onclick="OpenAddDoctorModal" style="border-color: rgba(245, 158, 11, 0.4); color: #fde047;">
+                <i class="bi bi-person-plus-fill me-1"></i> Register New Specialist
+            </button>
             <button class="glass-btn-primary" @onclick="LoadDoctorsAsync" style="background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%); color: #070d1e;">
-                <i class="bi bi-arrow-clockwise"></i> Refresh Specialists
+                <i class="bi bi-arrow-clockwise me-1"></i> Refresh List
             </button>
         </div>
     </div>
 
+    <!-- Filter and Search Bar -->
+    <div class="glass-panel p-3 d-flex flex-wrap align-items-center justify-content-between gap-3" style="border-color: rgba(255, 255, 255, 0.1);">
+        <div class="d-flex flex-wrap gap-2">
+            <button type="button" class="btn btn-sm @(FilterStatus == "All" ? "btn-warning" : "btn-outline-secondary")" @onclick='() => SetFilter("All")'>
+                All Specialists <span class="badge bg-dark ms-1">@(Doctors?.Count ?? 0)</span>
+            </button>
+            <button type="button" class="btn btn-sm @(FilterStatus == "Active" ? "btn-success" : "btn-outline-secondary")" @onclick='() => SetFilter("Active")'>
+                <i class="bi bi-check-circle-fill me-1"></i> Active <span class="badge bg-dark ms-1">@(Doctors?.Count(d => d.User?.IsActive == true) ?? 0)</span>
+            </button>
+            <button type="button" class="btn btn-sm @(FilterStatus == "Pending" ? "btn-warning" : "btn-outline-secondary")" @onclick='() => SetFilter("Pending")'>
+                <i class="bi bi-clock-history me-1"></i> Pending / Inactive <span class="badge bg-danger ms-1">@(Doctors?.Count(d => d.User?.IsActive == false) ?? 0)</span>
+            </button>
+        </div>
+
+        <div class="position-relative" style="min-width: 260px;">
+            <i class="bi bi-search position-absolute" style="left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.88rem;"></i>
+            <input type="text" class="glass-input py-1" style="padding-left: 2.3rem; font-size: 0.88rem;" @bind="SearchQuery" @bind:event="oninput" placeholder="Search doctor or specialization..." />
+        </div>
+    </div>
+
     <!-- Doctor Grid Cards -->
-    @if (Doctors == null)
+    @if (FilteredDoctors == null)
     {
         <div class="text-center py-5">
             <div class="spinner-border text-warning"></div>
         </div>
     }
+    else if (!FilteredDoctors.Any())
+    {
+        <div class="glass-panel p-5 text-center" style="border: 1px dashed rgba(255, 255, 255, 0.2);">
+            <i class="bi bi-person-x-fill text-muted" style="font-size: 3rem;"></i>
+            <h5 class="text-white mt-3 mb-1">No Specialists Found</h5>
+            <p class="small text-muted mb-0">Try changing the filter or search query.</p>
+        </div>
+    }
     else
     {
         <div class="row g-4">
-            @foreach (var doc in Doctors)
+            @foreach (var doc in FilteredDoctors)
             {
+                var isDocActive = doc.User?.IsActive ?? true;
                 <div class="col-12 col-md-6 col-xl-4">
-                    <div class="glass-card h-100 d-flex flex-column justify-content-between p-4" style="border-color: rgba(245, 158, 11, 0.18);">
+                    <div class="glass-card h-100 d-flex flex-column justify-content-between p-4" style="border-color: @(isDocActive ? "rgba(245, 158, 11, 0.22)" : "rgba(239, 68, 68, 0.35)"); background: @(isDocActive ? "rgba(15, 23, 42, 0.65)" : "rgba(30, 20, 30, 0.65)");">
                         <div>
+                            <!-- Header with Avatar and Status Badges -->
                             <div class="d-flex align-items-start justify-content-between mb-3">
                                 <div class="d-flex align-items-center gap-3">
-                                    <div class="user-avatar" style="width: 50px; height: 50px; font-size: 1.25rem; background: linear-gradient(135deg, #f59e0b, #fbbf24); color: #070d1e;">
+                                    <div class="user-avatar" style="width: 52px; height: 52px; font-size: 1.35rem; background: @(isDocActive ? "linear-gradient(135deg, #f59e0b, #fbbf24)" : "linear-gradient(135deg, #64748b, #475569)"); color: #070d1e; flex-shrink: 0;">
                                         @doc.FullName[0]
                                     </div>
                                     <div>
@@ -45,32 +82,85 @@
                                         <span class="text-warning small fw-semibold">@doc.Specialization</span>
                                     </div>
                                 </div>
-                                <span class="badge @(doc.IsAvailableToday ? "bg-success" : "bg-secondary") rounded-pill px-2 py-1" style="font-size: 0.72rem;">
-                                    @(doc.IsAvailableToday ? "Available" : "Offline")
-                                </span>
+                                <div class="d-flex flex-column align-items-end gap-1">
+                                    <!-- Account Active / Inactive Badge -->
+                                    @if (isDocActive)
+                                    {
+                                        <span class="badge rounded-pill px-2 py-1" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); font-size: 0.72rem;">
+                                            <i class="bi bi-check-circle-fill me-1"></i> Active
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge rounded-pill px-2 py-1" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); font-size: 0.72rem;">
+                                            <i class="bi bi-clock-history me-1"></i> Inactive / Pending
+                                        </span>
+                                    }
+
+                                    <!-- On Duty / Available Badge -->
+                                    <span class="badge @(doc.IsAvailableToday ? "bg-success" : "bg-secondary") rounded-pill px-2 py-1" style="font-size: 0.68rem;">
+                                        @(doc.IsAvailableToday ? "Duty: Available" : "Duty: Offline")
+                                    </span>
+                                </div>
                             </div>
 
                             <p class="small mb-3" style="color: #cbd5e1;">
                                 @(string.IsNullOrWhiteSpace(doc.Bio) ? "Experienced specialist dedicated to compassionate medical care." : doc.Bio)
                             </p>
 
+                            <!-- Specialist Specs -->
                             <div class="d-flex flex-column gap-1 small mb-3 border-top pt-2" style="border-color: rgba(255,255,255,0.08) !important; color: #94a3b8;">
+                                <div><i class="bi bi-envelope text-warning me-2"></i>Email: <span class="text-white">@(doc.User?.Email ?? "N/A")</span></div>
+                                <div><i class="bi bi-telephone text-warning me-2"></i>Mobile: <span class="text-white">@(doc.User?.PhoneNumber ?? doc.MobileNo ?? "N/A")</span></div>
                                 <div><i class="bi bi-award text-warning me-2"></i>Experience: <strong class="text-white">@doc.ExperienceYears years</strong></div>
                                 <div><i class="bi bi-calendar3 text-warning me-2"></i>Days: <span class="text-white">@doc.AvailableDays</span></div>
                                 <div><i class="bi bi-clock text-warning me-2"></i>Hours: <span class="text-white">@doc.AvailableHours</span></div>
                                 <div><i class="bi bi-card-heading text-warning me-2"></i>License: <span class="text-white">@doc.LicenseNumber</span></div>
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-key-fill text-warning me-2"></i>Password: 
+                                    @if (!string.IsNullOrEmpty(doc.User?.Password))
+                                    {
+                                        <span class="text-info fw-bold font-monospace ms-1">
+                                            @(visiblePasswordDocIds.Contains(doc.Id) ? AESEncryption.Decode(doc.User.Password) : "••••••••")
+                                        </span>
+                                        <button type="button" class="btn btn-link btn-sm p-0 ms-2 text-warning text-decoration-none" @onclick="() => TogglePasswordView(doc.Id)" title="Click to view decrypted plain password">
+                                            <i class="bi @(visiblePasswordDocIds.Contains(doc.Id) ? "bi-eye-slash-fill" : "bi-eye-fill")"></i>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted ms-1">••••••••</span>
+                                    }
+                                </div>
                             </div>
                         </div>
 
-                        <div class="d-flex align-items-center justify-content-between pt-3 border-top" style="border-color: rgba(255,255,255,0.08) !important;">
+                        <!-- Card Footer: Fee and Actions -->
+                        <div class="d-flex align-items-center justify-content-between pt-3 border-top flex-wrap gap-2" style="border-color: rgba(255,255,255,0.08) !important;">
                             <div>
                                 <span class="small" style="color: #94a3b8;">Consultation Fee</span>
-                                <div class="fw-bold text-white fs-5">$@doc.ConsultationFee.ToString("N2")</div>
+                                <div class="fw-bold text-white fs-5">₹@doc.ConsultationFee.ToString("N2")</div>
                             </div>
-                            <div class="d-flex gap-2">
-                                <button class="glass-btn-secondary glass-btn-sm @(doc.IsAvailableToday ? "text-success border-success" : "text-muted")" @onclick="() => ToggleDuty(doc.Id)">
-                                    <i class="bi bi-power"></i> @(doc.IsAvailableToday ? "Set Away" : "Set Available")
+
+                            <div class="d-flex align-items-center gap-2">
+                                <!-- Duty Toggle -->
+                                <button class="glass-btn-secondary glass-btn-sm @(doc.IsAvailableToday ? "text-success border-success" : "text-muted")" @onclick="() => ToggleDuty(doc.Id)" title="Toggle OPD Duty Availability">
+                                    <i class="bi bi-power"></i> @(doc.IsAvailableToday ? "Away" : "Available")
                                 </button>
+
+                                <!-- Active / Inactive Admin Control Toggle -->
+                                @if (isDocActive)
+                                {
+                                    <button class="glass-btn-secondary glass-btn-sm text-danger border-danger" @onclick="() => ToggleActiveStatus(doc.UserId, doc.FullName, false)" title="Deactivate specialist account (Locks all tools except Profile)">
+                                        <i class="bi bi-person-x-fill me-1"></i> Deactivate
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button class="glass-btn-primary glass-btn-sm" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; border: 1px solid #10b981;" @onclick="() => ToggleActiveStatus(doc.UserId, doc.FullName, true)" title="Activate specialist account (Unlocks all workspace tools)">
+                                        <i class="bi bi-person-check-fill me-1"></i> Activate
+                                    </button>
+                                }
                             </div>
                         </div>
                     </div>
@@ -80,8 +170,299 @@
     }
 </div>
 
+<!-- ================================================================================== -->
+<!-- Register New Doctor Modal from Admin Panel -->
+<!-- ================================================================================== -->
+@if (ShowAddDoctorModal)
+{
+    <div class="modal-backdrop fade show" style="background-color: rgba(3, 7, 18, 0.88); backdrop-filter: blur(8px); z-index: 1050;"></div>
+    <div class="modal fade show d-block" tabindex="-1" style="z-index: 1055; overflow-y: auto;">
+        <div class="modal-dialog modal-dialog-centered modal-lg my-4">
+            <div class="modal-content text-white" style="background: #091226; border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 18px; box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85), 0 0 35px rgba(245, 158, 11, 0.2);">
+                <div class="modal-header border-bottom d-flex align-items-center justify-content-between p-4" style="border-color: rgba(255, 255, 255, 0.1) !important; background: rgba(245, 158, 11, 0.05);">
+                    <div class="d-flex align-items-center gap-3">
+                        <div style="width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #f59e0b, #fbbf24); color: #070d1e; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; font-weight: bold;">
+                            <i class="bi bi-person-plus-fill"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title fw-bold text-white mb-0">Register New Specialist Doctor</h5>
+                            <span class="small" style="color: #94a3b8;">Add a new medical faculty specialist directly to the hospital directory</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseAddDoctorModal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body p-4">
+                    @if (!string.IsNullOrEmpty(AddErrorMessage))
+                    {
+                        <div class="alert alert-danger py-2 px-3 small d-flex align-items-center gap-2 mb-3" style="background: rgba(244, 63, 94, 0.15); border: 1px solid rgba(244, 63, 94, 0.35); color: #fda4af; border-radius: 10px;">
+                            <i class="bi bi-exclamation-octagon-fill fs-6"></i>
+                            <span>@AddErrorMessage</span>
+                        </div>
+                    }
+
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-semibold text-light mb-1">Full Name (with Dr. prefix) *</label>
+                            <input type="text" class="glass-input" @bind="NewDoctor.FullName" placeholder="Dr. Sameer Khan" />
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-semibold text-light mb-1">Login Email *</label>
+                            <input type="email" class="glass-input" @bind="NewDoctor.Email" placeholder="sameer.khan@cyhdoctorhub.com" />
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-semibold text-light mb-1">Temporary Password *</label>
+                            <input type="password" class="glass-input" @bind="NewDoctor.Password" placeholder="••••••••" />
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-semibold text-light mb-1">Confirm Password *</label>
+                            <input type="password" class="glass-input" @bind="NewDoctor.ConfirmPassword" placeholder="••••••••" />
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-semibold text-light mb-1">Mobile Number *</label>
+                            <input type="tel" class="glass-input" @bind="NewDoctor.PhoneNumber" placeholder="+91 98765 43210" />
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-semibold text-light mb-1">Specialization *</label>
+                            <select class="glass-input" @bind="NewDoctor.Specialization" style="background: #0f172a; color: #f1f5f9;">
+                                <option value="Cardiology">Cardiology</option>
+                                <option value="Neurology">Neurology</option>
+                                <option value="General Medicine">General Medicine</option>
+                                <option value="Pediatrics">Pediatrics</option>
+                                <option value="Orthopedics">Orthopedics</option>
+                                <option value="Dermatology">Dermatology</option>
+                                <option value="Gynecology & Obstetrics">Gynecology &amp; Obstetrics</option>
+                                <option value="ENT Specialist">ENT Specialist</option>
+                                <option value="Ophthalmology">Ophthalmology</option>
+                                <option value="Oncology">Oncology</option>
+                                <option value="Psychiatry">Psychiatry</option>
+                                <option value="General Surgery">General Surgery</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-semibold text-light mb-1">Medical License No. *</label>
+                            <input type="text" class="glass-input" @bind="NewDoctor.LicenseNumber" placeholder="MCI-DEL-2024-8891" />
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label class="form-label small fw-semibold text-light mb-1">Experience (Years)</label>
+                            <input type="number" class="glass-input" @bind="NewDoctor.ExperienceYears" min="0" max="60" />
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label class="form-label small fw-semibold text-light mb-1">Consultation Fee (₹)</label>
+                            <input type="number" class="glass-input" @bind="NewDoctor.ConsultationFee" min="0" step="50" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold text-light mb-1">Brief Bio</label>
+                            <textarea class="glass-input" rows="2" @bind="NewDoctor.Bio" placeholder="Specialist clinical overview..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-top p-3 d-flex justify-content-between" style="border-color: rgba(255, 255, 255, 0.1) !important;">
+                    <button type="button" class="glass-btn-secondary" @onclick="CloseAddDoctorModal" disabled="@IsSubmittingDoctor">
+                        Cancel
+                    </button>
+                    <button type="button" class="glass-btn-primary" @onclick="SubmitNewDoctor" disabled="@IsSubmittingDoctor" style="background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%); color: #070d1e; font-weight: 700;">
+                        @if (IsSubmittingDoctor)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                            <span>Adding Doctor...</span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-check-circle-fill me-1"></i>
+                            <span>Register &amp; Save</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- ================================================================================== -->
+<!-- Quick Password Decryptor Modal Tool -->
+<!-- ================================================================================== -->
+@if (ShowDecryptModal)
+{
+    <div class="modal-backdrop fade show" style="background-color: rgba(3, 7, 18, 0.88); backdrop-filter: blur(8px); z-index: 1050;"></div>
+    <div class="modal fade show d-block" tabindex="-1" style="z-index: 1055;">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content text-white" style="background: #091226; border: 1px solid rgba(0, 242, 254, 0.4); border-radius: 18px; box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85), 0 0 35px rgba(0, 242, 254, 0.2);">
+                <div class="modal-header border-bottom d-flex align-items-center justify-content-between p-4" style="border-color: rgba(255, 255, 255, 0.1) !important; background: rgba(0, 242, 254, 0.05);">
+                    <div class="d-flex align-items-center gap-3">
+                        <div style="width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #00f2fe, #4facfe); color: #070d1e; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; font-weight: bold;">
+                            <i class="bi bi-unlock-fill"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title fw-bold text-white mb-0">Doctor Password Decryptor Tool</h5>
+                            <span class="small" style="color: #94a3b8;">Decrypt AES-256 encrypted passwords from database</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseDecryptModal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body p-4">
+                    <!-- Quick Select Doctor -->
+                    @if (Doctors != null && Doctors.Any())
+                    {
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-light mb-1">
+                                <i class="bi bi-person-fill text-info me-1"></i>Quick Auto-Fill From Specialist:
+                            </label>
+                            <select class="glass-input" @onchange="OnDoctorSelectForDecrypt" style="background: #0f172a; color: #f1f5f9;">
+                                <option value="">-- Choose a doctor to load encrypted password --</option>
+                                @foreach (var d in Doctors)
+                                {
+                                    <option value="@(d.User?.Password ?? "")">@d.FullName (@(d.User?.Email ?? "N/A"))</option>
+                                }
+                            </select>
+                        </div>
+                    }
+
+                    <!-- Encrypted Input -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-light mb-1">
+                            <i class="bi bi-shield-lock-fill text-warning me-1"></i>Base64 Encrypted String (From SQL AspNetUsers.Password):
+                        </label>
+                        <div class="input-group">
+                            <input type="text" class="glass-input font-monospace" @bind="CipherInput" placeholder="n7uoG53mus5DzCXmNgv7NQ==" />
+                            <button type="button" class="btn btn-info px-4 fw-bold" @onclick="RunDecryptTool" style="border-radius: 0 10px 10px 0;">
+                                <i class="bi bi-arrow-repeat me-1"></i> Decrypt
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Decrypted Result Card -->
+                    <div class="p-3 rounded-3 mb-3" style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.45); box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="small fw-semibold text-success d-flex align-items-center gap-1">
+                                <i class="bi bi-check-circle-fill"></i>
+                                <span>Decrypted Plain-Text Password:</span>
+                            </div>
+                            <span class="badge bg-success text-dark fw-bold">AES-256 Decoded</span>
+                        </div>
+                        <div class="fs-4 fw-bold text-white font-monospace mt-2 select-all">
+                            @(string.IsNullOrWhiteSpace(DecryptedOutput) ? "Enter encrypted string above and click Decrypt" : DecryptedOutput)
+                        </div>
+                    </div>
+
+                    <!-- SQL Procedure Reference Note -->
+                    <div class="alert mb-0 p-3 small" style="background: rgba(255, 255, 255, 0.04); border: 1px dashed rgba(255, 255, 255, 0.2); color: #cbd5e1; border-radius: 10px;">
+                        <strong class="text-warning"><i class="bi bi-terminal-fill me-1"></i>Direct SQL Query (SSMS):</strong>
+                        <div class="mt-1 font-monospace text-info small" style="background: #060b17; padding: 8px 12px; border-radius: 6px;">
+                            EXEC dbo.DecryptDocPassword @@EncryptedPassword = '@CipherInput'
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-top p-3" style="border-color: rgba(255, 255, 255, 0.1) !important;">
+                    <button type="button" class="glass-btn-secondary" @onclick="CloseDecryptModal">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Floating Toast Notification Popup -->
+<ToastPopup Notification="ActivePopup" OnDismiss="DismissPopup" />
+
 @code {
     private List<DoctorProfile>? Doctors;
+    private string FilterStatus = "All";
+    private string SearchQuery = "";
+
+    // Add Doctor Modal state
+    private bool ShowAddDoctorModal = false;
+    private bool IsSubmittingDoctor = false;
+    private string? AddErrorMessage;
+    private DoctorRegistrationDTO NewDoctor = new();
+
+    // Password Visibility & Decrypt Tool
+    private HashSet<int> visiblePasswordDocIds = new();
+    private bool ShowDecryptModal = false;
+    private string CipherInput = "n7uoG53mus5DzCXmNgv7NQ==";
+    private string? DecryptedOutput;
+
+    private void TogglePasswordView(int docId)
+    {
+        if (visiblePasswordDocIds.Contains(docId))
+            visiblePasswordDocIds.Remove(docId);
+        else
+            visiblePasswordDocIds.Add(docId);
+    }
+
+    private void OpenDecryptModal()
+    {
+        CipherInput = "n7uoG53mus5DzCXmNgv7NQ==";
+        DecryptedOutput = AESEncryption.Decode(CipherInput);
+        ShowDecryptModal = true;
+    }
+
+    private void CloseDecryptModal()
+    {
+        ShowDecryptModal = false;
+    }
+
+    private void RunDecryptTool()
+    {
+        if (!string.IsNullOrWhiteSpace(CipherInput))
+        {
+            DecryptedOutput = AESEncryption.Decode(CipherInput.Trim());
+        }
+        else
+        {
+            DecryptedOutput = "";
+        }
+    }
+
+    private void OnDoctorSelectForDecrypt(ChangeEventArgs e)
+    {
+        var cipher = e.Value?.ToString();
+        if (!string.IsNullOrWhiteSpace(cipher))
+        {
+            CipherInput = cipher;
+            DecryptedOutput = AESEncryption.Decode(cipher);
+        }
+    }
+
+    // Floating Popup
+    private ToastNotificationDTO? ActivePopup;
+    private CancellationTokenSource? popupCts;
+
+    private IEnumerable<DoctorProfile>? FilteredDoctors
+    {
+        get
+        {
+            if (Doctors == null) return null;
+
+            var result = Doctors.AsEnumerable();
+
+            if (FilterStatus == "Active")
+            {
+                result = result.Where(d => d.User?.IsActive == true);
+            }
+            else if (FilterStatus == "Pending")
+            {
+                result = result.Where(d => d.User?.IsActive == false);
+            }
+
+            if (!string.IsNullOrWhiteSpace(SearchQuery))
+            {
+                var query = SearchQuery.Trim();
+                result = result.Where(d =>
+                    d.FullName.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                    d.Specialization.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                    (d.LicenseNumber != null && d.LicenseNumber.Contains(query, StringComparison.OrdinalIgnoreCase)) ||
+                    (d.User?.Email != null && d.User.Email.Contains(query, StringComparison.OrdinalIgnoreCase))
+                );
+            }
+
+            return result;
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -106,9 +487,175 @@
         Doctors = await DoctorRepo.GetAllWithUsersAsync();
     }
 
+    private void SetFilter(string status)
+    {
+        FilterStatus = status;
+    }
+
     private async Task ToggleDuty(int doctorId)
     {
         await DoctorRepo.ToggleAvailabilityAsync(doctorId);
         await LoadDoctorsAsync();
+
+        ShowPopup("Specialist Duty Updated", "Specialist OPD availability status has been toggled.", "save");
+    }
+
+    private async Task ToggleActiveStatus(string userId, string doctorName, bool newStatus)
+    {
+        var success = await DoctorRepo.ToggleDoctorActiveStatusAsync(userId, newStatus);
+        if (success)
+        {
+            await LoadDoctorsAsync();
+            if (newStatus)
+            {
+                ShowPopup(
+                    "Specialist Activated!",
+                    $"{doctorName} is now ACTIVE! All clinical modules, AI Banner Studio, and OPD tools are now unlocked for them.",
+                    "save"
+                );
+            }
+            else
+            {
+                ShowPopup(
+                    "Specialist Deactivated",
+                    $"{doctorName} has been set to INACTIVE. Their account access is now restricted to Profile only.",
+                    "delete"
+                );
+            }
+        }
+        else
+        {
+            ShowPopup("Action Failed", "Unable to update specialist active status. Please try again.", "error");
+        }
+    }
+
+    private void OpenAddDoctorModal()
+    {
+        NewDoctor = new DoctorRegistrationDTO
+        {
+            FullName = "Dr. ",
+            Specialization = "Cardiology",
+            AvailableDays = "Mon - Sat",
+            AvailableHours = "09:00 AM - 05:00 PM",
+            ExperienceYears = 5,
+            ConsultationFee = 500m
+        };
+        AddErrorMessage = null;
+        ShowAddDoctorModal = true;
+    }
+
+    private void CloseAddDoctorModal()
+    {
+        ShowAddDoctorModal = false;
+        AddErrorMessage = null;
+    }
+
+    private async Task SubmitNewDoctor()
+    {
+        AddErrorMessage = null;
+        if (string.IsNullOrWhiteSpace(NewDoctor.FullName) || NewDoctor.FullName.Trim() == "Dr.")
+        {
+            AddErrorMessage = "Please enter the doctor's full name.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(NewDoctor.Email) || !NewDoctor.Email.Contains("@"))
+        {
+            AddErrorMessage = "Please enter a valid email address.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(NewDoctor.Password) || NewDoctor.Password.Length < 6)
+        {
+            AddErrorMessage = "Password must be at least 6 characters.";
+            return;
+        }
+
+        if (NewDoctor.Password != NewDoctor.ConfirmPassword)
+        {
+            AddErrorMessage = "Passwords do not match.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(NewDoctor.PhoneNumber))
+        {
+            AddErrorMessage = "Mobile number is required.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(NewDoctor.LicenseNumber))
+        {
+            AddErrorMessage = "Medical License number is required.";
+            return;
+        }
+
+        IsSubmittingDoctor = true;
+        try
+        {
+            var result = await DoctorRepo.RegisterDoctorAsync(NewDoctor);
+            if (result.Success)
+            {
+                var docName = NewDoctor.FullName.Trim();
+                ShowAddDoctorModal = false;
+                await LoadDoctorsAsync();
+
+                ShowPopup(
+                    "Specialist Added!",
+                    $"{docName} has been registered in Pending/Inactive state. You can activate them whenever needed.",
+                    "save"
+                );
+            }
+            else
+            {
+                AddErrorMessage = result.ErrorMessage ?? "Failed to add specialist.";
+            }
+        }
+        catch (Exception ex)
+        {
+            AddErrorMessage = ex.Message;
+        }
+        finally
+        {
+            IsSubmittingDoctor = false;
+        }
+    }
+
+    private void ShowPopup(string title, string message, string type = "save")
+    {
+        popupCts?.Cancel();
+        popupCts?.Dispose();
+        popupCts = new CancellationTokenSource();
+
+        ActivePopup = new ToastNotificationDTO
+        {
+            Title = title,
+            Message = message,
+            Type = type
+        };
+        StateHasChanged();
+
+        var token = popupCts.Token;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(4500, token);
+                if (!token.IsCancellationRequested)
+                {
+                    await InvokeAsync(() =>
+                    {
+                        ActivePopup = null;
+                        StateHasChanged();
+                    });
+                }
+            }
+            catch (TaskCanceledException) { }
+        }, token);
+    }
+
+    private void DismissPopup()
+    {
+        popupCts?.Cancel();
+        ActivePopup = null;
     }
 }

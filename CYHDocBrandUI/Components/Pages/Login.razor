@@ -2,6 +2,7 @@
 @page "/login"
 @layout AuthLayout
 @inject IAuthService AuthService
+@inject IDoctorRepository DoctorRepo
 @inject NavigationManager NavigationManager
 
 <div class="glass-panel p-4 p-sm-5 position-relative overflow-hidden" style="border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65), 0 0 35px rgba(0, 242, 254, 0.15);">
@@ -11,10 +12,11 @@
         <div class="cyh-brand-logo mx-auto mb-3" style="width: 58px; height: 58px; font-size: 1.8rem; border-radius: 14px; box-shadow: 0 0 25px rgba(0, 242, 254, 0.5);">
             <i class="bi bi-heart-pulse-fill"></i>
         </div>
-        <h2 class="fw-bold mb-1 text-white" style="letter-spacing: -0.5px;">CYH DoctorHub</h2>
-        <p class="mb-0" style="color: #cbd5e1; font-weight: 500; font-size: 0.92rem;">Clinical &amp; Administrative Health Portal</p>
+        <h2 class="fw-bold mb-1 text-white" style="letter-spacing: -0.5px;">CYH Doctor Portal</h2>
+        <hr />
     </div>
 
+   
     <!-- Role Fast Selector Tabs (High Contrast & Visible Inactive State) -->
     <div class="auth-role-tabs" style="display: flex; gap: 8px; padding: 6px; background: rgba(9, 18, 38, 0.85); border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 12px; margin-bottom: 1.5rem;">
         <button type="button" class="auth-role-tab @(SelectedRole == "Doctor" ? "active-doctor" : "")"
@@ -50,7 +52,7 @@
         </label>
         <div class="position-relative">
             <i class="bi bi-envelope position-absolute" style="left: 14px; top: 50%; transform: translateY(-50%); font-size: 1rem; color: #38bdf8;"></i>
-            <input type="email" class="glass-input" style="padding-left: 2.6rem;" @bind="Email" placeholder="name@cyhdoctorhub.com" />
+            <input type="email" class="glass-input" style="padding-left: 2.6rem;" @bind="Email" placeholder="Enter your email address" autocomplete="off" />
         </div>
     </div>
 
@@ -63,7 +65,7 @@
         </div>
         <div class="position-relative">
             <i class="bi bi-lock position-absolute" style="left: 14px; top: 50%; transform: translateY(-50%); font-size: 1rem; color: #38bdf8;"></i>
-            <input type="@(ShowPassword ? "text" : "password")" class="glass-input" style="padding-left: 2.6rem; padding-right: 2.75rem;" @bind="Password" placeholder="••••••••" @onkeyup="HandleKeyUp" />
+            <input type="@(ShowPassword ? "text" : "password")" class="glass-input" style="padding-left: 2.6rem; padding-right: 2.75rem;" @bind="Password" placeholder="Enter your password" @onkeyup="HandleKeyUp" autocomplete="off" />
             <button type="button" 
                     class="btn position-absolute p-0 border-0" 
                     style="right: 14px; top: 50%; transform: translateY(-50%); color: #00f2fe; background: transparent; z-index: 10; display: flex; align-items: center; justify-content: center; cursor: pointer; width: 30px; height: 30px; border-radius: 6px; transition: all 0.2s ease;"
@@ -107,35 +109,335 @@
             <span>Sign In to @(SelectedRole == "Doctor" ? "Doctor Workspace" : "Admin Console")</span>
         }
     </button>
+
+    <!-- Footer: Doctor Registration Link -->
+    <div class="mt-4 pt-3 text-center border-top" style="border-color: rgba(255, 255, 255, 0.12) !important;">
+        <span style="color: #94a3b8; font-size: 0.88rem;">New specialist doctor joining CYH?</span>
+        <button type="button" class="btn btn-link p-0 ms-1 fw-bold text-decoration-none" style="color: #00f2fe; font-size: 0.9rem;" @onclick="OpenRegisterModal">
+            <i class="bi bi-person-plus-fill me-1"></i>Doctor Registration
+        </button>
+    </div>
 </div>
+
+<!-- ================================================================================== -->
+<!-- Doctor Registration Popup Modal (par active nahi hoga - pending admin approval) -->
+<!-- ================================================================================== -->
+@if (ShowRegisterModal)
+{
+    <div class="modal-backdrop fade show" style="background-color: rgba(3, 7, 18, 0.88); backdrop-filter: blur(8px); z-index: 1050;"></div>
+    <div class="modal fade show d-block" tabindex="-1" style="z-index: 1055; overflow-y: auto;">
+        <div class="modal-dialog modal-dialog-centered modal-lg my-4">
+            <div class="modal-content text-white" style="background: #091226; border: 1px solid rgba(0, 242, 254, 0.35); border-radius: 18px; box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85), 0 0 35px rgba(0, 242, 254, 0.2);">
+                <!-- Modal Header -->
+                <div class="modal-header border-bottom d-flex align-items-center justify-content-between p-4" style="border-color: rgba(255, 255, 255, 0.1) !important; background: rgba(0, 242, 254, 0.04);">
+                    <div class="d-flex align-items-center gap-3">
+                        <div style="width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #00f2fe, #4facfe); color: #070d1e; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; font-weight: bold;">
+                            <i class="bi bi-person-vcard-fill"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title fw-bold text-white mb-0">Specialist Doctor Registration</h5>
+                            <span class="small" style="color: #94a3b8;">Join CYH DoctorHub Medical Specialist Network</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseRegisterModal" aria-label="Close"></button>
+                </div>
+
+                <!-- Status Banner: Inactive / Pending Approval Notice -->
+                <div class="px-4 pt-3">
+                    <div class="alert mb-0 d-flex align-items-start gap-2 p-3" style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 12px; color: #fbbf24;">
+                        <i class="bi bi-shield-exclamation fs-5 flex-shrink-0 mt-1"></i>
+                        <div class="small">
+                            <strong style="color: #fde047;">Approval Required Notice:</strong>
+                            Upon registration, your doctor profile is created in an <strong style="color: #ffffff;">INACTIVE (Pending Approval)</strong> state.
+                            After submission, you can log in to view and complete your <strong style="color: #ffffff;">Profile</strong>. All other workspace tools (AI Banner Studio, OPD Schedule, Colleagues) will unlock once the <strong style="color: #ffffff;">Hospital Admin</strong> activates your account.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Body: Registration Form -->
+                <div class="modal-body p-4">
+                    @if (!string.IsNullOrEmpty(RegisterErrorMessage))
+                    {
+                        <div class="alert alert-danger py-2 px-3 small d-flex align-items-center gap-2 mb-3" style="background: rgba(244, 63, 94, 0.15); border: 1px solid rgba(244, 63, 94, 0.35); color: #fda4af; border-radius: 10px;">
+                            <i class="bi bi-exclamation-octagon-fill fs-6"></i>
+                            <span>@RegisterErrorMessage</span>
+                        </div>
+                    }
+
+                    <div class="row g-3">
+                        <!-- Full Name -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-semibold text-light mb-1">
+                                <i class="bi bi-person-fill text-info me-1"></i>Full Name (with Dr. prefix) *
+                            </label>
+                            <input type="text" class="glass-input" @bind="RegModel.FullName" placeholder="Dr. Rajesh Kumar" />
+                        </div>
+
+                        <!-- Email -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-semibold text-light mb-1">
+                                <i class="bi bi-envelope-fill text-info me-1"></i>Official / Login Email *
+                            </label>
+                            <input type="email" class="glass-input" @bind="RegModel.Email" placeholder="dr.rajesh@cyhdoctorhub.com" />
+                        </div>
+
+                        <!-- Password -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-semibold text-light mb-1">
+                                <i class="bi bi-lock-fill text-info me-1"></i>Password * (Min 6 chars)
+                            </label>
+                            <input type="password" class="glass-input" @bind="RegModel.Password" placeholder="••••••••" />
+                        </div>
+
+                        <!-- Confirm Password -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-semibold text-light mb-1">
+                                <i class="bi bi-check2-circle text-info me-1"></i>Confirm Password *
+                            </label>
+                            <input type="password" class="glass-input" @bind="RegModel.ConfirmPassword" placeholder="••••••••" />
+                        </div>
+
+                        <!-- Mobile Number -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-semibold text-light mb-1">
+                                <i class="bi bi-telephone-fill text-info me-1"></i>Mobile Number *
+                            </label>
+                            <input type="tel" class="glass-input" @bind="RegModel.PhoneNumber" placeholder="+91 98765 43210" />
+                        </div>
+
+                        <!-- Specialization -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-semibold text-light mb-1">
+                                <i class="bi bi-hospital-fill text-info me-1"></i>Specialization / Department *
+                            </label>
+                            <select class="glass-input" @bind="RegModel.Specialization" style="background: #0f172a; color: #f1f5f9;">
+                                <option value="Cardiology">Cardiology / Cardiologist</option>
+                                <option value="Neurology">Neurology / Neurologist</option>
+                                <option value="General Medicine">General Medicine / Physician</option>
+                                <option value="Pediatrics">Pediatrics / Child Specialist</option>
+                                <option value="Orthopedics">Orthopedics / Bone Specialist</option>
+                                <option value="Dermatology">Dermatology / Skin Care</option>
+                                <option value="Gynecology & Obstetrics">Gynecology &amp; Obstetrics</option>
+                                <option value="ENT Specialist">ENT (Ear, Nose &amp; Throat)</option>
+                                <option value="Ophthalmology">Ophthalmology / Eye Care</option>
+                                <option value="Oncology">Oncology / Cancer Care</option>
+                                <option value="Psychiatry">Psychiatry / Mental Health</option>
+                                <option value="General Surgery">General &amp; Laparoscopic Surgery</option>
+                                <option value="Dental Surgery">Dental Surgery / Dentist</option>
+                                <option value="Radiology">Radiology &amp; Imaging</option>
+                            </select>
+                        </div>
+
+                        <!-- License Number -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-semibold text-light mb-1">
+                                <i class="bi bi-card-heading text-info me-1"></i>Medical Registration / License No. *
+                            </label>
+                            <input type="text" class="glass-input" @bind="RegModel.LicenseNumber" placeholder="MCI-DEL-2024-5412" />
+                        </div>
+
+                        <!-- Experience Years -->
+                        <div class="col-12 col-md-3">
+                            <label class="form-label small fw-semibold text-light mb-1">
+                                <i class="bi bi-award-fill text-info me-1"></i>Experience (Years)
+                            </label>
+                            <input type="number" class="glass-input" @bind="RegModel.ExperienceYears" min="0" max="60" />
+                        </div>
+
+                        <!-- Consultation Fee -->
+                        <div class="col-12 col-md-3">
+                            <label class="form-label small fw-semibold text-light mb-1">
+                                <i class="bi bi-currency-rupee text-info me-1"></i>Consultation Fee (₹)
+                            </label>
+                            <input type="number" class="glass-input" @bind="RegModel.ConsultationFee" min="0" step="50" />
+                        </div>
+
+                        <!-- Available Days -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-semibold text-light mb-1">
+                                <i class="bi bi-calendar-week-fill text-info me-1"></i>Available Days
+                            </label>
+                            <input type="text" class="glass-input" @bind="RegModel.AvailableDays" placeholder="Mon - Sat" />
+                        </div>
+
+                        <!-- Available Hours -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-semibold text-light mb-1">
+                                <i class="bi bi-clock-fill text-info me-1"></i>Available Hours
+                            </label>
+                            <input type="text" class="glass-input" @bind="RegModel.AvailableHours" placeholder="09:00 AM - 05:00 PM" />
+                        </div>
+
+                        <!-- Bio -->
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold text-light mb-1">
+                                <i class="bi bi-card-text text-info me-1"></i>Brief Professional Bio
+                            </label>
+                            <textarea class="glass-input" rows="2" @bind="RegModel.Bio" placeholder="Specializing in advanced patient care, diagnosis, and preventive treatment..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="modal-footer border-top p-3 d-flex justify-content-between" style="border-color: rgba(255, 255, 255, 0.1) !important; background: rgba(0, 242, 254, 0.02);">
+                    <button type="button" class="glass-btn-secondary" @onclick="CloseRegisterModal" disabled="@IsRegistering">
+                        Cancel
+                    </button>
+                    <button type="button" class="glass-btn-primary" @onclick="HandleDoctorRegistration" disabled="@IsRegistering" style="background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); color: #070d1e; font-weight: 700;">
+                        @if (IsRegistering)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                            <span>Registering...</span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-send-check-fill me-1"></i>
+                            <span>Submit Registration (Pending Approval)</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Floating Toast Notification Popup -->
+<ToastPopup Notification="ActivePopup" OnDismiss="DismissPopup" />
 
 @code {
     private string SelectedRole = "Doctor";
-    private string Email = "doctor@cyhdoctorhub.com";
-    private string Password = "Doctor@12345";
+    private string Email = "";
+    private string Password = "";
     private bool ShowPassword = false;
     private string? ErrorMessage;
     private bool IsLoading;
 
+    // Doctor Registration Modal state
+    private bool ShowRegisterModal = false;
+    private bool IsRegistering = false;
+    private string? RegisterErrorMessage;
+    private DoctorRegistrationDTO RegModel = new();
+
+    // Floating Popup
+    private ToastNotificationDTO? ActivePopup;
+    private CancellationTokenSource? popupCts;
+
     private void SelectDoctorRole()
     {
         SelectedRole = "Doctor";
-        Email = "doctor@cyhdoctorhub.com";
-        Password = "Doctor@12345";
+        Email = "";
+        Password = "";
         ErrorMessage = null;
     }
 
     private void SelectAdminRole()
     {
         SelectedRole = "Admin";
-        Email = "admin@cyhdoctorhub.com";
-        Password = "Admin@12345";
+        Email = "";
+        Password = "";
         ErrorMessage = null;
     }
 
     private void TogglePasswordVisibility()
     {
         ShowPassword = !ShowPassword;
+    }
+
+    private void OpenRegisterModal()
+    {
+        RegModel = new DoctorRegistrationDTO
+        {
+            FullName = "Dr. ",
+            Specialization = "Cardiology",
+            AvailableDays = "Mon - Sat",
+            AvailableHours = "09:00 AM - 05:00 PM",
+            ExperienceYears = 5,
+            ConsultationFee = 500m
+        };
+        RegisterErrorMessage = null;
+        ShowRegisterModal = true;
+    }
+
+    private void CloseRegisterModal()
+    {
+        ShowRegisterModal = false;
+        RegisterErrorMessage = null;
+    }
+
+    private async Task HandleDoctorRegistration()
+    {
+        RegisterErrorMessage = null;
+
+        // Validation
+        if (string.IsNullOrWhiteSpace(RegModel.FullName) || RegModel.FullName.Trim() == "Dr.")
+        {
+            RegisterErrorMessage = "Please enter the doctor's full name.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(RegModel.Email) || !RegModel.Email.Contains("@"))
+        {
+            RegisterErrorMessage = "Please enter a valid email address.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(RegModel.Password) || RegModel.Password.Length < 6)
+        {
+            RegisterErrorMessage = "Password must be at least 6 characters.";
+            return;
+        }
+
+        if (RegModel.Password != RegModel.ConfirmPassword)
+        {
+            RegisterErrorMessage = "Passwords do not match.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(RegModel.PhoneNumber))
+        {
+            RegisterErrorMessage = "Mobile number is required.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(RegModel.LicenseNumber))
+        {
+            RegisterErrorMessage = "Medical License / Registration number is required.";
+            return;
+        }
+
+        IsRegistering = true;
+        try
+        {
+            var result = await DoctorRepo.RegisterDoctorAsync(RegModel);
+            if (result.Success)
+            {
+                var registeredEmail = RegModel.Email.Trim();
+                var registeredName = RegModel.FullName.Trim();
+
+                ShowRegisterModal = false;
+                SelectedRole = "Doctor";
+                Email = registeredEmail;
+                Password = "";
+
+                ShowPopup(
+                    "Registration Submitted!",
+                    $"{registeredName}, your account is created in PENDING APPROVAL state. You can sign in to view your Profile. Other tools will unlock once Hospital Admin activates your account.",
+                    "save"
+                );
+            }
+            else
+            {
+                RegisterErrorMessage = result.ErrorMessage ?? "Registration failed. Please check the details.";
+            }
+        }
+        catch (Exception ex)
+        {
+            RegisterErrorMessage = ex.Message;
+        }
+        finally
+        {
+            IsRegistering = false;
+        }
     }
 
     private async Task HandleLogin()
@@ -154,7 +456,15 @@
                 }
                 else
                 {
-                    NavigationManager.NavigateTo("doctor/dashboard");
+                    // If doctor is NOT active: Only Profile is unlocked; navigate straight to Profile
+                    if (!result.User.IsActive)
+                    {
+                        NavigationManager.NavigateTo("doctor/profile");
+                    }
+                    else
+                    {
+                        NavigationManager.NavigateTo("doctor/dashboard");
+                    }
                 }
             }
             else
@@ -178,5 +488,44 @@
         {
             await HandleLogin();
         }
+    }
+
+    private void ShowPopup(string title, string message, string type = "save")
+    {
+        popupCts?.Cancel();
+        popupCts?.Dispose();
+        popupCts = new CancellationTokenSource();
+
+        ActivePopup = new ToastNotificationDTO
+        {
+            Title = title,
+            Message = message,
+            Type = type
+        };
+        StateHasChanged();
+
+        var token = popupCts.Token;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(5500, token);
+                if (!token.IsCancellationRequested)
+                {
+                    await InvokeAsync(() =>
+                    {
+                        ActivePopup = null;
+                        StateHasChanged();
+                    });
+                }
+            }
+            catch (TaskCanceledException) { }
+        }, token);
+    }
+
+    private void DismissPopup()
+    {
+        popupCts?.Cancel();
+        ActivePopup = null;
     }
 }
