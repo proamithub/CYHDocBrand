@@ -46,10 +46,10 @@
                     </div>
                     <div class="d-none d-sm-block">
                         <div style="font-size: 0.85rem; font-weight: 600; line-height: 1.1; color: #ffffff; max-width: 140px;" class="text-truncate">
-                            @(CurrentUser?.FullName ?? "Dr. A. Sharma")
+                            @(CurrentUser?.FullName ?? "Dr.")
                         </div>
                         <div class="d-none d-md-block text-truncate" style="font-size: 0.72rem; color: #00f2fe; font-weight: 600; max-width: 140px;">
-                            @(CurrentUser?.Department ?? "Cardiologist Specialist")
+                            @(CurrentUser?.Department ?? "Specialist")
                         </div>
                     </div>
                     <button class="btn btn-link text-muted p-0 ms-1" @onclick="Logout" title="Logout" style="width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center;">
@@ -169,7 +169,7 @@
         ActivePopup = new ToastNotificationDTO
         {
             Title = "Module Locked (Pending Approval)",
-            Message = $"'{moduleName}' is locked. Your doctor account is pending activation by Hospital Admin. Only your Profile page is accessible until activated.",
+            Message = $"'{moduleName}' is locked. Your doctor account is pending activation by  Admin. Only your Profile page is accessible until activated.",
             Type = "warning"
         };
         StateHasChanged();
