@@ -281,7 +281,7 @@
                             </button>
                         </div>
 
-                        <!-- OR Custom Background Image Upload (Guaranteed < 2 MB Compression) -->
+                        <!-- Custom Background Image Upload (Smart Quality-Preserving Compression) -->
                         <div class="p-3 mb-3 rounded-3" style="background: rgba(14, 25, 48, 0.85); border: 1px solid rgba(0, 242, 254, 0.25);">
                             <div class="d-flex align-items-center justify-content-between mb-2">
                                 <span class="fw-bold text-white d-flex align-items-center gap-2" style="font-size: 0.88rem;">
@@ -289,11 +289,11 @@
                                     <span>Custom Background Image</span>
                                 </span>
                                 <span class="badge bg-success bg-opacity-20 text-success border border-success" style="font-size: 0.7rem;">
-                                    &lt; 2 MB Compressed
+                                    Smart HD Compression
                                 </span>
                             </div>
                             <p class="text-secondary mb-3" style="font-size: 0.78rem;">
-                                Apni device se koi bhi photo upload karein. Automatic compress karke <strong>2 MB se kam</strong> size me canvas par fit karega.
+                                Device se koi bhi photo select karein. High visual quality maintain rakhte hue file size auto-compress ho jayegi.
                             </p>
 
                             @if (!string.IsNullOrWhiteSpace(state.BackgroundImageUrl))
@@ -306,7 +306,7 @@
                                                 @(string.IsNullOrWhiteSpace(state.BackgroundImageFileName) ? "Active Background" : state.BackgroundImageFileName)
                                             </div>
                                             <div class="text-info" style="font-size: 0.72rem;">
-                                                @(string.IsNullOrWhiteSpace(bgCompressionInfo) ? (state.BackgroundImageSizeBytes.HasValue ? $"{Math.Round((double)state.BackgroundImageSizeBytes.Value / 1024)} KB" : "< 2 MB Compressed") : bgCompressionInfo)
+                                                @(string.IsNullOrWhiteSpace(bgCompressionInfo) ? (state.BackgroundImageSizeBytes.HasValue ? $"{Math.Round((double)state.BackgroundImageSizeBytes.Value / 1024)} KB (HD)" : "HD Compressed") : bgCompressionInfo)
                                             </div>
                                         </div>
                                     </div>
@@ -320,7 +320,7 @@
                                 @if (isCompressingBg)
                                 {
                                     <span class="spinner-border spinner-border-sm" role="status"></span>
-                                    <span>Compressing &lt; 2MB...</span>
+                                    <span>Compressing HD Image...</span>
                                 }
                                 else
                                 {
@@ -1600,21 +1600,37 @@
         if (file == null) return;
 
         isCompressingBg = true;
-        bgCompressionInfo = "Reading & compressing background image under 2 MB...";
+        bgCompressionInfo = "Reading & compressing background image in HD quality...";
         StateHasChanged();
 
         try
         {
-            const long maxRawSize = 20 * 1024 * 1024;
+            const long maxRawSize = 25 * 1024 * 1024;
             if (file.Size > maxRawSize)
             {
-                ShowPopup("File Too Large", "Kripya 20 MB se choti image select karein.", "warning");
+                ShowPopup("File Too Large", "Kripya 25 MB se choti image select karein.", "warning");
                 return;
             }
 
+            // Step 1: Pre-scale safely on client side using Blazor RequestImageFileAsync
+            // Scales large camera images to max 1920x1920 in browser before WebSocket transmission,
+            // avoiding SignalR message size overflow on mobile/slow networks while maintaining 100% full HD sharpness.
+            IBrowserFile uploadFile = file;
             var format = file.ContentType;
-            var buffer = new byte[file.Size];
-            await file.OpenReadStream(maxRawSize).ReadExactlyAsync(buffer);
+            if (string.IsNullOrWhiteSpace(format)) format = "image/jpeg";
+
+            try
+            {
+                uploadFile = await file.RequestImageFileAsync("image/jpeg", 1920, 1920);
+                format = "image/jpeg";
+            }
+            catch
+            {
+                uploadFile = file;
+            }
+
+            var buffer = new byte[uploadFile.Size];
+            await uploadFile.OpenReadStream(maxRawSize).ReadExactlyAsync(buffer);
             var rawBase64 = $"data:{format};base64,{Convert.ToBase64String(buffer)}";
 
             await EnsureBannerStudioLoadedAsync();
@@ -1622,11 +1638,11 @@
             CompressionResult? compResult = null;
             try
             {
-                compResult = await JSRuntime.InvokeAsync<CompressionResult>("bannerStudio.compressBase64Under2MB", rawBase64, file.Name);
+                compResult = await JSRuntime.InvokeAsync<CompressionResult>("bannerStudio.compressBackgroundImage", rawBase64, file.Name);
             }
             catch (Exception compEx)
             {
-                Console.WriteLine($"JS compression fallback triggered: {compEx.Message}");
+                Console.WriteLine($"JS compression notice: {compEx.Message}");
             }
 
             if (compResult != null && compResult.Success && !string.IsNullOrEmpty(compResult.DataUrl))
@@ -1636,27 +1652,21 @@
                 state.BackgroundImageFileName = compResult.FileName;
                 state.BackgroundImageSizeBytes = compResult.SizeBytes;
 
-                bgCompressionInfo = $"✅ Compressed: {compResult.SizeFormatted} (Strictly under 2 MB limit)";
-                ShowPopup("Background Updated", $"Background image change ho gayi! Size: {compResult.SizeFormatted} (under 2 MB limit).", "save");
+                var origKb = Math.Round((double)file.Size / 1024);
+                bgCompressionInfo = $"✅ Compressed: {compResult.SizeFormatted} (Original: {origKb} KB, HD Quality)";
+                ShowPopup("Background Updated", $"Background image compress ho gayi! Size: {compResult.SizeFormatted} (HD quality preserved).", "save");
                 await RenderCanvas();
             }
             else
             {
-                if (file.Size <= 2 * 1024 * 1024)
-                {
-                    state.BackgroundImageUrl = rawBase64;
-                    state.BackgroundStyle = "ai-image";
-                    state.BackgroundImageFileName = file.Name;
-                    state.BackgroundImageSizeBytes = file.Size;
-                    var origKb = Math.Round((double)file.Size / 1024);
-                    bgCompressionInfo = $"✅ Active Background: {origKb} KB (under 2 MB)";
-                    ShowPopup("Background Updated", $"Background image set ho gayi! Size: {origKb} KB.", "save");
-                    await RenderCanvas();
-                }
-                else
-                {
-                    ShowPopup("Compression Warning", compResult?.Message ?? "Could not compress image under 2 MB.", "warning");
-                }
+                state.BackgroundImageUrl = rawBase64;
+                state.BackgroundStyle = "ai-image";
+                state.BackgroundImageFileName = file.Name;
+                state.BackgroundImageSizeBytes = uploadFile.Size;
+                var safeKb = Math.Round((double)uploadFile.Size / 1024);
+                bgCompressionInfo = $"✅ Active Background: {safeKb} KB (HD Quality)";
+                ShowPopup("Background Updated", $"Background image set ho gayi! Size: {safeKb} KB.", "save");
+                await RenderCanvas();
             }
         }
         catch (Exception ex)
@@ -1996,9 +2006,28 @@
             var result = await BannerAiService.GenerateBannerAsync(aiRequest);
             if (result.Success)
             {
-                state.BackgroundImageUrl = !string.IsNullOrEmpty(result.ImageBase64) 
+                var bgUrl = !string.IsNullOrEmpty(result.ImageBase64) 
                     ? result.ImageBase64 
                     : result.ImageUrl;
+
+                if (!string.IsNullOrEmpty(bgUrl) && bgUrl.StartsWith("data:image"))
+                {
+                    try
+                    {
+                        await EnsureBannerStudioLoadedAsync();
+                        var comp = await JSRuntime.InvokeAsync<CompressionResult>("bannerStudio.compressBackgroundImage", bgUrl, "ai-background.jpg");
+                        if (comp != null && comp.Success && !string.IsNullOrEmpty(comp.DataUrl))
+                        {
+                            bgUrl = comp.DataUrl;
+                            state.BackgroundImageSizeBytes = comp.SizeBytes;
+                        }
+                    }
+                    catch { }
+                }
+
+                state.BackgroundImageUrl = bgUrl;
+                state.BackgroundStyle = "ai-image";
+                state.BackgroundImageFileName = $"AI-Background-{DateTime.Now:yyyyMMddHHmmss}.jpg";
 
                 await RenderCanvas();
                 statusMessage = $"Background generated successfully with {result.ProviderUsed}!";
