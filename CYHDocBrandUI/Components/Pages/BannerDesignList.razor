@@ -589,7 +589,6 @@
     {
         if (viewingBannerState != null && isRenderingModalCanvas)
         {
-            isRenderingModalCanvas = false;
             try
             {
                 var ready = await EnsureBannerStudioLoadedAsync();
@@ -601,6 +600,11 @@
             catch (Exception ex)
             {
                 Console.WriteLine($"Error rendering viewModalCanvas: {ex.Message}");
+            }
+            finally
+            {
+                isRenderingModalCanvas = false;
+                await InvokeAsync(StateHasChanged);
             }
         }
     }

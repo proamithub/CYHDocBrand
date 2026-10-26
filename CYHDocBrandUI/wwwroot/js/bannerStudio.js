@@ -38,6 +38,16 @@ window.bannerStudio = window.bannerStudio || {
             if (!src) return resolve(null);
             if (this.cachedImages[src]) return resolve(this.cachedImages[src]);
 
+            let isResolved = false;
+            const safeResolve = (img) => {
+                if (!isResolved) {
+                    isResolved = true;
+                    resolve(img);
+                }
+            };
+            // 5 second fallback so slow/failing network images never hang canvas rendering
+            setTimeout(() => safeResolve(null), 5000);
+
             const cachedKeys = Object.keys(this.cachedImages);
             if (cachedKeys.length > 40) {
                 for (let i = 0; i < 20; i++) {
@@ -58,23 +68,23 @@ window.bannerStudio = window.bannerStudio || {
             }
             img.onload = () => {
                 this.cachedImages[src] = img;
-                resolve(img);
+                safeResolve(img);
             };
             img.onerror = (err) => {
                 if (img.crossOrigin) {
                     const fallbackImg = new Image();
                     fallbackImg.onload = () => {
                         this.cachedImages[src] = fallbackImg;
-                        resolve(fallbackImg);
+                        safeResolve(fallbackImg);
                     };
                     fallbackImg.onerror = () => {
                         console.warn("Failed to load image for banner canvas:", src);
-                        resolve(null);
+                        safeResolve(null);
                     };
                     fallbackImg.src = src;
                 } else {
                     console.warn("Failed to load image for banner canvas:", src);
-                    resolve(null);
+                    safeResolve(null);
                 }
             };
             img.src = src;
@@ -106,6 +116,8 @@ window.bannerStudio = window.bannerStudio || {
         return `"${customFont}", ${devanagariFallbacks}`;
     },
 
+    _renderTimeouts: {},
+
     renderBanner: function (canvasId, state) {
         if (!state) return Promise.resolve();
 
@@ -115,14 +127,22 @@ window.bannerStudio = window.bannerStudio || {
             this.attachMouseListeners(canvasId);
         }
 
-        if (this.renderTimeout) {
-            cancelAnimationFrame(this.renderTimeout);
+        this._renderTimeouts = this._renderTimeouts || {};
+        if (this._renderTimeouts[canvasId]) {
+            cancelAnimationFrame(this._renderTimeouts[canvasId]);
+            delete this._renderTimeouts[canvasId];
         }
 
         return new Promise((resolve) => {
-            this.renderTimeout = requestAnimationFrame(async () => {
-                await this._executeRender(canvasId, state);
-                resolve();
+            this._renderTimeouts[canvasId] = requestAnimationFrame(async () => {
+                try {
+                    await this._executeRender(canvasId, state);
+                } catch (e) {
+                    console.error("Execute render error for " + canvasId, e);
+                } finally {
+                    delete this._renderTimeouts[canvasId];
+                    resolve();
+                }
             });
         });
     },
@@ -135,10 +155,13 @@ window.bannerStudio = window.bannerStudio || {
             if (!canvas) return;
         }
 
-        // Ensure English & Hindi web fonts are completely loaded before measuring/rendering
+        // Ensure English & Hindi web fonts are loaded (with 1.5s timeout so slow fonts never freeze)
         if (document.fonts && document.fonts.ready) {
             try {
-                await document.fonts.ready;
+                await Promise.race([
+                    document.fonts.ready,
+                    new Promise(r => setTimeout(r, 1500))
+                ]);
             } catch (fontErr) {
                 // Ignore font loading errors
             }
