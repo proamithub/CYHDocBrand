@@ -4,6 +4,7 @@
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IConfiguration Configuration
+@inject IJSRuntime JSRuntime
 @using System.Data
 @using Microsoft.Data.SqlClient
 @using CYHDocBrandRepo.Utilities
@@ -122,7 +123,7 @@
 @if (isProfileModalOpen)
 {
     <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px); z-index: 1055;">
-        <div class="modal-dialog modal-dialog-centered" style="max-width: 460px;">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
             <div class="modal-content text-white rounded-4 shadow-lg" style="background: rgba(14, 25, 48, 0.96); border: 1px solid rgba(245, 158, 11, 0.4);">
                 <div class="modal-header border-bottom" style="border-color: rgba(255, 255, 255, 0.1) !important;">
                     <div class="d-flex align-items-center gap-2">
@@ -144,7 +145,7 @@
                         </span>
                     </div>
 
-                    <div class="d-flex flex-column gap-2">
+                    <div class="d-flex flex-column gap-2 mb-3">
                         <div class="p-3 rounded-3 d-flex align-items-center justify-content-between" style="background: rgba(7, 13, 30, 0.65); border: 1px solid rgba(255, 255, 255, 0.08);">
                             <span class="text-secondary small d-flex align-items-center gap-2">
                                 <i class="bi bi-envelope text-info"></i> Email:
@@ -193,18 +194,21 @@
 @if (isChangePasswordOpen)
 {
     <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px); z-index: 1055;">
-        <div class="modal-dialog modal-dialog-centered" style="max-width: 440px;">
-            <div class="modal-content text-white rounded-4 shadow-lg" style="background: rgba(14, 25, 48, 0.96); border: 1px solid rgba(245, 158, 11, 0.4);">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 500px;">
+            <div class="modal-content text-white rounded-4 shadow-lg" style="background: rgba(14, 25, 48, 0.98); border: 1px solid rgba(245, 158, 11, 0.4); max-height: 90vh;">
                 <div class="modal-header border-bottom" style="border-color: rgba(255, 255, 255, 0.1) !important;">
                     <div class="d-flex align-items-center gap-2">
                         <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4);">
                             <i class="bi bi-key-fill"></i>
                         </div>
-                        <h5 class="modal-title fw-bold text-white mb-0" style="font-size: 1.05rem;">Change Password</h5>
+                        <div>
+                            <h5 class="modal-title fw-bold text-white mb-0" style="font-size: 1.05rem;">Change Password</h5>
+                            <span class="small text-secondary" style="font-size: 0.72rem;">Security audit logs IP &amp; Geolocation in database</span>
+                        </div>
                     </div>
                     <button type="button" class="btn-close btn-close-white" @onclick="CloseChangePasswordModal"></button>
                 </div>
-                <div class="modal-body p-4">
+                <div class="modal-body p-3 p-md-4">
                     @if (!string.IsNullOrEmpty(pwdErrorMessage))
                     {
                         <div class="alert alert-danger py-2 px-3 small rounded-3 mb-3 d-flex align-items-center gap-2" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5;">
@@ -248,7 +252,7 @@
                     </div>
 
                     <!-- Confirm New Password -->
-                    <div class="mb-2">
+                    <div class="mb-3">
                         <label class="form-label small fw-semibold text-light mb-1">
                             <i class="bi bi-check2-circle text-success me-1"></i>Confirm New Password *
                         </label>
@@ -262,6 +266,65 @@
                                 <i class="bi @(showConfirmPwd ? "bi-eye-slash-fill" : "bi-eye-fill")"></i>
                             </button>
                         </div>
+                    </div>
+
+                    <!-- Security Audit Note -->
+                    <div class="p-2 rounded-2 mb-3 d-flex align-items-center gap-2" style="background: rgba(0, 242, 254, 0.08); border: 1px solid rgba(0, 242, 254, 0.2); font-size: 0.74rem; color: #a5f3fc;">
+                        <i class="bi bi-shield-check text-info fs-6"></i>
+                        <span>Security Audit: Password update par IP Address aur Geolocation database history table mein log hoga.</span>
+                    </div>
+
+                    <!-- Password Change History Section -->
+                    <div class="pt-3 border-top" style="border-color: rgba(255, 255, 255, 0.1) !important;">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="small fw-bold text-white d-flex align-items-center gap-1" style="font-size: 0.8rem;">
+                                <i class="bi bi-clock-history text-warning"></i> Password Change History
+                            </span>
+                            <button type="button" class="btn btn-link btn-sm p-0 text-info text-decoration-none" style="font-size: 0.72rem;" @onclick="LoadPasswordHistoryAsync">
+                                <i class="bi bi-arrow-clockwise"></i> Refresh Log
+                            </button>
+                        </div>
+
+                        @if (isLoadingHistory)
+                        {
+                            <div class="text-center py-2 text-secondary small">
+                                <span class="spinner-border spinner-border-sm me-1"></span> Loading audit history...
+                            </div>
+                        }
+                        else if (passwordHistory.Count == 0)
+                        {
+                            <div class="p-2 rounded-2 text-center text-secondary small" style="background: rgba(0, 0, 0, 0.25); font-size: 0.74rem;">
+                                Abhi tak koi password change log recorded nahi hai.
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="d-flex flex-column gap-2" style="max-height: 180px; overflow-y: auto;">
+                                @foreach (var h in passwordHistory)
+                                {
+                                    <div class="p-2 rounded-2 d-flex align-items-start justify-content-between gap-2" style="background: rgba(3, 8, 20, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); font-size: 0.74rem;">
+                                        <div>
+                                            <div class="text-white fw-semibold d-flex align-items-center gap-1">
+                                                <i class="bi bi-geo-alt-fill text-danger" style="font-size: 0.72rem;"></i>
+                                                <span>@(string.IsNullOrWhiteSpace(h.LocationSummary) ? "Location Logged" : h.LocationSummary)</span>
+                                            </div>
+                                            <div class="text-secondary mt-1">
+                                                <span class="text-info font-monospace">IP: @h.IpAddress</span>
+                                                @if (h.Latitude.HasValue && h.Longitude.HasValue)
+                                                {
+                                                    <span class="ms-1 text-white-50">(@h.Latitude.Value.ToString("0.00"), @h.Longitude.Value.ToString("0.00"))</span>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="text-end text-nowrap">
+                                            <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); font-size: 0.65rem;">
+                                                @h.ChangedAt.ToLocalTime().ToString("dd MMM yyyy, hh:mm tt")
+                                            </span>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
                     </div>
                 </div>
                 <div class="modal-footer border-top" style="border-color: rgba(255, 255, 255, 0.1) !important;">
@@ -309,9 +372,36 @@
     private bool isChangingPwd = false;
     private string? pwdErrorMessage;
 
+    // Password Change History State
+    private List<PasswordHistoryItem> passwordHistory = new();
+    private bool isLoadingHistory = false;
+
     // Toast Popup Notification
     private ToastNotificationDTO? ActivePopup;
     private CancellationTokenSource? popupCts;
+
+    public class ClientSecurityDTO
+    {
+        public string? IpAddress { get; set; }
+        public string? City { get; set; }
+        public string? Region { get; set; }
+        public string? Country { get; set; }
+        public decimal? Latitude { get; set; }
+        public decimal? Longitude { get; set; }
+        public string? LocationSummary { get; set; }
+        public string? UserAgent { get; set; }
+    }
+
+    public class PasswordHistoryItem
+    {
+        public int Id { get; set; }
+        public string? IpAddress { get; set; }
+        public string? LocationSummary { get; set; }
+        public decimal? Latitude { get; set; }
+        public decimal? Longitude { get; set; }
+        public string? Remarks { get; set; }
+        public DateTime ChangedAt { get; set; }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -386,7 +476,7 @@
         isProfileModalOpen = false;
     }
 
-    private void OpenChangePasswordModal()
+    private async Task OpenChangePasswordModal()
     {
         isUserDropdownOpen = false;
         isChangePasswordOpen = true;
@@ -397,6 +487,8 @@
         showCurrentPwd = false;
         showNewPwd = false;
         showConfirmPwd = false;
+
+        await LoadPasswordHistoryAsync();
     }
 
     private void CloseChangePasswordModal()
@@ -405,10 +497,61 @@
         pwdErrorMessage = null;
     }
 
-    private void SwitchToChangePassword()
+    private async Task SwitchToChangePassword()
     {
         isProfileModalOpen = false;
-        OpenChangePasswordModal();
+        await OpenChangePasswordModal();
+    }
+
+    private async Task LoadPasswordHistoryAsync()
+    {
+        isLoadingHistory = true;
+        passwordHistory.Clear();
+        StateHasChanged();
+
+        try
+        {
+            var emailOrId = CurrentUser?.Email ?? CurrentUser?.UserId;
+            if (string.IsNullOrWhiteSpace(emailOrId)) return;
+
+            var connStr = Configuration.GetConnectionString("DefaultConnection") 
+                ?? "Server=VRS-AMITPC\\SQLEXPRESS;Database=CYHDocBrandBD;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
+
+            await using var conn = new SqlConnection(connStr);
+            await conn.OpenAsync();
+
+            await using var cmd = new SqlCommand(@"
+                SELECT TOP 10 Id, IpAddress, LocationSummary, Latitude, Longitude, Remarks, ChangedAt
+                FROM dbo.PasswordChangeHistory_CYH
+                WHERE UserId = @Val OR UserEmail = @Val
+                ORDER BY ChangedAt DESC", conn);
+            cmd.Parameters.AddWithValue("@Val", emailOrId);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var item = new PasswordHistoryItem
+                {
+                    Id = reader.GetInt32(0),
+                    IpAddress = reader.IsDBNull(1) ? "Unknown" : reader.GetString(1),
+                    LocationSummary = reader.IsDBNull(2) ? "N/A" : reader.GetString(2),
+                    Latitude = reader.IsDBNull(3) ? null : reader.GetDecimal(3),
+                    Longitude = reader.IsDBNull(4) ? null : reader.GetDecimal(4),
+                    Remarks = reader.IsDBNull(5) ? "Password Changed" : reader.GetString(5),
+                    ChangedAt = reader.GetDateTime(6)
+                };
+                passwordHistory.Add(item);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading password history: {ex.Message}");
+        }
+        finally
+        {
+            isLoadingHistory = false;
+            StateHasChanged();
+        }
     }
 
     private async Task HandleChangePasswordAsync()
@@ -485,13 +628,59 @@
                 await updateCmd.ExecuteNonQueryAsync();
             }
 
-            // Close modal and show success toast
+            // 3. Capture client security info (IP Address + Geolocation)
+            ClientSecurityDTO? secInfo = null;
+            try
+            {
+                secInfo = await JSRuntime.InvokeAsync<ClientSecurityDTO>("bannerStudio.getClientSecurityInfo");
+            }
+            catch (Exception jsEx)
+            {
+                Console.WriteLine($"Could not fetch client security info via JS: {jsEx.Message}");
+            }
+
+            var ip = !string.IsNullOrWhiteSpace(secInfo?.IpAddress) ? secInfo.IpAddress : "127.0.0.1";
+            var city = secInfo?.City ?? "";
+            var region = secInfo?.Region ?? "";
+            var country = secInfo?.Country ?? "";
+            var locSummary = !string.IsNullOrWhiteSpace(secInfo?.LocationSummary) 
+                ? secInfo.LocationSummary 
+                : (!string.IsNullOrWhiteSpace(city) ? $"{city}, {country}".Trim(',', ' ') : "Private Network / Localhost");
+            var userAgent = secInfo?.UserAgent ?? "";
+            var remarks = "Password Changed via Admin Console";
+
+            // 4. Record audit log into PasswordChangeHistory_CYH with Geolocation and IP
+            await using (var histCmd = new SqlCommand(@"
+                INSERT INTO dbo.PasswordChangeHistory_CYH
+                    (UserId, UserEmail, UserRole, IpAddress, City, Region, Country, Latitude, Longitude, LocationSummary, UserAgent, Remarks, ChangedAt)
+                VALUES
+                    (@UserId, @UserEmail, @UserRole, @IpAddress, @City, @Region, @Country, @Latitude, @Longitude, @LocationSummary, @UserAgent, @Remarks, SYSUTCDATETIME());", conn))
+            {
+                histCmd.Parameters.AddWithValue("@UserId", CurrentUser?.UserId ?? "admin-sys-01");
+                histCmd.Parameters.AddWithValue("@UserEmail", (object?)CurrentUser?.Email ?? DBNull.Value);
+                histCmd.Parameters.AddWithValue("@UserRole", (object?)CurrentUser?.Role ?? "Admin");
+                histCmd.Parameters.AddWithValue("@IpAddress", (object?)ip ?? DBNull.Value);
+                histCmd.Parameters.AddWithValue("@City", (object?)city ?? DBNull.Value);
+                histCmd.Parameters.AddWithValue("@Region", (object?)region ?? DBNull.Value);
+                histCmd.Parameters.AddWithValue("@Country", (object?)country ?? DBNull.Value);
+                histCmd.Parameters.AddWithValue("@Latitude", (object?)secInfo?.Latitude ?? DBNull.Value);
+                histCmd.Parameters.AddWithValue("@Longitude", (object?)secInfo?.Longitude ?? DBNull.Value);
+                histCmd.Parameters.AddWithValue("@LocationSummary", (object?)locSummary ?? DBNull.Value);
+                histCmd.Parameters.AddWithValue("@UserAgent", (object?)userAgent ?? DBNull.Value);
+                histCmd.Parameters.AddWithValue("@Remarks", remarks);
+                await histCmd.ExecuteNonQueryAsync();
+            }
+
+            // Reload history to reflect newly logged change
+            await LoadPasswordHistoryAsync();
+
+            // Close modal & reset fields
             isChangePasswordOpen = false;
             currentPasswordInput = "";
             newPasswordInput = "";
             confirmPasswordInput = "";
 
-            ShowToast("Password Changed", "Admin password successfully update ho gaya hai!", "save");
+            ShowToast("Password Changed", $"Admin password successfully update ho gaya aur IP ({ip}) aur Geolocation audit log database mein save ho gayi!", "save");
         }
         catch (Exception ex)
         {

@@ -1145,6 +1145,31 @@ BEGIN
 END
 GO
 
+-- 22. Create PasswordChangeHistory_CYH Table (Audit Log for Passwords with Geolocation & IP)
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[PasswordChangeHistory_CYH]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE [dbo].[PasswordChangeHistory_CYH] (
+        [Id]               INT IDENTITY(1,1) NOT NULL,
+        [UserId]           NVARCHAR(450)     NOT NULL,
+        [UserEmail]        NVARCHAR(256)     NULL,
+        [UserRole]         NVARCHAR(50)      NULL,
+        [IpAddress]        NVARCHAR(100)     NULL,
+        [City]             NVARCHAR(100)     NULL,
+        [Region]           NVARCHAR(100)     NULL,
+        [Country]          NVARCHAR(100)     NULL,
+        [Latitude]         DECIMAL(9,6)      NULL,
+        [Longitude]        DECIMAL(9,6)      NULL,
+        [LocationSummary]  NVARCHAR(300)     NULL,
+        [UserAgent]        NVARCHAR(500)     NULL,
+        [Remarks]          NVARCHAR(250)     NULL,
+        [ChangedAt]        DATETIME2(7)      NOT NULL DEFAULT (SYSUTCDATETIME()),
+        CONSTRAINT [PK_PasswordChangeHistory_CYH] PRIMARY KEY CLUSTERED ([Id] ASC)
+    );
+    CREATE NONCLUSTERED INDEX [IX_PasswordChangeHistory_UserId] ON [dbo].[PasswordChangeHistory_CYH]([UserId]);
+    CREATE NONCLUSTERED INDEX [IX_PasswordChangeHistory_ChangedAt] ON [dbo].[PasswordChangeHistory_CYH]([ChangedAt] DESC);
+END
+GO
+
 CREATE OR ALTER PROCEDURE dbo.ManageCredits_CYH
     @Flag NVARCHAR(50),
     @DoctorId INT = NULL,
