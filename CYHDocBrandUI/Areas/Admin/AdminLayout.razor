@@ -37,7 +37,7 @@
                 </span>
             </div>
 
-            <!-- Top Right Admin Profile Dropdown -->
+            <!-- Top Right Admin Dropdown -->
             <div class="position-relative">
                 <button type="button" 
                         class="btn p-0 border-0 bg-transparent d-flex align-items-center" 
@@ -79,22 +79,22 @@
                             </span>
                         </div>
 
-                        <!-- 1. Profile Option -->
-                        <button type="button" 
-                                class="dropdown-item d-flex align-items-center gap-2 rounded-2 py-2 px-3 text-white border-0 w-100 text-start" 
-                                @onclick="OpenProfileModal" 
-                                style="font-size: 0.86rem; transition: all 0.15s; background: transparent;">
-                            <i class="bi bi-person-circle text-info fs-6"></i>
-                            <span>Profile</span>
-                        </button>
-
-                        <!-- 2. Password Change Option -->
+                        <!-- 1. Password Change Option -->
                         <button type="button" 
                                 class="dropdown-item d-flex align-items-center gap-2 rounded-2 py-2 px-3 text-white border-0 w-100 text-start" 
                                 @onclick="OpenChangePasswordModal" 
                                 style="font-size: 0.86rem; transition: all 0.15s; background: transparent;">
                             <i class="bi bi-key-fill text-warning fs-6"></i>
-                            <span>Password Change</span>
+                            <span>Change Password</span>
+                        </button>
+
+                        <!-- 2. Change History Option (Direct link that scrolls to history list) -->
+                        <button type="button" 
+                                class="dropdown-item d-flex align-items-center gap-2 rounded-2 py-2 px-3 text-white border-0 w-100 text-start" 
+                                @onclick="OpenAndScrollToHistory" 
+                                style="font-size: 0.86rem; transition: all 0.15s; background: transparent;">
+                            <i class="bi bi-clock-history text-info fs-6"></i>
+                            <span>Change History</span>
                         </button>
 
                         <div class="dropdown-divider my-2" style="border-color: rgba(255, 255, 255, 0.1);"></div>
@@ -119,78 +119,7 @@
     </div>
 </div>
 
-<!-- ================= 1. ADMIN PROFILE MODAL ================= -->
-@if (isProfileModalOpen)
-{
-    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px); z-index: 1055;">
-        <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
-            <div class="modal-content text-white rounded-4 shadow-lg" style="background: rgba(14, 25, 48, 0.96); border: 1px solid rgba(245, 158, 11, 0.4);">
-                <div class="modal-header border-bottom" style="border-color: rgba(255, 255, 255, 0.1) !important;">
-                    <div class="d-flex align-items-center gap-2">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4);">
-                            <i class="bi bi-shield-lock-fill"></i>
-                        </div>
-                        <h5 class="modal-title fw-bold text-white mb-0" style="font-size: 1.05rem;">Administrator Profile</h5>
-                    </div>
-                    <button type="button" class="btn-close btn-close-white" @onclick="CloseProfileModal"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <div class="text-center mb-4">
-                        <div class="mx-auto mb-2 rounded-circle d-flex align-items-center justify-content-center" style="width: 72px; height: 72px; background: linear-gradient(135deg, #f59e0b, #fbbf24); color: #070d1e; font-size: 2rem; box-shadow: 0 4px 20px rgba(245, 158, 11, 0.35);">
-                            <i class="bi bi-shield-fill"></i>
-                        </div>
-                        <h5 class="fw-bold text-white mb-1">@(CurrentUser?.FullName ?? "Hospital Chief Administrator")</h5>
-                        <span class="badge px-3 py-1 rounded-pill" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); font-size: 0.78rem;">
-                            <i class="bi bi-patch-check-fill me-1"></i>Verified Hospital Administrator
-                        </span>
-                    </div>
-
-                    <div class="d-flex flex-column gap-2 mb-3">
-                        <div class="p-3 rounded-3 d-flex align-items-center justify-content-between" style="background: rgba(7, 13, 30, 0.65); border: 1px solid rgba(255, 255, 255, 0.08);">
-                            <span class="text-secondary small d-flex align-items-center gap-2">
-                                <i class="bi bi-envelope text-info"></i> Email:
-                            </span>
-                            <span class="text-white fw-semibold small">@(CurrentUser?.Email ?? "admin@cyhdoctorhub.com")</span>
-                        </div>
-
-                        <div class="p-3 rounded-3 d-flex align-items-center justify-content-between" style="background: rgba(7, 13, 30, 0.65); border: 1px solid rgba(255, 255, 255, 0.08);">
-                            <span class="text-secondary small d-flex align-items-center gap-2">
-                                <i class="bi bi-building text-warning"></i> Department:
-                            </span>
-                            <span class="text-white fw-semibold small">@(CurrentUser?.Department ?? "Hospital Operations")</span>
-                        </div>
-
-                        <div class="p-3 rounded-3 d-flex align-items-center justify-content-between" style="background: rgba(7, 13, 30, 0.65); border: 1px solid rgba(255, 255, 255, 0.08);">
-                            <span class="text-secondary small d-flex align-items-center gap-2">
-                                <i class="bi bi-person-badge text-success"></i> Role:
-                            </span>
-                            <span class="badge bg-success bg-opacity-20 text-success border border-success">
-                                @(CurrentUser?.Role ?? "Admin")
-                            </span>
-                        </div>
-
-                        <div class="p-3 rounded-3 d-flex align-items-center justify-content-between" style="background: rgba(7, 13, 30, 0.65); border: 1px solid rgba(255, 255, 255, 0.08);">
-                            <span class="text-secondary small d-flex align-items-center gap-2">
-                                <i class="bi bi-key text-info"></i> Admin ID:
-                            </span>
-                            <span class="text-info font-monospace small">@(CurrentUser?.UserId ?? "admin-sys-01")</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer border-top d-flex justify-content-between" style="border-color: rgba(255, 255, 255, 0.1) !important;">
-                    <button type="button" class="btn btn-outline-warning btn-sm d-flex align-items-center gap-2" @onclick="SwitchToChangePassword">
-                        <i class="bi bi-key-fill"></i> Change Password
-                    </button>
-                    <button type="button" class="btn btn-secondary btn-sm px-3" @onclick="CloseProfileModal">
-                        Close
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-}
-
-<!-- ================= 2. CHANGE PASSWORD MODAL ================= -->
+<!-- ================= CHANGE PASSWORD & AUDIT HISTORY MODAL ================= -->
 @if (isChangePasswordOpen)
 {
     <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px); z-index: 1055;">
@@ -199,16 +128,16 @@
                 <div class="modal-header border-bottom" style="border-color: rgba(255, 255, 255, 0.1) !important;">
                     <div class="d-flex align-items-center gap-2">
                         <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4);">
-                            <i class="bi bi-key-fill"></i>
+                            <i class="bi bi-shield-lock-fill"></i>
                         </div>
                         <div>
-                            <h5 class="modal-title fw-bold text-white mb-0" style="font-size: 1.05rem;">Change Password</h5>
+                            <h5 class="modal-title fw-bold text-white mb-0" style="font-size: 1.05rem;">Change Admin Password</h5>
                             <span class="small text-secondary" style="font-size: 0.72rem;">Security audit logs IP &amp; Geolocation in database</span>
                         </div>
                     </div>
                     <button type="button" class="btn-close btn-close-white" @onclick="CloseChangePasswordModal"></button>
                 </div>
-                <div class="modal-body p-3 p-md-4">
+                <div class="modal-body p-3 p-md-4" id="changePasswordModalBody" style="scroll-behavior: smooth;">
                     @if (!string.IsNullOrEmpty(pwdErrorMessage))
                     {
                         <div class="alert alert-danger py-2 px-3 small rounded-3 mb-3 d-flex align-items-center gap-2" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5;">
@@ -217,27 +146,10 @@
                         </div>
                     }
 
-                    <!-- Current Password -->
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold text-light mb-1">
-                            <i class="bi bi-lock-fill text-warning me-1"></i>Current Password *
-                        </label>
-                        <div class="input-group">
-                            <input type="@(showCurrentPwd ? "text" : "password")" 
-                                   class="form-control bg-dark text-white border-secondary" 
-                                   placeholder="Enter current password" 
-                                   @bind="currentPasswordInput" 
-                                   style="border-radius: 8px 0 0 8px; font-size: 0.88rem;" />
-                            <button type="button" class="btn btn-outline-secondary" @onclick="() => showCurrentPwd = !showCurrentPwd">
-                                <i class="bi @(showCurrentPwd ? "bi-eye-slash-fill" : "bi-eye-fill")"></i>
-                            </button>
-                        </div>
-                    </div>
-
                     <!-- New Password -->
                     <div class="mb-3">
                         <label class="form-label small fw-semibold text-light mb-1">
-                            <i class="bi bi-shield-lock text-info me-1"></i>New Password * (Min 6 chars)
+                            <i class="bi bi-key-fill text-warning me-1"></i>New Password * (Min 6 chars)
                         </label>
                         <div class="input-group">
                             <input type="@(showNewPwd ? "text" : "password")" 
@@ -268,16 +180,21 @@
                         </div>
                     </div>
 
-                    <!-- Security Audit Note -->
-                    <div class="p-2 rounded-2 mb-3 d-flex align-items-center gap-2" style="background: rgba(0, 242, 254, 0.08); border: 1px solid rgba(0, 242, 254, 0.2); font-size: 0.74rem; color: #a5f3fc;">
-                        <i class="bi bi-shield-check text-info fs-6"></i>
-                        <span>Security Audit: Password update par IP Address aur Geolocation database history table mein log hoga.</span>
+                    <!-- Security Audit Note with quick scroll button -->
+                    <div class="p-2 rounded-2 mb-3 d-flex align-items-center justify-content-between gap-2" style="background: rgba(0, 242, 254, 0.08); border: 1px solid rgba(0, 242, 254, 0.2); font-size: 0.74rem; color: #a5f3fc;">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-shield-check text-info fs-6"></i>
+                            <span>IP Address &amp; Geolocation database audit history mein save hoga.</span>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-link text-info p-0 text-decoration-none text-nowrap fw-bold" @onclick="ScrollToHistorySection">
+                            <i class="bi bi-arrow-down-circle me-1"></i>History
+                        </button>
                     </div>
 
-                    <!-- Password Change History Section -->
-                    <div class="pt-3 border-top" style="border-color: rgba(255, 255, 255, 0.1) !important;">
+                    <!-- Password Change History Section (Anchor for smooth scroll) -->
+                    <div class="pt-3 border-top" id="passwordHistorySection" style="border-color: rgba(255, 255, 255, 0.1) !important;">
                         <div class="d-flex align-items-center justify-content-between mb-2">
-                            <span class="small fw-bold text-white d-flex align-items-center gap-1" style="font-size: 0.8rem;">
+                            <span class="small fw-bold text-white d-flex align-items-center gap-1" style="font-size: 0.82rem;">
                                 <i class="bi bi-clock-history text-warning"></i> Password Change History
                             </span>
                             <button type="button" class="btn btn-link btn-sm p-0 text-info text-decoration-none" style="font-size: 0.72rem;" @onclick="LoadPasswordHistoryAsync">
@@ -299,7 +216,7 @@
                         }
                         else
                         {
-                            <div class="d-flex flex-column gap-2" style="max-height: 180px; overflow-y: auto;">
+                            <div class="d-flex flex-column gap-2" id="historyItemsList" style="max-height: 200px; overflow-y: auto; scroll-behavior: smooth;">
                                 @foreach (var h in passwordHistory)
                                 {
                                     <div class="p-2 rounded-2 d-flex align-items-start justify-content-between gap-2" style="background: rgba(3, 8, 20, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); font-size: 0.74rem;">
@@ -359,14 +276,11 @@
 
     // Dropdown and Modals State
     private bool isUserDropdownOpen = false;
-    private bool isProfileModalOpen = false;
     private bool isChangePasswordOpen = false;
 
-    // Password Change Fields
-    private string currentPasswordInput = "";
+    // Password Change Fields (No current password required)
     private string newPasswordInput = "";
     private string confirmPasswordInput = "";
-    private bool showCurrentPwd = false;
     private bool showNewPwd = false;
     private bool showConfirmPwd = false;
     private bool isChangingPwd = false;
@@ -465,42 +379,46 @@
         isUserDropdownOpen = false;
     }
 
-    private void OpenProfileModal()
-    {
-        isUserDropdownOpen = false;
-        isProfileModalOpen = true;
-    }
-
-    private void CloseProfileModal()
-    {
-        isProfileModalOpen = false;
-    }
-
     private async Task OpenChangePasswordModal()
     {
         isUserDropdownOpen = false;
         isChangePasswordOpen = true;
         pwdErrorMessage = null;
-        currentPasswordInput = "";
         newPasswordInput = "";
         confirmPasswordInput = "";
-        showCurrentPwd = false;
         showNewPwd = false;
         showConfirmPwd = false;
 
         await LoadPasswordHistoryAsync();
     }
 
+    private async Task OpenAndScrollToHistory()
+    {
+        isUserDropdownOpen = false;
+        isChangePasswordOpen = true;
+        pwdErrorMessage = null;
+        newPasswordInput = "";
+        confirmPasswordInput = "";
+        showNewPwd = false;
+        showConfirmPwd = false;
+
+        await LoadPasswordHistoryAsync();
+        await ScrollToHistorySection();
+    }
+
+    private async Task ScrollToHistorySection()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("bannerStudio.scrollToElement", "passwordHistorySection");
+        }
+        catch { }
+    }
+
     private void CloseChangePasswordModal()
     {
         isChangePasswordOpen = false;
         pwdErrorMessage = null;
-    }
-
-    private async Task SwitchToChangePassword()
-    {
-        isProfileModalOpen = false;
-        await OpenChangePasswordModal();
     }
 
     private async Task LoadPasswordHistoryAsync()
@@ -521,7 +439,7 @@
             await conn.OpenAsync();
 
             await using var cmd = new SqlCommand(@"
-                SELECT TOP 10 Id, IpAddress, LocationSummary, Latitude, Longitude, Remarks, ChangedAt
+                SELECT TOP 15 Id, IpAddress, LocationSummary, Latitude, Longitude, Remarks, ChangedAt
                 FROM dbo.PasswordChangeHistory_CYH
                 WHERE UserId = @Val OR UserEmail = @Val
                 ORDER BY ChangedAt DESC", conn);
@@ -557,11 +475,6 @@
     private async Task HandleChangePasswordAsync()
     {
         pwdErrorMessage = null;
-        if (string.IsNullOrWhiteSpace(currentPasswordInput))
-        {
-            pwdErrorMessage = "Current password enter karein.";
-            return;
-        }
         if (string.IsNullOrWhiteSpace(newPasswordInput) || newPasswordInput.Length < 6)
         {
             pwdErrorMessage = "Naya password kam se kam 6 characters ka hona chahiye.";
@@ -591,35 +504,7 @@
             await using var conn = new SqlConnection(connStr);
             await conn.OpenAsync();
 
-            // 1. Verify current password
-            string? dbEncodedPwd = null;
-            await using (var checkCmd = new SqlCommand("SELECT TOP 1 Password FROM AspNetUsers WHERE Email = @Val OR Id = @Val", conn))
-            {
-                checkCmd.Parameters.AddWithValue("@Val", emailOrId);
-                var obj = await checkCmd.ExecuteScalarAsync();
-                dbEncodedPwd = obj?.ToString();
-            }
-
-            if (!string.IsNullOrEmpty(dbEncodedPwd))
-            {
-                string plainDbPwd = "";
-                try 
-                { 
-                    plainDbPwd = AESEncryption.Decode(dbEncodedPwd); 
-                } 
-                catch 
-                { 
-                    plainDbPwd = dbEncodedPwd; 
-                }
-
-                if (plainDbPwd != currentPasswordInput && dbEncodedPwd != currentPasswordInput)
-                {
-                    pwdErrorMessage = "Current password galat hai. Kripya sahi password enter karein.";
-                    return;
-                }
-            }
-
-            // 2. Update to new AES encrypted password
+            // 1. Direct update to new AES encrypted password (No current password required)
             var newEncoded = AESEncryption.Encode(newPasswordInput);
             await using (var updateCmd = new SqlCommand("UPDATE AspNetUsers SET Password = @NewPwd WHERE Email = @Val OR Id = @Val", conn))
             {
@@ -628,7 +513,7 @@
                 await updateCmd.ExecuteNonQueryAsync();
             }
 
-            // 3. Capture client security info (IP Address + Geolocation)
+            // 2. Capture client security info (IP Address + Geolocation)
             ClientSecurityDTO? secInfo = null;
             try
             {
@@ -649,7 +534,7 @@
             var userAgent = secInfo?.UserAgent ?? "";
             var remarks = "Password Changed via Admin Console";
 
-            // 4. Record audit log into PasswordChangeHistory_CYH with Geolocation and IP
+            // 3. Record audit log into PasswordChangeHistory_CYH with Geolocation and IP
             await using (var histCmd = new SqlCommand(@"
                 INSERT INTO dbo.PasswordChangeHistory_CYH
                     (UserId, UserEmail, UserRole, IpAddress, City, Region, Country, Latitude, Longitude, LocationSummary, UserAgent, Remarks, ChangedAt)
@@ -676,7 +561,6 @@
 
             // Close modal & reset fields
             isChangePasswordOpen = false;
-            currentPasswordInput = "";
             newPasswordInput = "";
             confirmPasswordInput = "";
 

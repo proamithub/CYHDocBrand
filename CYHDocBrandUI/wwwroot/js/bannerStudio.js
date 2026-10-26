@@ -1070,6 +1070,16 @@ window.bannerStudio = window.bannerStudio || {
         });
     },
 
+    // Smooth Scroll Helper
+    scrollToElement: function (elementId) {
+        setTimeout(function () {
+            const el = document.getElementById(elementId);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }, 120);
+    },
+
     // Client Geolocation and IP Detector for Security Audit Logs
     getClientSecurityInfo: async function () {
         const result = {
