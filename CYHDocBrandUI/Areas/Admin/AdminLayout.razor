@@ -3,6 +3,12 @@
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthStateProvider
+@inject IConfiguration Configuration
+@using System.Data
+@using Microsoft.Data.SqlClient
+@using CYHDocBrandRepo.Utilities
+@using CYHDocBrandModel.DTO
+@using CYHDocBrandUI.Components.Common
 
 <div class="cyh-app-container">
     <!-- Mobile Sidebar Dark Backdrop -->
@@ -30,24 +36,78 @@
                 </span>
             </div>
 
-            <div class="d-flex align-items-center gap-2">
-                <!-- User Profile Pill -->
-                <div class="user-profile-pill" style="border-color: rgba(245, 158, 11, 0.35);">
-                    <div class="user-avatar" style="background: linear-gradient(135deg, #f59e0b, #fbbf24); color: #070d1e;">
-                        <i class="bi bi-shield-fill"></i>
-                    </div>
-                    <div class="d-none d-sm-block">
-                        <div style="font-size: 0.85rem; font-weight: 600; line-height: 1.1; color: #ffffff; max-width: 140px;" class="text-truncate">
-                            @(CurrentUser?.FullName ?? "System Administrator")
+            <!-- Top Right Admin Profile Dropdown -->
+            <div class="position-relative">
+                <button type="button" 
+                        class="btn p-0 border-0 bg-transparent d-flex align-items-center" 
+                        @onclick="ToggleUserDropdown"
+                        aria-expanded="@isUserDropdownOpen"
+                        title="Admin Account Options">
+                    <div class="user-profile-pill d-flex align-items-center gap-2" 
+                         style="border: 1px solid rgba(245, 158, 11, 0.45); background: rgba(14, 25, 48, 0.85); padding: 5px 12px 5px 6px; border-radius: 30px; cursor: pointer; transition: all 0.2s ease;">
+                        <div class="user-avatar" style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #f59e0b, #fbbf24); color: #070d1e; display: flex; align-items: center; justify-content: center; font-weight: bold;">
+                            <i class="bi bi-shield-fill"></i>
                         </div>
-                        <div class="d-none d-md-block text-truncate" style="font-size: 0.72rem; color: #fbbf24; font-weight: 600; max-width: 140px;">
-                            Hospital Administrator
+                        <div class="d-none d-sm-block text-start">
+                            <div style="font-size: 0.85rem; font-weight: 600; line-height: 1.1; color: #ffffff; max-width: 140px;" class="text-truncate">
+                                @(CurrentUser?.FullName ?? "System Administrator")
+                            </div>
+                            <div class="d-none d-md-block text-truncate" style="font-size: 0.72rem; color: #fbbf24; font-weight: 600; max-width: 140px;">
+                                Hospital Administrator
+                            </div>
                         </div>
+                        <i class="bi bi-chevron-down ms-1" style="color: #fbbf24; font-size: 0.75rem; transition: transform 0.2s; transform: @(isUserDropdownOpen ? "rotate(180deg)" : "rotate(0deg)");"></i>
                     </div>
-                    <button class="btn btn-link text-muted p-0 ms-1" @onclick="Logout" title="Logout" style="width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center;">
-                        <i class="bi bi-box-arrow-right text-danger fs-6"></i>
-                    </button>
-                </div>
+                </button>
+
+                @if (isUserDropdownOpen)
+                {
+                    <!-- Backdrop for click-outside -->
+                    <div class="position-fixed top-0 start-0 w-100 h-100" style="z-index: 1040;" @onclick="CloseUserDropdown"></div>
+
+                    <!-- Dropdown Menu Box -->
+                    <div class="dropdown-menu show shadow-lg fade-in" 
+                         style="position: absolute; right: 0; top: calc(100% + 8px); min-width: 250px; background: rgba(10, 20, 42, 0.98); backdrop-filter: blur(16px); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 14px; padding: 8px; z-index: 1045; box-shadow: 0 14px 35px rgba(0, 0, 0, 0.75);">
+                        
+                        <!-- Header Section inside Dropdown -->
+                        <div class="p-2 mb-2 rounded-3" style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.15);">
+                            <div class="fw-bold text-white small text-truncate">@(CurrentUser?.FullName ?? "Administrator")</div>
+                            <div class="text-secondary text-truncate" style="font-size: 0.74rem;">@(CurrentUser?.Email ?? "admin@cyhdoctorhub.com")</div>
+                            <span class="badge mt-1" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; font-size: 0.68rem; border: 1px solid rgba(245, 158, 11, 0.4);">
+                                <i class="bi bi-shield-check me-1"></i>Hospital Admin
+                            </span>
+                        </div>
+
+                        <!-- 1. Profile Option -->
+                        <button type="button" 
+                                class="dropdown-item d-flex align-items-center gap-2 rounded-2 py-2 px-3 text-white border-0 w-100 text-start" 
+                                @onclick="OpenProfileModal" 
+                                style="font-size: 0.86rem; transition: all 0.15s; background: transparent;">
+                            <i class="bi bi-person-circle text-info fs-6"></i>
+                            <span>Profile</span>
+                        </button>
+
+                        <!-- 2. Password Change Option -->
+                        <button type="button" 
+                                class="dropdown-item d-flex align-items-center gap-2 rounded-2 py-2 px-3 text-white border-0 w-100 text-start" 
+                                @onclick="OpenChangePasswordModal" 
+                                style="font-size: 0.86rem; transition: all 0.15s; background: transparent;">
+                            <i class="bi bi-key-fill text-warning fs-6"></i>
+                            <span>Password Change</span>
+                        </button>
+
+                        <div class="dropdown-divider my-2" style="border-color: rgba(255, 255, 255, 0.1);"></div>
+
+                        <!-- 3. Logout Option -->
+                        <button type="button" 
+                                class="dropdown-item d-flex align-items-center gap-2 rounded-2 py-2 px-3 text-danger border-0 w-100 text-start" 
+                                @onclick="Logout" 
+                                style="font-size: 0.86rem; transition: all 0.15s; background: transparent;">
+                            <i class="bi bi-box-arrow-right fs-6"></i>
+                            <span class="fw-bold">Logout</span>
+                        </button>
+                    </div>
+                }
             </div>
         </header>
 
@@ -58,10 +118,200 @@
     </div>
 </div>
 
+<!-- ================= 1. ADMIN PROFILE MODAL ================= -->
+@if (isProfileModalOpen)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px); z-index: 1055;">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 460px;">
+            <div class="modal-content text-white rounded-4 shadow-lg" style="background: rgba(14, 25, 48, 0.96); border: 1px solid rgba(245, 158, 11, 0.4);">
+                <div class="modal-header border-bottom" style="border-color: rgba(255, 255, 255, 0.1) !important;">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4);">
+                            <i class="bi bi-shield-lock-fill"></i>
+                        </div>
+                        <h5 class="modal-title fw-bold text-white mb-0" style="font-size: 1.05rem;">Administrator Profile</h5>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseProfileModal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="text-center mb-4">
+                        <div class="mx-auto mb-2 rounded-circle d-flex align-items-center justify-content-center" style="width: 72px; height: 72px; background: linear-gradient(135deg, #f59e0b, #fbbf24); color: #070d1e; font-size: 2rem; box-shadow: 0 4px 20px rgba(245, 158, 11, 0.35);">
+                            <i class="bi bi-shield-fill"></i>
+                        </div>
+                        <h5 class="fw-bold text-white mb-1">@(CurrentUser?.FullName ?? "Hospital Chief Administrator")</h5>
+                        <span class="badge px-3 py-1 rounded-pill" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); font-size: 0.78rem;">
+                            <i class="bi bi-patch-check-fill me-1"></i>Verified Hospital Administrator
+                        </span>
+                    </div>
+
+                    <div class="d-flex flex-column gap-2">
+                        <div class="p-3 rounded-3 d-flex align-items-center justify-content-between" style="background: rgba(7, 13, 30, 0.65); border: 1px solid rgba(255, 255, 255, 0.08);">
+                            <span class="text-secondary small d-flex align-items-center gap-2">
+                                <i class="bi bi-envelope text-info"></i> Email:
+                            </span>
+                            <span class="text-white fw-semibold small">@(CurrentUser?.Email ?? "admin@cyhdoctorhub.com")</span>
+                        </div>
+
+                        <div class="p-3 rounded-3 d-flex align-items-center justify-content-between" style="background: rgba(7, 13, 30, 0.65); border: 1px solid rgba(255, 255, 255, 0.08);">
+                            <span class="text-secondary small d-flex align-items-center gap-2">
+                                <i class="bi bi-building text-warning"></i> Department:
+                            </span>
+                            <span class="text-white fw-semibold small">@(CurrentUser?.Department ?? "Hospital Operations")</span>
+                        </div>
+
+                        <div class="p-3 rounded-3 d-flex align-items-center justify-content-between" style="background: rgba(7, 13, 30, 0.65); border: 1px solid rgba(255, 255, 255, 0.08);">
+                            <span class="text-secondary small d-flex align-items-center gap-2">
+                                <i class="bi bi-person-badge text-success"></i> Role:
+                            </span>
+                            <span class="badge bg-success bg-opacity-20 text-success border border-success">
+                                @(CurrentUser?.Role ?? "Admin")
+                            </span>
+                        </div>
+
+                        <div class="p-3 rounded-3 d-flex align-items-center justify-content-between" style="background: rgba(7, 13, 30, 0.65); border: 1px solid rgba(255, 255, 255, 0.08);">
+                            <span class="text-secondary small d-flex align-items-center gap-2">
+                                <i class="bi bi-key text-info"></i> Admin ID:
+                            </span>
+                            <span class="text-info font-monospace small">@(CurrentUser?.UserId ?? "admin-sys-01")</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top d-flex justify-content-between" style="border-color: rgba(255, 255, 255, 0.1) !important;">
+                    <button type="button" class="btn btn-outline-warning btn-sm d-flex align-items-center gap-2" @onclick="SwitchToChangePassword">
+                        <i class="bi bi-key-fill"></i> Change Password
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm px-3" @onclick="CloseProfileModal">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- ================= 2. CHANGE PASSWORD MODAL ================= -->
+@if (isChangePasswordOpen)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px); z-index: 1055;">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 440px;">
+            <div class="modal-content text-white rounded-4 shadow-lg" style="background: rgba(14, 25, 48, 0.96); border: 1px solid rgba(245, 158, 11, 0.4);">
+                <div class="modal-header border-bottom" style="border-color: rgba(255, 255, 255, 0.1) !important;">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4);">
+                            <i class="bi bi-key-fill"></i>
+                        </div>
+                        <h5 class="modal-title fw-bold text-white mb-0" style="font-size: 1.05rem;">Change Password</h5>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseChangePasswordModal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    @if (!string.IsNullOrEmpty(pwdErrorMessage))
+                    {
+                        <div class="alert alert-danger py-2 px-3 small rounded-3 mb-3 d-flex align-items-center gap-2" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5;">
+                            <i class="bi bi-exclamation-triangle-fill"></i>
+                            <span>@pwdErrorMessage</span>
+                        </div>
+                    }
+
+                    <!-- Current Password -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-light mb-1">
+                            <i class="bi bi-lock-fill text-warning me-1"></i>Current Password *
+                        </label>
+                        <div class="input-group">
+                            <input type="@(showCurrentPwd ? "text" : "password")" 
+                                   class="form-control bg-dark text-white border-secondary" 
+                                   placeholder="Enter current password" 
+                                   @bind="currentPasswordInput" 
+                                   style="border-radius: 8px 0 0 8px; font-size: 0.88rem;" />
+                            <button type="button" class="btn btn-outline-secondary" @onclick="() => showCurrentPwd = !showCurrentPwd">
+                                <i class="bi @(showCurrentPwd ? "bi-eye-slash-fill" : "bi-eye-fill")"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- New Password -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-light mb-1">
+                            <i class="bi bi-shield-lock text-info me-1"></i>New Password * (Min 6 chars)
+                        </label>
+                        <div class="input-group">
+                            <input type="@(showNewPwd ? "text" : "password")" 
+                                   class="form-control bg-dark text-white border-secondary" 
+                                   placeholder="Enter new password" 
+                                   @bind="newPasswordInput" 
+                                   style="border-radius: 8px 0 0 8px; font-size: 0.88rem;" />
+                            <button type="button" class="btn btn-outline-secondary" @onclick="() => showNewPwd = !showNewPwd">
+                                <i class="bi @(showNewPwd ? "bi-eye-slash-fill" : "bi-eye-fill")"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Confirm New Password -->
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold text-light mb-1">
+                            <i class="bi bi-check2-circle text-success me-1"></i>Confirm New Password *
+                        </label>
+                        <div class="input-group">
+                            <input type="@(showConfirmPwd ? "text" : "password")" 
+                                   class="form-control bg-dark text-white border-secondary" 
+                                   placeholder="Re-enter new password" 
+                                   @bind="confirmPasswordInput" 
+                                   style="border-radius: 8px 0 0 8px; font-size: 0.88rem;" />
+                            <button type="button" class="btn btn-outline-secondary" @onclick="() => showConfirmPwd = !showConfirmPwd">
+                                <i class="bi @(showConfirmPwd ? "bi-eye-slash-fill" : "bi-eye-fill")"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top" style="border-color: rgba(255, 255, 255, 0.1) !important;">
+                    <button type="button" class="btn btn-secondary btn-sm px-3" @onclick="CloseChangePasswordModal" disabled="@isChangingPwd">
+                        Cancel
+                    </button>
+                    <button type="button" class="btn btn-warning btn-sm px-3 fw-bold text-dark d-flex align-items-center gap-2" @onclick="HandleChangePasswordAsync" disabled="@isChangingPwd" style="background: linear-gradient(135deg, #f59e0b, #fbbf24); border: none;">
+                        @if (isChangingPwd)
+                        {
+                            <span class="spinner-border spinner-border-sm" role="status"></span>
+                            <span>Updating...</span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-check-lg"></i>
+                            <span>Update Password</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Floating Toast Notification Popup -->
+<ToastPopup Notification="ActivePopup" OnDismiss="DismissPopup" />
+
 @code {
     private CurrentUserDTO? CurrentUser;
     private bool _disposed = false;
     private bool isMobileNavOpen = false;
+
+    // Dropdown and Modals State
+    private bool isUserDropdownOpen = false;
+    private bool isProfileModalOpen = false;
+    private bool isChangePasswordOpen = false;
+
+    // Password Change Fields
+    private string currentPasswordInput = "";
+    private string newPasswordInput = "";
+    private string confirmPasswordInput = "";
+    private bool showCurrentPwd = false;
+    private bool showNewPwd = false;
+    private bool showConfirmPwd = false;
+    private bool isChangingPwd = false;
+    private string? pwdErrorMessage;
+
+    // Toast Popup Notification
+    private ToastNotificationDTO? ActivePopup;
+    private CancellationTokenSource? popupCts;
 
     protected override async Task OnInitializedAsync()
     {
@@ -115,13 +365,196 @@
         StateHasChanged();
     }
 
+    private void ToggleUserDropdown()
+    {
+        isUserDropdownOpen = !isUserDropdownOpen;
+    }
+
+    private void CloseUserDropdown()
+    {
+        isUserDropdownOpen = false;
+    }
+
+    private void OpenProfileModal()
+    {
+        isUserDropdownOpen = false;
+        isProfileModalOpen = true;
+    }
+
+    private void CloseProfileModal()
+    {
+        isProfileModalOpen = false;
+    }
+
+    private void OpenChangePasswordModal()
+    {
+        isUserDropdownOpen = false;
+        isChangePasswordOpen = true;
+        pwdErrorMessage = null;
+        currentPasswordInput = "";
+        newPasswordInput = "";
+        confirmPasswordInput = "";
+        showCurrentPwd = false;
+        showNewPwd = false;
+        showConfirmPwd = false;
+    }
+
+    private void CloseChangePasswordModal()
+    {
+        isChangePasswordOpen = false;
+        pwdErrorMessage = null;
+    }
+
+    private void SwitchToChangePassword()
+    {
+        isProfileModalOpen = false;
+        OpenChangePasswordModal();
+    }
+
+    private async Task HandleChangePasswordAsync()
+    {
+        pwdErrorMessage = null;
+        if (string.IsNullOrWhiteSpace(currentPasswordInput))
+        {
+            pwdErrorMessage = "Current password enter karein.";
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(newPasswordInput) || newPasswordInput.Length < 6)
+        {
+            pwdErrorMessage = "Naya password kam se kam 6 characters ka hona chahiye.";
+            return;
+        }
+        if (newPasswordInput != confirmPasswordInput)
+        {
+            pwdErrorMessage = "New password aur Confirm password match nahi ho rahe.";
+            return;
+        }
+
+        isChangingPwd = true;
+        StateHasChanged();
+
+        try
+        {
+            var emailOrId = CurrentUser?.Email ?? CurrentUser?.UserId;
+            if (string.IsNullOrWhiteSpace(emailOrId))
+            {
+                pwdErrorMessage = "User identification nahi mili.";
+                return;
+            }
+
+            var connStr = Configuration.GetConnectionString("DefaultConnection") 
+                ?? "Server=VRS-AMITPC\\SQLEXPRESS;Database=CYHDocBrandBD;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
+
+            await using var conn = new SqlConnection(connStr);
+            await conn.OpenAsync();
+
+            // 1. Verify current password
+            string? dbEncodedPwd = null;
+            await using (var checkCmd = new SqlCommand("SELECT TOP 1 Password FROM AspNetUsers WHERE Email = @Val OR Id = @Val", conn))
+            {
+                checkCmd.Parameters.AddWithValue("@Val", emailOrId);
+                var obj = await checkCmd.ExecuteScalarAsync();
+                dbEncodedPwd = obj?.ToString();
+            }
+
+            if (!string.IsNullOrEmpty(dbEncodedPwd))
+            {
+                string plainDbPwd = "";
+                try 
+                { 
+                    plainDbPwd = AESEncryption.Decode(dbEncodedPwd); 
+                } 
+                catch 
+                { 
+                    plainDbPwd = dbEncodedPwd; 
+                }
+
+                if (plainDbPwd != currentPasswordInput && dbEncodedPwd != currentPasswordInput)
+                {
+                    pwdErrorMessage = "Current password galat hai. Kripya sahi password enter karein.";
+                    return;
+                }
+            }
+
+            // 2. Update to new AES encrypted password
+            var newEncoded = AESEncryption.Encode(newPasswordInput);
+            await using (var updateCmd = new SqlCommand("UPDATE AspNetUsers SET Password = @NewPwd WHERE Email = @Val OR Id = @Val", conn))
+            {
+                updateCmd.Parameters.AddWithValue("@NewPwd", newEncoded);
+                updateCmd.Parameters.AddWithValue("@Val", emailOrId);
+                await updateCmd.ExecuteNonQueryAsync();
+            }
+
+            // Close modal and show success toast
+            isChangePasswordOpen = false;
+            currentPasswordInput = "";
+            newPasswordInput = "";
+            confirmPasswordInput = "";
+
+            ShowToast("Password Changed", "Admin password successfully update ho gaya hai!", "save");
+        }
+        catch (Exception ex)
+        {
+            pwdErrorMessage = $"Password update error: {ex.Message}";
+        }
+        finally
+        {
+            isChangingPwd = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ShowToast(string title, string message, string type = "save")
+    {
+        popupCts?.Cancel();
+        popupCts?.Dispose();
+        popupCts = new CancellationTokenSource();
+
+        ActivePopup = new ToastNotificationDTO
+        {
+            Title = title,
+            Message = message,
+            Type = type
+        };
+        StateHasChanged();
+
+        var token = popupCts.Token;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(4000, token);
+                if (!token.IsCancellationRequested)
+                {
+                    await InvokeAsync(() =>
+                    {
+                        ActivePopup = null;
+                        StateHasChanged();
+                    });
+                }
+            }
+            catch (TaskCanceledException) { }
+        }, token);
+    }
+
+    private void DismissPopup()
+    {
+        ActivePopup = null;
+        popupCts?.Cancel();
+        StateHasChanged();
+    }
+
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
         if (isMobileNavOpen)
         {
             isMobileNavOpen = false;
-            InvokeAsync(StateHasChanged);
         }
+        if (isUserDropdownOpen)
+        {
+            isUserDropdownOpen = false;
+        }
+        InvokeAsync(StateHasChanged);
     }
 
     private void OnAuthStateChanged(Task<AuthenticationState> task)
@@ -138,12 +571,15 @@
     public void Dispose()
     {
         _disposed = true;
+        popupCts?.Cancel();
+        popupCts?.Dispose();
         AuthStateProvider.AuthenticationStateChanged -= OnAuthStateChanged;
         NavigationManager.LocationChanged -= OnLocationChanged;
     }
 
     private async Task Logout()
     {
+        isUserDropdownOpen = false;
         await AuthService.LogoutAsync();
         NavigationManager.NavigateTo("login", forceLoad: true);
     }
