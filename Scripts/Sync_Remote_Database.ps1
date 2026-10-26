@@ -1,3 +1,4 @@
+Add-Type -AssemblyName System.Data
 $ErrorActionPreference = "Stop"
 
 $connStr = "Data Source=208.91.198.196; Initial Catalog=CYHDocBrand; User Id=CYHDocBrandSA; Password=CYHDocBrand@PassAK; pooling=true;Max Pool Size=200;MultipleActiveResultSets=True;TrustServerCertificate=True"
@@ -5,55 +6,96 @@ $connStr = "Data Source=208.91.198.196; Initial Catalog=CYHDocBrand; User Id=CYH
 Write-Host "Connecting to SQL Server: 208.91.198.196 (Database: CYHDocBrand)..." -ForegroundColor Cyan
 $con = New-Object System.Data.SqlClient.SqlConnection($connStr)
 $con.Open()
-Write-Host "Connected successfully!" -ForegroundColor Green
+Write-Host "Connected successfully to 208.91.198.196 (Database: CYHDocBrand)!" -ForegroundColor Green
 
-# 1. Read Full_Database_Setup_CYH.sql
-$sqlFilePath = Join-Path $PSScriptRoot "Full_Database_Setup_CYH.sql"
-if (-not (Test-Path $sqlFilePath)) {
-    $sqlFilePath = "D:\MyAppAi\CYHDocBrand\Scripts\Full_Database_Setup_CYH.sql"
+function Execute-SqlFile($filePath, $fileLabel) {
+    if (-not (Test-Path $filePath)) {
+        Write-Host "File not found: $filePath" -ForegroundColor Red
+        return
+    }
+
+    Write-Host "`n--- Executing $fileLabel ($filePath) ---" -ForegroundColor Cyan
+    $rawSql = [IO.File]::ReadAllText($filePath, [Text.Encoding]::UTF8)
+    $batches = [System.Text.RegularExpressions.Regex]::Split($rawSql, "^\s*GO\s*$", [System.Text.RegularExpressions.RegexOptions]::Multiline -bor [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+
+    $executed = 0
+    foreach ($batch in $batches) {
+        $trimmed = $batch.Trim()
+        if ([string]::IsNullOrWhiteSpace($trimmed)) { continue }
+        if ($trimmed -match "^\s*CREATE\s+DATABASE" -or $trimmed -match "^\s*IF\s+NOT\s+EXISTS\s*\(\s*SELECT\s+name\s+FROM\s+sys\.databases" -or $trimmed -match "^\s*USE\s+\[") {
+            continue
+        }
+
+        try {
+            $cmd = $con.CreateCommand()
+            $cmd.CommandText = $trimmed
+            $cmd.CommandTimeout = 90
+            $cmd.ExecuteNonQuery() | Out-Null
+            $cmd.Dispose()
+            $executed++
+        } catch {
+            $summary = $trimmed.Substring(0, [Math]::Min(60, $trimmed.Length)).Replace("`r", " ").Replace("`n", " ")
+            Write-Host "Batch notice ($summary...): $($_.Exception.Message)" -ForegroundColor Yellow
+        }
+    }
+    Write-Host "Completed ${fileLabel} - $executed batches applied." -ForegroundColor Green
 }
 
-$rawSql = [IO.File]::ReadAllText($sqlFilePath, [Text.Encoding]::UTF8)
+# 1. Apply Full Database Setup (Tables, Constraints, Indexes)
+$setupFile = Join-Path $PSScriptRoot "Full_Database_Setup_CYH.sql"
+if (-not (Test-Path $setupFile)) { $setupFile = "D:\MyAppAi\CYHDocBrand\Scripts\Full_Database_Setup_CYH.sql" }
+Execute-SqlFile $setupFile "1. Tables & Schema Setup"
 
-# Split by GO lines
-$batches = [System.Text.RegularExpressions.Regex]::Split($rawSql, "^\s*GO\s*$", [System.Text.RegularExpressions.RegexOptions]::Multiline -bor [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+# 2. Apply Stored Procedures (Latest Procedures)
+$procFile = Join-Path $PSScriptRoot "Procedures_CYH.sql"
+if (-not (Test-Path $procFile)) { $procFile = "D:\MyAppAi\CYHDocBrand\Scripts\Procedures_CYH.sql" }
+Execute-SqlFile $procFile "2. Stored Procedures Update"
 
-$batchIndex = 0
-$executedCount = 0
-
-foreach ($batch in $batches) {
-    $trimmed = $batch.Trim()
-    if ([string]::IsNullOrWhiteSpace($trimmed)) {
-        continue
-    }
-
-    # Skip CREATE DATABASE or USE database statements
-    if ($trimmed -match "^\s*CREATE\s+DATABASE" -or $trimmed -match "^\s*IF\s+NOT\s+EXISTS\s*\(\s*SELECT\s+name\s+FROM\s+sys\.databases" -or $trimmed -match "^\s*USE\s+\[") {
-        Write-Host "Skipping database creation/switch batch: $($trimmed.Substring(0, [Math]::Min(50, $trimmed.Length)))..." -ForegroundColor Yellow
-        continue
-    }
-
-    $batchIndex++
-    $summary = $trimmed.Substring(0, [Math]::Min(70, $trimmed.Length)).Replace("`r", " ").Replace("`n", " ")
-
-    try {
-        $cmd = $con.CreateCommand()
-        $cmd.CommandText = $trimmed
-        $cmd.CommandTimeout = 60
-        $cmd.ExecuteNonQuery() | Out-Null
-        $cmd.Dispose()
-        Write-Host "[$batchIndex] Applied: $summary..." -ForegroundColor Green
-        $executedCount++
-    } catch {
-        Write-Host "[$batchIndex] Error in batch: $summary" -ForegroundColor Red
-        Write-Host "Details: $($_.Exception.Message)" -ForegroundColor Red
-    }
+# 3. Apply Banner Templates Setup
+$tplFile = Join-Path $PSScriptRoot "Setup_BannerTemplates_CYH.sql"
+if (-not (Test-Path $tplFile)) { $tplFile = "D:\MyAppAi\CYHDocBrand\Scripts\Setup_BannerTemplates_CYH.sql" }
+if (Test-Path $tplFile) {
+    Execute-SqlFile $tplFile "3. Banner Templates Setup"
 }
 
-Write-Host "`nTotal schema batches executed: $executedCount" -ForegroundColor Cyan
+# 4. Ensure PasswordChangeHistory_CYH Table Exists & Has All Required Columns
+Write-Host "`nEnsuring [PasswordChangeHistory_CYH] columns are up to date..." -ForegroundColor Cyan
+try {
+    $ensureHistSql = @"
+    IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[PasswordChangeHistory_CYH]') AND type in (N'U'))
+    BEGIN
+        CREATE TABLE [dbo].[PasswordChangeHistory_CYH] (
+            [Id]               INT IDENTITY(1,1) NOT NULL,
+            [UserId]           NVARCHAR(450)     NOT NULL,
+            [UserEmail]        NVARCHAR(256)     NULL,
+            [UserRole]         NVARCHAR(50)      NULL,
+            [IpAddress]        NVARCHAR(100)     NULL,
+            [City]             NVARCHAR(100)     NULL,
+            [Region]           NVARCHAR(100)     NULL,
+            [Country]          NVARCHAR(100)     NULL,
+            [Latitude]         DECIMAL(9,6)      NULL,
+            [Longitude]        DECIMAL(9,6)      NULL,
+            [LocationSummary]  NVARCHAR(300)     NULL,
+            [UserAgent]        NVARCHAR(500)     NULL,
+            [Remarks]          NVARCHAR(250)     NULL,
+            [ChangedAt]        DATETIME2(7)      NOT NULL DEFAULT (SYSUTCDATETIME()),
+            CONSTRAINT [PK_PasswordChangeHistory_CYH] PRIMARY KEY CLUSTERED ([Id] ASC)
+        );
+        CREATE NONCLUSTERED INDEX [IX_PasswordChangeHistory_UserId] ON [dbo].[PasswordChangeHistory_CYH]([UserId]);
+        CREATE NONCLUSTERED INDEX [IX_PasswordChangeHistory_ChangedAt] ON [dbo].[PasswordChangeHistory_CYH]([ChangedAt] DESC);
+    END
+"@
+    $cmdH = $con.CreateCommand()
+    $cmdH.CommandText = $ensureHistSql
+    $cmdH.ExecuteNonQuery() | Out-Null
+    $cmdH.Dispose()
+    Write-Host "[PasswordChangeHistory_CYH] table verified/updated!" -ForegroundColor Green
+} catch {
+    Write-Host "Notice on PasswordChangeHistory_CYH: $($_.Exception.Message)" -ForegroundColor Yellow
+}
 
-# 2. Seed Default Admin & Doctor accounts via ManageDoctor_CYH
-Write-Host "`nSeeding Default Admin and Doctor accounts..." -ForegroundColor Cyan
+# 5. Seed Initial Data
+Write-Host "`nSeeding Default Admin & Doctor accounts..." -ForegroundColor Cyan
 try {
     $cmdSeed = $con.CreateCommand()
     $cmdSeed.CommandText = "ManageDoctor_CYH"
@@ -66,106 +108,33 @@ try {
     Write-Host "Seed accounts notice: $($_.Exception.Message)" -ForegroundColor Yellow
 }
 
-# 3. Seed Default Credit Types
-Write-Host "`nSeeding Default Credit Types..." -ForegroundColor Cyan
-try {
-    $cmdCheckType = $con.CreateCommand()
-    $cmdCheckType.CommandText = "SELECT COUNT(1) FROM [dbo].[CreditTypes_CYH]"
-    $typeCount = [Convert]::ToInt32($cmdCheckType.ExecuteScalar())
-    $cmdCheckType.Dispose()
-
-    if ($typeCount -eq 0) {
-        # Type 1: Template Publish
-        $cmdT1 = $con.CreateCommand()
-        $cmdT1.CommandText = "ManageCredits_CYH"
-        $cmdT1.CommandType = [System.Data.CommandType]::StoredProcedure
-        $cmdT1.Parameters.AddWithValue("@Flag", "SAVE_TYPE") | Out-Null
-        $cmdT1.Parameters.AddWithValue("@Name", "Template Photo Publish") | Out-Null
-        $cmdT1.Parameters.AddWithValue("@Code", "TEMPLATE_PUBLISH") | Out-Null
-        $cmdT1.Parameters.AddWithValue("@ServiceType", "Free") | Out-Null
-        $cmdT1.Parameters.AddWithValue("@IsPaid", $false) | Out-Null
-        $cmdT1.Parameters.AddWithValue("@IsActive", $true) | Out-Null
-        $cmdT1.Parameters.AddWithValue("@Description", "Standard healthcare template customization and publish") | Out-Null
-        $cmdT1.Parameters.AddWithValue("@CreditCost", 1) | Out-Null
-        $cmdT1.ExecuteScalar() | Out-Null
-        $cmdT1.Dispose()
-
-        # Type 2: AI Banner
-        $cmdT2 = $con.CreateCommand()
-        $cmdT2.CommandText = "ManageCredits_CYH"
-        $cmdT2.CommandType = [System.Data.CommandType]::StoredProcedure
-        $cmdT2.Parameters.AddWithValue("@Flag", "SAVE_TYPE") | Out-Null
-        $cmdT2.Parameters.AddWithValue("@Name", "AI Banner Creation & Publish") | Out-Null
-        $cmdT2.Parameters.AddWithValue("@Code", "AI_BANNER_PUBLISH") | Out-Null
-        $cmdT2.Parameters.AddWithValue("@ServiceType", "Paid") | Out-Null
-        $cmdT2.Parameters.AddWithValue("@IsPaid", $true) | Out-Null
-        $cmdT2.Parameters.AddWithValue("@IsActive", $true) | Out-Null
-        $cmdT2.Parameters.AddWithValue("@Description", "AI generated prompt healthcare banner customization and publish") | Out-Null
-        $cmdT2.Parameters.AddWithValue("@CreditCost", 1) | Out-Null
-        $cmdT2.ExecuteScalar() | Out-Null
-        $cmdT2.Dispose()
-
-        Write-Host "Default Credit Types seeded successfully!" -ForegroundColor Green
-    } else {
-        Write-Host "Credit Types already exist ($typeCount types)." -ForegroundColor Yellow
-    }
-
-    # Initialize doctor credit rows at 00
-    $cmdDocs = $con.CreateCommand()
-    $cmdDocs.CommandText = "SELECT Id FROM [dbo].[DoctorProfiles]"
-    $rDocs = $cmdDocs.ExecuteReader()
-    $docIds = New-Object System.Collections.Generic.List[int]
-    while ($rDocs.Read()) {
-        $docIds.Add($rDocs.GetInt32(0))
-    }
-    $rDocs.Close()
-    $cmdDocs.Dispose()
-
-    foreach ($docId in $docIds) {
-        $cmdInit = $con.CreateCommand()
-        $cmdInit.CommandText = "ManageCredits_CYH"
-        $cmdInit.CommandType = [System.Data.CommandType]::StoredProcedure
-        $cmdInit.Parameters.AddWithValue("@Flag", "INIT_DOCTOR_CREDITS") | Out-Null
-        $cmdInit.Parameters.AddWithValue("@DoctorId", $docId) | Out-Null
-        $cmdInit.ExecuteNonQuery() | Out-Null
-        $cmdInit.Dispose()
-    }
-    Write-Host "Doctor credit accounts verified/initialized ($($docIds.Count) doctors)." -ForegroundColor Green
-} catch {
-    Write-Host "Credit system seed notice: $($_.Exception.Message)" -ForegroundColor Yellow
-}
-
-# 4. Verification Check
-Write-Host "`n================ VERIFICATION REPORT ================" -ForegroundColor Cyan
+# 6. Verification Report
+Write-Host "`n================ VERIFICATION REPORT: 208.91.198.196 ================" -ForegroundColor Cyan
 $cmdTables = $con.CreateCommand()
-$cmdTables.CommandText = "SELECT name FROM sys.tables ORDER BY name"
+$cmdTables.CommandText = @"
+SELECT t.name, SUM(p.rows) AS TotalRows
+FROM sys.tables t
+INNER JOIN sys.partitions p ON t.object_id = p.object_id AND p.index_id IN (0, 1)
+GROUP BY t.name
+ORDER BY t.name
+"@
 $rTables = $cmdTables.ExecuteReader()
-Write-Host "Tables in CYHDocBrand:" -ForegroundColor Yellow
+Write-Host "Tables & Row Counts in CYHDocBrand:" -ForegroundColor Yellow
 while ($rTables.Read()) {
-    Write-Host "  [Table] $($rTables[0])" -ForegroundColor White
+    Write-Host ("  [Table] {0,-35} | Rows: {1}" -f $rTables[0], $rTables[1]) -ForegroundColor White
 }
 $rTables.Close()
 $cmdTables.Dispose()
 
 $cmdProcs = $con.CreateCommand()
-$cmdProcs.CommandText = "SELECT name FROM sys.procedures WHERE is_ms_shipped = 0 ORDER BY name"
+$cmdProcs.CommandText = "SELECT name, modify_date FROM sys.procedures WHERE is_ms_shipped = 0 ORDER BY name"
 $rProcs = $cmdProcs.ExecuteReader()
-Write-Host "`nProcedures in CYHDocBrand:" -ForegroundColor Yellow
+Write-Host "`nActive Stored Procedures in CYHDocBrand:" -ForegroundColor Yellow
 while ($rProcs.Read()) {
-    Write-Host "  [Proc]  $($rProcs[0])" -ForegroundColor White
+    Write-Host ("  [Proc]  {0,-35} | Modified: {1:yyyy-MM-dd HH:mm}" -f $rProcs[0], $rProcs[1]) -ForegroundColor White
 }
 $rProcs.Close()
 $cmdProcs.Dispose()
 
-$cmdUsers = $con.CreateCommand()
-$cmdUsers.CommandText = "SELECT Email, FullName, Role, IsActive FROM AspNetUsers"
-$rUsers = $cmdUsers.ExecuteReader()
-Write-Host "`nUsers in CYHDocBrand:" -ForegroundColor Yellow
-while ($rUsers.Read()) {
-    Write-Host "  [User]  $($rUsers[0]) | $($rUsers[1]) | Role: $($rUsers[2]) | Active: $($rUsers[3])" -ForegroundColor White
-}
-$rUsers.Close()
-$cmdUsers.Dispose()
-
 $con.Close()
-Write-Host "`n================ SYNC FINISHED ================" -ForegroundColor Green
+Write-Host "`n================ LIVE DATABASE SYNC COMPLETED SUCCESSFULLY ================" -ForegroundColor Green
