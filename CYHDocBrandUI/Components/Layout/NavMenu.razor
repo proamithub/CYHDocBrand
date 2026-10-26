@@ -93,6 +93,15 @@
 </div>
 
 <div class="cyh-sidebar-footer" style="padding: 0.9rem 1rem;">
+    <!-- PWA Install WebApp Button -->
+    <button type="button" 
+            class="btn cyh-pwa-install-btn w-100 d-flex align-items-center justify-content-center gap-2 py-2 mb-2" 
+            id="pwaInstallBtn"
+            onclick="window.cyhPwa && window.cyhPwa.promptInstall()"
+            style="border-radius: 10px; font-size: 0.84rem; font-weight: 600; background: rgba(0, 242, 254, 0.1); border: 1px solid rgba(0, 242, 254, 0.35); color: #38bdf8; transition: all 0.2s ease;">
+        <i class="bi bi-download"></i>
+        <span>Install Web App</span>
+    </button>
     <button type="button" class="glass-btn-danger w-100 d-flex align-items-center justify-content-center gap-2 py-2" @onclick="Logout" style="border-radius: 10px; font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease;">
         <i class="bi bi-box-arrow-right"></i>
         <span>Logout</span>

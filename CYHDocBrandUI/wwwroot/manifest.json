@@ -1,0 +1,53 @@
+{
+  "name": "CYH Doctor Brand - Medical Branding Platform",
+  "short_name": "CYH Brand",
+  "description": "Specialist Doctor Digital Branding, AI Banner Studio & Hospital Marketing Platform",
+  "start_url": "/",
+  "id": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#070d1e",
+  "theme_color": "#00f2fe",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "images/branding/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "images/branding/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "images/branding/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": [
+    "medical",
+    "business",
+    "productivity"
+  ],
+  "shortcuts": [
+    {
+      "name": "Banner Studio",
+      "short_name": "Studio",
+      "description": "Create and customize doctor medical banners",
+      "url": "/doctor/banners",
+      "icons": [{ "src": "images/branding/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Doctor Profile",
+      "short_name": "Profile",
+      "description": "Manage doctor profile and contact information",
+      "url": "/doctor/profile",
+      "icons": [{ "src": "images/branding/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
