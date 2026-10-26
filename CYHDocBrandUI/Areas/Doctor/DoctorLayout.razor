@@ -103,11 +103,13 @@
     private void ToggleMobileNav()
     {
         isMobileNavOpen = !isMobileNavOpen;
+        StateHasChanged();
     }
 
     private void CloseMobileNav()
     {
         isMobileNavOpen = false;
+        StateHasChanged();
     }
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)

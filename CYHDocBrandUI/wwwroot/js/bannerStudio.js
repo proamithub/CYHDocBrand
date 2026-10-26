@@ -598,30 +598,53 @@ window.bannerStudio = window.bannerStudio || {
             if (!rect.width || !rect.height) return { x: 0, y: 0 };
             const scaleX = canvas.width / rect.width;
             const scaleY = canvas.height / rect.height;
+
+            let clientX = e.clientX;
+            let clientY = e.clientY;
+
+            if (clientX === undefined || clientY === undefined) {
+                if (e.touches && e.touches.length > 0) {
+                    clientX = e.touches[0].clientX;
+                    clientY = e.touches[0].clientY;
+                } else if (e.changedTouches && e.changedTouches.length > 0) {
+                    clientX = e.changedTouches[0].clientX;
+                    clientY = e.changedTouches[0].clientY;
+                } else {
+                    clientX = 0;
+                    clientY = 0;
+                }
+            }
+
             return {
-                x: (e.clientX - rect.left) * scaleX,
-                y: (e.clientY - rect.top) * scaleY
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY
             };
         };
 
         const onPointerDown = (e) => {
             if (!this.currentState) return;
-            // STRICT LOCK: Published banner cannot be modified or dragged
-            if (this.currentState.status === "Published" || this.currentState.Status === "Published") {
+            const isPublished = Boolean(this.currentState.status === "Published" || this.currentState.Status === "Published");
+            if (isPublished) {
                 return;
             }
             const coords = getCanvasCoords(e);
+            const isTouch = e.pointerType === 'touch' || (!e.pointerType && e.touches);
+            const tolerance = isTouch ? 25 : 10;
 
             for (let i = this.elements.length - 1; i >= 0; i--) {
                 const el = this.elements[i];
-                if (coords.x >= el.x && coords.x <= el.x + el.w &&
-                    coords.y >= el.y && coords.y <= el.y + el.h) {
+                if (coords.x >= (el.x - tolerance) && coords.x <= (el.x + el.w + tolerance) &&
+                    coords.y >= (el.y - tolerance) && coords.y <= (el.y + el.h + tolerance)) {
                     this.draggingElement = el;
                     this.dragOffsetX = coords.x - el.x;
                     this.dragOffsetY = coords.y - el.y;
                     canvas.style.cursor = 'grabbing';
-                    try { canvas.setPointerCapture(e.pointerId); } catch { }
-                    e.preventDefault();
+                    try {
+                        if (e.pointerId !== undefined && canvas.setPointerCapture) {
+                            canvas.setPointerCapture(e.pointerId);
+                        }
+                    } catch { }
+                    if (e.cancelable) e.preventDefault();
 
                     this.renderBanner(canvasId, this.currentState);
                     break;
@@ -631,14 +654,15 @@ window.bannerStudio = window.bannerStudio || {
 
         const onPointerMove = (e) => {
             if (!this.currentState) return;
-            // STRICT LOCK: Published banner cannot be dragged
-            if (this.currentState.status === "Published" || this.currentState.Status === "Published") {
+            const isPublished = Boolean(this.currentState.status === "Published" || this.currentState.Status === "Published");
+            if (isPublished) {
                 canvas.style.cursor = 'default';
                 return;
             }
             const coords = getCanvasCoords(e);
 
             if (canvasId === 'bannerCanvas' && !isPublished && this.draggingElement) {
+                if (e.cancelable) e.preventDefault();
                 const dims = this.getDimensions(this.currentState.aspectRatio);
                 const W = dims.width;
                 const H = dims.height;
@@ -698,10 +722,11 @@ window.bannerStudio = window.bannerStudio || {
             } else {
                 // Hover hit test
                 let hit = false;
+                const tolerance = 10;
                 for (let i = this.elements.length - 1; i >= 0; i--) {
                     const el = this.elements[i];
-                    if (coords.x >= el.x && coords.x <= el.x + el.w &&
-                        coords.y >= el.y && coords.y <= el.y + el.h) {
+                    if (coords.x >= (el.x - tolerance) && coords.x <= (el.x + el.w + tolerance) &&
+                        coords.y >= (el.y - tolerance) && coords.y <= (el.y + el.h + tolerance)) {
                         hit = true;
                         break;
                     }
@@ -711,11 +736,16 @@ window.bannerStudio = window.bannerStudio || {
         };
 
         const onPointerUp = (e) => {
+            const isPublished = Boolean(this.currentState && (this.currentState.status === "Published" || this.currentState.Status === "Published"));
             if (canvasId === 'bannerCanvas' && !isPublished && this.draggingElement) {
                 const el = this.draggingElement;
                 this.draggingElement = null;
                 canvas.style.cursor = 'grab';
-                try { canvas.releasePointerCapture(e.pointerId); } catch { }
+                try {
+                    if (e.pointerId !== undefined && canvas.releasePointerCapture) {
+                        canvas.releasePointerCapture(e.pointerId);
+                    }
+                } catch { }
 
                 // Notify Blazor of updated position
                 if (this.dotNetRef) {
@@ -727,15 +757,40 @@ window.bannerStudio = window.bannerStudio || {
         };
 
         canvas.addEventListener('pointerdown', onPointerDown);
-        canvas.addEventListener('pointermove', onPointerMove);
-        canvas.addEventListener('pointerup', onPointerUp);
-        canvas.addEventListener('pointercancel', onPointerUp);
+        window.addEventListener('pointermove', onPointerMove, { passive: false });
+        window.addEventListener('pointerup', onPointerUp);
+        window.addEventListener('pointercancel', onPointerUp);
+
+        // Touch fallbacks for mobile browsers
+        const onTouchStart = (e) => {
+            if (!this.currentState) return;
+            const isPublished = Boolean(this.currentState.status === "Published" || this.currentState.Status === "Published");
+            if (isPublished) return;
+            const coords = getCanvasCoords(e);
+            for (let i = this.elements.length - 1; i >= 0; i--) {
+                const el = this.elements[i];
+                if (coords.x >= (el.x - 30) && coords.x <= (el.x + el.w + 30) &&
+                    coords.y >= (el.y - 30) && coords.y <= (el.y + el.h + 30)) {
+                    if (e.cancelable) e.preventDefault();
+                    break;
+                }
+            }
+        };
+        const onTouchMove = (e) => {
+            if (this.draggingElement && e.cancelable) {
+                e.preventDefault();
+            }
+        };
+        canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+        canvas.addEventListener('touchmove', onTouchMove, { passive: false });
 
         this._cleanupListeners = () => {
             canvas.removeEventListener('pointerdown', onPointerDown);
-            canvas.removeEventListener('pointermove', onPointerMove);
-            canvas.removeEventListener('pointerup', onPointerUp);
-            canvas.removeEventListener('pointercancel', onPointerUp);
+            window.removeEventListener('pointermove', onPointerMove);
+            window.removeEventListener('pointerup', onPointerUp);
+            window.removeEventListener('pointercancel', onPointerUp);
+            canvas.removeEventListener('touchstart', onTouchStart);
+            canvas.removeEventListener('touchmove', onTouchMove);
         };
     },
 

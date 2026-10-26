@@ -48,7 +48,7 @@ html, body {
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
   min-height: 100dvh;
-  overflow-x: hidden;
+  overflow-x: clip;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -353,7 +353,7 @@ html, body {
   min-height: 100vh;
   min-height: 100dvh;
   position: relative;
-  overflow-x: hidden;
+  overflow-x: clip;
   width: 100%;
 }
 
@@ -389,20 +389,23 @@ html, body {
   border-right: 1px solid var(--cyh-border-glass);
   display: flex;
   flex-direction: column;
+  position: -webkit-sticky;
   position: sticky;
   top: 0;
   height: 100vh;
   height: 100dvh;
   z-index: 100;
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+  overflow: hidden;
 }
 
 .cyh-brand {
-  padding: 1.25rem 1.25rem;
+  padding: 1.15rem 1.15rem;
   display: flex;
   align-items: center;
   gap: 0.75rem;
   border-bottom: 1px solid var(--cyh-border-glass);
+  flex-shrink: 0;
 }
 
 .cyh-brand-logo {
@@ -426,6 +429,8 @@ html, body {
   letter-spacing: -0.2px;
   color: #ffffff;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cyh-brand-subtitle {
@@ -434,29 +439,45 @@ html, body {
   text-transform: uppercase;
   letter-spacing: 0.8px;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Mobile Close Button inside Sidebar */
 .cyh-sidebar-close-btn {
-  background: transparent;
-  border: none;
-  color: var(--cyh-text-secondary);
-  font-size: 1.25rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--cyh-border-glass);
+  color: var(--cyh-text-primary);
+  font-size: 1.2rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
   padding: 0;
   flex-shrink: 0;
+  touch-action: manipulation;
+  z-index: 10;
+  position: relative;
 }
 
-.cyh-sidebar-close-btn:hover {
+.cyh-sidebar-close-btn i {
+  pointer-events: none;
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.cyh-sidebar-close-btn:hover,
+.cyh-sidebar-close-btn:active {
   color: #ffffff;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.35);
+  transform: scale(1.04);
 }
 
 /* Mobile Toggle Hamburger Button on Topbar */
@@ -486,7 +507,7 @@ html, body {
 
 .cyh-nav {
   padding: 1rem 0.75rem;
-  flex: 1;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
@@ -542,6 +563,7 @@ html, body {
 .cyh-sidebar-footer {
   padding: 1rem;
   border-top: 1px solid var(--cyh-border-glass);
+  flex-shrink: 0;
 }
 
 .cyh-main-content {
@@ -550,11 +572,12 @@ html, body {
   flex-direction: column;
   min-width: 0;
   width: 100%;
+  position: relative;
 }
 
 .cyh-topbar {
   height: 68px;
-  background: rgba(9, 18, 36, 0.75);
+  background: rgba(9, 18, 36, 0.90);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--cyh-border-glass);
@@ -562,9 +585,11 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  position: -webkit-sticky;
   position: sticky;
   top: 0;
-  z-index: 90;
+  z-index: 1020;
+  width: 100%;
   transition: height 0.2s ease, padding 0.2s ease;
 }
 
@@ -709,13 +734,16 @@ html, body {
     top: 0;
     left: 0;
     bottom: 0;
-    width: 280px;
-    max-width: 85vw;
+    width: 285px;
+    max-width: 86vw;
     height: 100vh;
     height: 100dvh;
     z-index: 1050;
     transform: translateX(-100%);
     box-shadow: none;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
 
   .cyh-sidebar.mobile-open {
@@ -724,9 +752,17 @@ html, body {
   }
 
   .cyh-topbar {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 0;
+    z-index: 1020;
     height: 60px;
     padding: 0 1rem;
     gap: 0.5rem;
+    background: rgba(9, 18, 36, 0.94);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    width: 100%;
   }
 
   .cyh-body {
@@ -769,9 +805,15 @@ html, body {
 /* Small Smartphone Screens (<= 575.98px) */
 @media (max-width: 575.98px) {
   .cyh-topbar {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 0;
+    z-index: 1020;
     height: 56px;
     padding: 0 0.65rem;
     gap: 0.4rem;
+    background: rgba(9, 18, 36, 0.96);
+    width: 100%;
   }
 
   .cyh-body {

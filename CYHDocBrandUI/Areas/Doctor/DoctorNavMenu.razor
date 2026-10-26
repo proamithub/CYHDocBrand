@@ -16,17 +16,17 @@
     <div class="cyh-brand-logo" style="background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); box-shadow: 0 0 20px rgba(0, 242, 254, 0.45); color: #070d1e;">
         <i class="bi bi-heart-pulse-fill"></i>
     </div>
-    <div class="flex-grow-1 min-w-0">
-        <div class="cyh-brand-title">CYH DoctorHub</div>
-        <div class="cyh-brand-subtitle" style="color: #00f2fe; font-size: 0.72rem;">Clinical Brand Workspace</div>
+    <div class="flex-grow-1 min-w-0" style="overflow: hidden;">
+        <div class="cyh-brand-title text-truncate">CYH DoctorHub</div>
+        <div class="cyh-brand-subtitle text-truncate" style="color: #00f2fe; font-size: 0.72rem;">Clinical Workspace</div>
     </div>
     <!-- Mobile Close Button -->
-    <button type="button" class="cyh-sidebar-close-btn d-lg-none" @onclick="HandleClose" aria-label="Close menu">
+    <button type="button" class="cyh-sidebar-close-btn d-lg-none" @onclick="HandleClose" @onclick:stopPropagation="true" aria-label="Close menu" title="Close menu" style="border-color: rgba(0, 242, 254, 0.45); color: #00f2fe; background: rgba(0, 242, 254, 0.1);">
         <i class="bi bi-x-lg"></i>
     </button>
 </div>
 
-<div class="px-3 pt-3">
+<div class="px-3 pt-3 flex-shrink-0">
     @if (IsActive)
     {
         <div class="p-2 text-center rounded-3" style="background: rgba(0, 242, 254, 0.12); border: 1px solid rgba(0, 242, 254, 0.35);">
