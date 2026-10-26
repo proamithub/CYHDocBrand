@@ -14,28 +14,7 @@
             <i class="bi bi-heart-pulse-fill"></i>
         </div>
         <h2 class="fw-bold mb-1 text-white" style="letter-spacing: -0.5px;">CYH Doctor Portal</h2>
-        <hr />
-    </div>
-
-   
-    <!-- Role Fast Selector Tabs (High Contrast & Visible Inactive State) -->
-    <div class="auth-role-tabs" style="display: flex; gap: 8px; padding: 6px; background: rgba(9, 18, 38, 0.85); border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 12px; margin-bottom: 1.5rem;">
-        <button type="button" class="auth-role-tab @(SelectedRole == "Doctor" ? "active-doctor" : "")"
-                style="@(SelectedRole == "Doctor" 
-                    ? "flex: 1; padding: 0.65rem 0.75rem; border-radius: 9px; font-weight: 700; font-size: 0.88rem; background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); color: #070d1e; border: 1px solid #00f2fe; box-shadow: 0 4px 18px rgba(0, 242, 254, 0.45); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.45rem;" 
-                    : "flex: 1; padding: 0.65rem 0.75rem; border-radius: 9px; font-weight: 600; font-size: 0.88rem; background: rgba(255, 255, 255, 0.08); color: #f1f5f9; border: 1px solid rgba(255, 255, 255, 0.22); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.45rem;")"
-                @onclick="SelectDoctorRole">
-            <i class="bi bi-person-badge @(SelectedRole == "Doctor" ? "" : "text-info")" style="font-size: 1rem;"></i>
-            <span>Doctor Portal</span>
-        </button>
-        <button type="button" class="auth-role-tab @(SelectedRole == "Admin" ? "active-admin" : "")"
-                style="@(SelectedRole == "Admin" 
-                    ? "flex: 1; padding: 0.65rem 0.75rem; border-radius: 9px; font-weight: 700; font-size: 0.88rem; background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%); color: #070d1e; border: 1px solid #f59e0b; box-shadow: 0 4px 18px rgba(245, 158, 11, 0.45); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.45rem;" 
-                    : "flex: 1; padding: 0.65rem 0.75rem; border-radius: 9px; font-weight: 600; font-size: 0.88rem; background: rgba(255, 255, 255, 0.08); color: #f1f5f9; border: 1px solid rgba(255, 255, 255, 0.22); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.45rem;")"
-                @onclick="SelectAdminRole">
-            <i class="bi bi-shield-lock @(SelectedRole == "Admin" ? "" : "text-warning")" style="font-size: 1rem;"></i>
-            <span>Hospital Admin</span>
-        </button>
+        <div class="small text-secondary">Hospital &amp; Clinical Brand Workspace</div>
     </div>
 
     @if (!string.IsNullOrEmpty(ErrorMessage))
@@ -106,8 +85,8 @@
         }
         else
         {
-            <i class="bi bi-box-arrow-in-right"></i>
-            <span>Sign In to @(SelectedRole == "Doctor" ? "Doctor Workspace" : "Admin Console")</span>
+            <i class="bi bi-box-arrow-in-right me-2"></i>
+            <span>Sign In Workspace</span>
         }
     </button>
 
@@ -306,7 +285,6 @@
 <ToastPopup Notification="ActivePopup" OnDismiss="DismissPopup" />
 
 @code {
-    private string SelectedRole = "Doctor";
     private string Email = "";
     private string Password = "";
     private bool ShowPassword = false;
@@ -322,22 +300,6 @@
     // Floating Popup
     private ToastNotificationDTO? ActivePopup;
     private CancellationTokenSource? popupCts;
-
-    private void SelectDoctorRole()
-    {
-        SelectedRole = "Doctor";
-        Email = "";
-        Password = "";
-        ErrorMessage = null;
-    }
-
-    private void SelectAdminRole()
-    {
-        SelectedRole = "Admin";
-        Email = "";
-        Password = "";
-        ErrorMessage = null;
-    }
 
     private void TogglePasswordVisibility()
     {
@@ -422,7 +384,6 @@
                 var registeredName = RegModel.FullName.Trim();
 
                 ShowRegisterModal = false;
-                SelectedRole = "Doctor";
                 Email = registeredEmail;
                 Password = "";
 
