@@ -932,96 +932,120 @@ window.bannerStudio = window.bannerStudio || {
     // Smart Quality-Preserving Image Compressor:
     // Keeps visual quality crisp (HD / Retina up to 1920px max dimension, high smoothing),
     // while substantially reducing byte size using high-efficiency WebP/JPEG encoding.
+    // Includes strict safety timeout & error guards so the editor never hangs or crashes.
     compressBackgroundImage: async function (base64Data, filename = "background.jpg") {
         try {
             return new Promise((resolve) => {
+                let isResolved = false;
+                const finish = (result) => {
+                    if (!isResolved) {
+                        isResolved = true;
+                        if (timer) clearTimeout(timer);
+                        resolve(result);
+                    }
+                };
+
+                // Safety timeout (8s): Guarantees the browser/editor never hangs on corrupt or ultra-massive files
+                const timer = setTimeout(() => {
+                    finish({ success: false, message: "Image compression timed out. Image format corrupt ya unsupported ho sakti hai." });
+                }, 8000);
+
                 const img = new Image();
                 img.crossOrigin = "anonymous";
                 img.onload = () => {
-                    let width = img.width;
-                    let height = img.height;
-                    const maxDim = 1920; // 1920px covers 1080p, 2K banners with crystal sharp clarity
-
-                    if (width > maxDim || height > maxDim) {
-                        if (width > height) {
-                            height = Math.round((height * maxDim) / width);
-                            width = maxDim;
-                        } else {
-                            width = Math.round((width * maxDim) / height);
-                            height = maxDim;
+                    try {
+                        let width = img.width;
+                        let height = img.height;
+                        if (!width || !height) {
+                            finish({ success: false, message: "Invalid image dimensions." });
+                            return;
                         }
+
+                        const maxDim = 1920; // 1920px covers 1080p, 2K banners with crystal sharp clarity
+
+                        if (width > maxDim || height > maxDim) {
+                            if (width > height) {
+                                height = Math.round((height * maxDim) / width);
+                                width = maxDim;
+                            } else {
+                                width = Math.round((width * maxDim) / height);
+                                height = maxDim;
+                            }
+                        }
+
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.imageSmoothingEnabled = true;
+                        ctx.imageSmoothingQuality = 'high';
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        const getByteLen = (url) => {
+                            const commaIdx = url.indexOf(',');
+                            const b64 = commaIdx >= 0 ? url.substring(commaIdx + 1) : url;
+                            return Math.round((b64.length * 3) / 4);
+                        };
+
+                        // Try WebP first for superior compression with zero visual degradation
+                        let format = 'image/webp';
+                        let quality = 0.85; // 0.85 WebP gives crisp, artifact-free medical graphics
+                        let dataUrl = canvas.toDataURL(format, quality);
+
+                        // Fallback to JPEG if WebP is not supported by older browser
+                        if (!dataUrl.startsWith('data:image/webp')) {
+                            format = 'image/jpeg';
+                            quality = 0.85;
+                            dataUrl = canvas.toDataURL(format, quality);
+                        }
+
+                        let byteLength = getByteLen(dataUrl);
+                        const targetBytes = 420 * 1024; // 420 KB optimal target
+
+                        // Smoothly adjust quality if size is above target, never dropping below 0.72
+                        while (byteLength > targetBytes && quality > 0.72) {
+                            quality -= 0.04;
+                            dataUrl = canvas.toDataURL(format, quality);
+                            byteLength = getByteLen(dataUrl);
+                        }
+
+                        // If still large (> 550 KB) due to extreme noise/texture, adaptively scale dimension to 1600px
+                        if (byteLength > 550 * 1024 && width > 1600) {
+                            const scale = 1600 / Math.max(width, height);
+                            const scaledW = Math.round(width * scale);
+                            const scaledH = Math.round(height * scale);
+                            const canvas2 = document.createElement('canvas');
+                            canvas2.width = scaledW;
+                            canvas2.height = scaledH;
+                            const ctx2 = canvas2.getContext('2d');
+                            ctx2.imageSmoothingEnabled = true;
+                            ctx2.imageSmoothingQuality = 'high';
+                            ctx2.drawImage(canvas, 0, 0, scaledW, scaledH);
+                            dataUrl = canvas2.toDataURL(format, 0.82);
+                            byteLength = getByteLen(dataUrl);
+                            width = scaledW;
+                            height = scaledH;
+                        }
+
+                        const sizeInKb = Math.round(byteLength / 1024);
+                        const sizeFormatted = sizeInKb > 1024 ? (sizeInKb / 1024).toFixed(2) + ' MB' : sizeInKb + ' KB';
+
+                        finish({
+                            success: true,
+                            dataUrl: dataUrl,
+                            fileName: filename,
+                            sizeBytes: byteLength,
+                            sizeFormatted: sizeFormatted,
+                            width: width,
+                            height: height,
+                            isUnder2MB: byteLength <= (2 * 1024 * 1024),
+                            quality: quality
+                        });
+                    } catch (drawErr) {
+                        finish({ success: false, message: "Canvas compression failed: " + drawErr.message });
                     }
-
-                    const canvas = document.createElement('canvas');
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.imageSmoothingEnabled = true;
-                    ctx.imageSmoothingQuality = 'high';
-                    ctx.drawImage(img, 0, 0, width, height);
-
-                    const getByteLen = (url) => {
-                        const commaIdx = url.indexOf(',');
-                        const b64 = commaIdx >= 0 ? url.substring(commaIdx + 1) : url;
-                        return Math.round((b64.length * 3) / 4);
-                    };
-
-                    // Try WebP first for superior compression with zero visual degradation
-                    let format = 'image/webp';
-                    let quality = 0.85; // 0.85 WebP gives crisp, artifact-free medical graphics
-                    let dataUrl = canvas.toDataURL(format, quality);
-
-                    // Fallback to JPEG if WebP is not supported by older browser
-                    if (!dataUrl.startsWith('data:image/webp')) {
-                        format = 'image/jpeg';
-                        quality = 0.85;
-                        dataUrl = canvas.toDataURL(format, quality);
-                    }
-
-                    let byteLength = getByteLen(dataUrl);
-                    const targetBytes = 420 * 1024; // 420 KB optimal target
-
-                    // Smoothly adjust quality if size is above target, never dropping below 0.72
-                    while (byteLength > targetBytes && quality > 0.72) {
-                        quality -= 0.04;
-                        dataUrl = canvas.toDataURL(format, quality);
-                        byteLength = getByteLen(dataUrl);
-                    }
-
-                    // If still large (> 550 KB) due to extreme noise/texture, adaptively scale dimension to 1600px
-                    if (byteLength > 550 * 1024 && width > 1600) {
-                        const scale = 1600 / Math.max(width, height);
-                        const scaledW = Math.round(width * scale);
-                        const scaledH = Math.round(height * scale);
-                        const canvas2 = document.createElement('canvas');
-                        canvas2.width = scaledW;
-                        canvas2.height = scaledH;
-                        const ctx2 = canvas2.getContext('2d');
-                        ctx2.imageSmoothingEnabled = true;
-                        ctx2.imageSmoothingQuality = 'high';
-                        ctx2.drawImage(canvas, 0, 0, scaledW, scaledH);
-                        dataUrl = canvas2.toDataURL(format, 0.82);
-                        byteLength = getByteLen(dataUrl);
-                        width = scaledW;
-                        height = scaledH;
-                    }
-
-                    const sizeInKb = Math.round(byteLength / 1024);
-                    const sizeFormatted = sizeInKb > 1024 ? (sizeInKb / 1024).toFixed(2) + ' MB' : sizeInKb + ' KB';
-
-                    resolve({
-                        success: true,
-                        dataUrl: dataUrl,
-                        fileName: filename,
-                        sizeBytes: byteLength,
-                        sizeFormatted: sizeFormatted,
-                        width: width,
-                        height: height,
-                        isUnder2MB: byteLength <= (2 * 1024 * 1024),
-                        quality: quality
-                    });
                 };
-                img.onerror = () => resolve({ success: false, message: "Failed to load image for compression" });
+                img.onerror = () => finish({ success: false, message: "Failed to load image for compression" });
                 img.src = base64Data;
             });
         } catch (err) {

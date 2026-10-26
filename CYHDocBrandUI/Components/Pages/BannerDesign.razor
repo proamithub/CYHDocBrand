@@ -281,7 +281,7 @@
                             </button>
                         </div>
 
-                        <!-- Custom Background Image Upload (Smart Quality-Preserving Compression) -->
+                        <!-- Custom Background Image Upload (Smart Quality-Preserving Compression with Strict Crash Protection) -->
                         <div class="p-3 mb-3 rounded-3" style="background: rgba(14, 25, 48, 0.85); border: 1px solid rgba(0, 242, 254, 0.25);">
                             <div class="d-flex align-items-center justify-content-between mb-2">
                                 <span class="fw-bold text-white d-flex align-items-center gap-2" style="font-size: 0.88rem;">
@@ -289,11 +289,11 @@
                                     <span>Custom Background Image</span>
                                 </span>
                                 <span class="badge bg-success bg-opacity-20 text-success border border-success" style="font-size: 0.7rem;">
-                                    Smart HD Compression
+                                    Max: 15 MB (Auto-Compress)
                                 </span>
                             </div>
                             <p class="text-secondary mb-3" style="font-size: 0.78rem;">
-                                Device se koi bhi photo select karein. High visual quality maintain rakhte hue file size auto-compress ho jayegi.
+                                Device se koi bhi photo select karein (Maximum 15 MB). High visual quality maintain rakhte hue file size auto-compress ho jayegi.
                             </p>
 
                             @if (!string.IsNullOrWhiteSpace(state.BackgroundImageUrl))
@@ -1536,34 +1536,59 @@
     {
         EnsureDraftMode();
 
-        var files = e.GetMultipleFiles(5); // up to 5 images
-        foreach (var file in files)
+        try
         {
-            if (file.Size > 5 * 1024 * 1024) continue; // max 5MB per file
-
-            var format = file.ContentType;
-            var buffer = new byte[file.Size];
-            await file.OpenReadStream(5 * 1024 * 1024).ReadExactlyAsync(buffer);
-            var base64 = $"data:{format};base64,{Convert.ToBase64String(buffer)}";
-
-            var initialY = 380 + (state.OverlayImages.Count * 30);
-            var initialX = 100 + (state.OverlayImages.Count * 40);
-
-            state.OverlayImages.Add(new BannerOverlayImage
+            var files = e.GetMultipleFiles(5); // up to 5 images
+            foreach (var file in files)
             {
-                Name = file.Name,
-                ImageUrl = base64,
-                X = initialX,
-                Y = initialY,
-                Width = 180,
-                Height = 180,
-                IsCircle = true,
-                IsVisible = true
-            });
-        }
+                const long maxOverlayBytes = 10 * 1024 * 1024; // 10 MB limit for overlay photos
+                if (file.Size > maxOverlayBytes)
+                {
+                    ShowPopup("Photo Too Large", $"Photo '{file.Name}' 10 MB limit se badi hai. Maximum allowed size 10 MB hai.", "warning");
+                    continue;
+                }
 
-        await RenderCanvas();
-        statusMessage = "Photo(s) added! Right preview canvas par mouse se drag karke position set karein.";
+                IBrowserFile uploadFile = file;
+                var format = file.ContentType;
+                if (string.IsNullOrWhiteSpace(format)) format = "image/png";
+
+                try
+                {
+                    uploadFile = await file.RequestImageFileAsync(format, 800, 800);
+                }
+                catch
+                {
+                    uploadFile = file;
+                }
+
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                var buffer = new byte[uploadFile.Size];
+                await uploadFile.OpenReadStream(maxOverlayBytes, cts.Token).ReadExactlyAsync(buffer, cts.Token);
+                var base64 = $"data:{format};base64,{Convert.ToBase64String(buffer)}";
+
+                var initialY = 380 + (state.OverlayImages.Count * 30);
+                var initialX = 100 + (state.OverlayImages.Count * 40);
+
+                state.OverlayImages.Add(new BannerOverlayImage
+                {
+                    Name = file.Name,
+                    ImageUrl = base64,
+                    X = initialX,
+                    Y = initialY,
+                    Width = 180,
+                    Height = 180,
+                    IsCircle = true,
+                    IsVisible = true
+                });
+            }
+
+            await RenderCanvas();
+            statusMessage = "Photo(s) added! Right preview canvas par mouse se drag karke position set karein.";
+        }
+        catch (Exception ex)
+        {
+            ShowPopup("Upload Error", $"Overlay photo load nahi ho saki: {ex.Message}. Editor surakshit hai.", "error");
+        }
     }
 
     private async Task ToggleImageCircle(int index)
@@ -1599,19 +1624,23 @@
         var file = e.File;
         if (file == null) return;
 
+        // Strict maximum raw image size limit: 15 MB
+        const long maxAllowedRawSize = 15 * 1024 * 1024;
+        if (file.Size > maxAllowedRawSize)
+        {
+            var actualMb = (file.Size / (1024.0 * 1024.0)).ToString("0.1");
+            ShowPopup("Image Size Bahut Bada Hai", 
+                $"Aapki image ka size ({actualMb} MB) limit se zyada hai. Maximum allowed size 15 MB hai. Editor surakshit hai aur crash nahi hua. Kripya 15 MB se kam size ki image select karein.", 
+                "warning");
+            return;
+        }
+
         isCompressingBg = true;
-        bgCompressionInfo = "Reading & compressing background image in HD quality...";
+        bgCompressionInfo = "Reading & optimizing background image in HD quality...";
         StateHasChanged();
 
         try
         {
-            const long maxRawSize = 25 * 1024 * 1024;
-            if (file.Size > maxRawSize)
-            {
-                ShowPopup("File Too Large", "Kripya 25 MB se choti image select karein.", "warning");
-                return;
-            }
-
             // Step 1: Pre-scale safely on client side using Blazor RequestImageFileAsync
             // Scales large camera images to max 1920x1920 in browser before WebSocket transmission,
             // avoiding SignalR message size overflow on mobile/slow networks while maintaining 100% full HD sharpness.
@@ -1624,13 +1653,27 @@
                 uploadFile = await file.RequestImageFileAsync("image/jpeg", 1920, 1920);
                 format = "image/jpeg";
             }
-            catch
+            catch (Exception scaleEx)
             {
+                Console.WriteLine($"Client scaler notice: {scaleEx.Message}");
                 uploadFile = file;
             }
 
+            // Step 2: Safety buffer check after scaling (max 6 MB safe ceiling for SignalR transfer)
+            const long maxSafeStreamBytes = 6 * 1024 * 1024;
+            if (uploadFile.Size > maxSafeStreamBytes)
+            {
+                var currentMb = (uploadFile.Size / (1024.0 * 1024.0)).ToString("0.1");
+                ShowPopup("Image Bahut Badi Hai", 
+                    $"Image ka size ({currentMb} MB) safe limit se zyada hai aur compress nahi ho saka. Maximum allowed size 15 MB hai. Editor crash ya hang se surakshit hai.", 
+                    "warning");
+                return;
+            }
+
+            // Step 3: Stream with strict cancellation timeout so UI never hangs
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(12));
             var buffer = new byte[uploadFile.Size];
-            await uploadFile.OpenReadStream(maxRawSize).ReadExactlyAsync(buffer);
+            await uploadFile.OpenReadStream(maxAllowedRawSize, cts.Token).ReadExactlyAsync(buffer, cts.Token);
             var rawBase64 = $"data:{format};base64,{Convert.ToBase64String(buffer)}";
 
             await EnsureBannerStudioLoadedAsync();
@@ -1645,6 +1688,7 @@
                 Console.WriteLine($"JS compression notice: {compEx.Message}");
             }
 
+            // Step 4: Verify compression outcome
             if (compResult != null && compResult.Success && !string.IsNullOrEmpty(compResult.DataUrl))
             {
                 state.BackgroundImageUrl = compResult.DataUrl;
@@ -1657,8 +1701,9 @@
                 ShowPopup("Background Updated", $"Background image compress ho gayi! Size: {compResult.SizeFormatted} (HD quality preserved).", "save");
                 await RenderCanvas();
             }
-            else
+            else if (uploadFile.Size <= 1024 * 1024)
             {
+                // If already under 1 MB, safe to use directly
                 state.BackgroundImageUrl = rawBase64;
                 state.BackgroundStyle = "ai-image";
                 state.BackgroundImageFileName = file.Name;
@@ -1668,10 +1713,22 @@
                 ShowPopup("Background Updated", $"Background image set ho gayi! Size: {safeKb} KB.", "save");
                 await RenderCanvas();
             }
+            else
+            {
+                // Compression failed and file was oversized - protect editor from corrupt/laggy state
+                var currentKb = Math.Round((double)uploadFile.Size / 1024);
+                ShowPopup("Image Compress Nahi Ho Saki", 
+                    $"Chuni hui image ({currentKb} KB) compress nahi ho saki. Maximum allowed size 15 MB hai. Editor surakshit hai, kripya standard JPG/PNG image select karein.", 
+                    "warning");
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            ShowPopup("Upload Timeout", "Image load karne mein zyada samay laga. Editor surakshit hai aur hang nahi hua. Kripya dobara try karein ya choti image use karein.", "warning");
         }
         catch (Exception ex)
         {
-            ShowPopup("Upload Error", ex.Message, "error");
+            ShowPopup("Upload Error", $"Image load nahi ho saki: {ex.Message}. Editor crash se surakshit hai.", "error");
         }
         finally
         {
