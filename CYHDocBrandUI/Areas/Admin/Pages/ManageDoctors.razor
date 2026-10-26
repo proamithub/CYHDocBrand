@@ -553,39 +553,45 @@
     private async Task SubmitNewDoctor()
     {
         AddErrorMessage = null;
-        if (string.IsNullOrWhiteSpace(NewDoctor.FullName) || NewDoctor.FullName.Trim() == "Dr.")
+        if (string.IsNullOrWhiteSpace(NewDoctor.FullName) || NewDoctor.FullName.Trim() == "Dr." || NewDoctor.FullName.Trim() == "Dr")
         {
-            AddErrorMessage = "Please enter the doctor's full name.";
+            AddErrorMessage = "Please enter the doctor's full name (e.g. Dr. Sameer Khan).";
+            ShowPopup("Validation Error", AddErrorMessage, "error");
             return;
         }
 
         if (string.IsNullOrWhiteSpace(NewDoctor.Email) || !NewDoctor.Email.Contains("@"))
         {
             AddErrorMessage = "Please enter a valid email address.";
+            ShowPopup("Invalid Email", AddErrorMessage, "error");
             return;
         }
 
         if (string.IsNullOrWhiteSpace(NewDoctor.Password) || NewDoctor.Password.Length < 6)
         {
             AddErrorMessage = "Password must be at least 6 characters.";
+            ShowPopup("Weak Password", AddErrorMessage, "warning");
             return;
         }
 
         if (NewDoctor.Password != NewDoctor.ConfirmPassword)
         {
             AddErrorMessage = "Passwords do not match.";
+            ShowPopup("Password Mismatch", AddErrorMessage, "error");
             return;
         }
 
         if (string.IsNullOrWhiteSpace(NewDoctor.PhoneNumber))
         {
             AddErrorMessage = "Mobile number is required.";
+            ShowPopup("Mobile Number Required", AddErrorMessage, "error");
             return;
         }
 
         if (string.IsNullOrWhiteSpace(NewDoctor.LicenseNumber))
         {
             AddErrorMessage = "Medical License number is required.";
+            ShowPopup("License Number Required", AddErrorMessage, "error");
             return;
         }
 
@@ -608,11 +614,13 @@
             else
             {
                 AddErrorMessage = result.ErrorMessage ?? "Failed to add specialist.";
+                ShowPopup("Registration Failed", AddErrorMessage, "error");
             }
         }
         catch (Exception ex)
         {
             AddErrorMessage = ex.Message;
+            ShowPopup("Registration Error", ex.Message, "error");
         }
         finally
         {

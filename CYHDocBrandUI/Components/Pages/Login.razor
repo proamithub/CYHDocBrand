@@ -370,39 +370,45 @@
         RegisterErrorMessage = null;
 
         // Validation
-        if (string.IsNullOrWhiteSpace(RegModel.FullName) || RegModel.FullName.Trim() == "Dr.")
+        if (string.IsNullOrWhiteSpace(RegModel.FullName) || RegModel.FullName.Trim() == "Dr." || RegModel.FullName.Trim() == "Dr")
         {
-            RegisterErrorMessage = "Please enter the doctor's full name.";
+            RegisterErrorMessage = "Please enter the doctor's full name (e.g. Dr. Rajesh Kumar).";
+            ShowPopup("Validation Error", RegisterErrorMessage, "error");
             return;
         }
 
         if (string.IsNullOrWhiteSpace(RegModel.Email) || !RegModel.Email.Contains("@"))
         {
-            RegisterErrorMessage = "Please enter a valid email address.";
+            RegisterErrorMessage = "Please enter a valid official/login email address.";
+            ShowPopup("Invalid Email", RegisterErrorMessage, "error");
             return;
         }
 
         if (string.IsNullOrWhiteSpace(RegModel.Password) || RegModel.Password.Length < 6)
         {
             RegisterErrorMessage = "Password must be at least 6 characters.";
+            ShowPopup("Weak Password", RegisterErrorMessage, "warning");
             return;
         }
 
         if (RegModel.Password != RegModel.ConfirmPassword)
         {
-            RegisterErrorMessage = "Passwords do not match.";
+            RegisterErrorMessage = "Passwords do not match. Please re-enter.";
+            ShowPopup("Password Mismatch", RegisterErrorMessage, "error");
             return;
         }
 
         if (string.IsNullOrWhiteSpace(RegModel.PhoneNumber))
         {
-            RegisterErrorMessage = "Mobile number is required.";
+            RegisterErrorMessage = "Mobile number is required for specialist doctor contact.";
+            ShowPopup("Mobile Number Required", RegisterErrorMessage, "error");
             return;
         }
 
         if (string.IsNullOrWhiteSpace(RegModel.LicenseNumber))
         {
             RegisterErrorMessage = "Medical License / Registration number is required.";
+            ShowPopup("License Number Required", RegisterErrorMessage, "error");
             return;
         }
 
@@ -429,11 +435,13 @@
             else
             {
                 RegisterErrorMessage = result.ErrorMessage ?? "Registration failed. Please check the details.";
+                ShowPopup("Registration Failed", RegisterErrorMessage, "error");
             }
         }
         catch (Exception ex)
         {
             RegisterErrorMessage = ex.Message;
+            ShowPopup("Registration Error", ex.Message, "error");
         }
         finally
         {
@@ -471,11 +479,13 @@
             else
             {
                 ErrorMessage = result.ErrorMessage ?? "Invalid credentials. Please verify and try again.";
+                ShowPopup("Login Failed", ErrorMessage, "error");
             }
         }
         catch (Exception ex)
         {
             ErrorMessage = ex.Message;
+            ShowPopup("Login Error", ex.Message, "error");
         }
         finally
         {
