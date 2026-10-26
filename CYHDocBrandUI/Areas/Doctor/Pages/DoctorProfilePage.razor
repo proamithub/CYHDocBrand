@@ -25,14 +25,6 @@
         </div>
 
         <div class="d-flex flex-wrap align-items-center gap-2">
-            <!-- AI Credits Pill Badge -->
-            <div class="badge px-3 py-2 rounded-pill d-flex align-items-center gap-2" 
-                 style="background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); font-size: 0.82rem; font-weight: 700;"
-                 title="Available AI Generation Credits">
-                <i class="bi bi-lightning-charge-fill text-warning fs-6"></i>
-                <span>Credits: <strong style="color: #ffffff; font-size: 0.92rem;">@Profile.AiCredits</strong></span>
-            </div>
-
             <!-- Account Verification Status Badge -->
             @if (CurrentUser != null && !CurrentUser.IsActive)
             {
@@ -146,14 +138,6 @@
 
                     <!-- Quick Metrics Strip -->
                     <div class="d-flex flex-column gap-2 text-start pt-3 border-top" style="border-color: rgba(255, 255, 255, 0.08) !important;">
-                        <div class="glass-card p-2 d-flex justify-content-between align-items-center">
-                            <span style="color: #94a3b8; font-size: 0.82rem;"><i class="bi bi-lightning-charge-fill text-warning me-1"></i> AI Credits:</span>
-                            <span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; font-size: 0.82rem; font-weight: 700;">
-                                @(Profile?.AiCredits ?? 25) Credits
-                            </span>
-                        </div>
-
-                      
 
                         <div class="glass-card p-2 d-flex justify-content-between align-items-center">
                             <span style="color: #94a3b8; font-size: 0.82rem;"><i class="bi bi-award-fill text-info me-1"></i> Experience:</span>
