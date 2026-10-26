@@ -35,7 +35,7 @@
             </p>
         </div>
 
-        <div class="d-flex gap-2">
+        <div class="d-flex flex-wrap gap-2">
             <button class="btn btn-outline-warning d-flex align-items-center gap-2 px-3 py-2" @onclick="LoadDataAsync" disabled="@isLoading" style="border-radius: 10px;">
                 <i class="bi bi-arrow-clockwise"></i>
                 <span>Refresh</span>
@@ -49,7 +49,7 @@
 
     <!-- PRIMARY SECTION: CONFIGURE DOCTOR API KEYS (DOCTOR-WISE FORM) -->
     <div class="glass-panel p-4 rounded-4" style="background: rgba(14, 25, 48, 0.85); border: 2px solid rgba(245, 158, 11, 0.35); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);">
-        <div class="d-flex align-items-center justify-content-between mb-3 border-bottom border-secondary border-opacity-25 pb-3">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3 border-bottom border-secondary border-opacity-25 pb-3">
             <div class="d-flex align-items-center gap-3">
                 <div class="stat-icon-circle" style="width: 46px; height: 46px; border-radius: 12px; background: rgba(245, 158, 11, 0.15); color: #fbbf24; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">
                     <i class="bi bi-person-fill-gear"></i>
@@ -506,7 +506,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var currentUser = AuthService.GetCurrentUser();
+        var currentUser = await AuthService.GetOrRestoreCurrentUserAsync();
         if (currentUser == null)
         {
             NavigationManager.NavigateTo("login");

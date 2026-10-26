@@ -6,24 +6,32 @@
 @inject IDoctorRepository DoctorRepo
 
 <div class="cyh-app-container">
-    <!-- Dedicated Doctor Sidebar -->
-    <aside class="cyh-sidebar" style="border-right: 1px solid rgba(0, 242, 254, 0.2);">
-        <DoctorNavMenu OnLockedClicked="HandleLockedNotice" />
+    <!-- Mobile Sidebar Dark Backdrop -->
+    <div class="cyh-sidebar-backdrop @(isMobileNavOpen ? "show" : "")" @onclick="CloseMobileNav"></div>
+
+    <!-- Dedicated Doctor Sidebar (Desktop Fixed + Mobile Off-Canvas Drawer) -->
+    <aside class="cyh-sidebar @(isMobileNavOpen ? "mobile-open" : "")" style="border-right: 1px solid rgba(0, 242, 254, 0.2);">
+        <DoctorNavMenu OnLockedClicked="HandleLockedNotice" OnCloseMenu="CloseMobileNav" />
     </aside>
 
     <!-- Main Content Area -->
     <div class="cyh-main-content">
         <!-- Top Navigation Bar for Doctor -->
         <header class="cyh-topbar" style="border-bottom: 1px solid rgba(0, 242, 254, 0.2);">
-            <div class="d-flex align-items-center gap-3">
-                <div class="d-flex align-items-center gap-2">
-                    <span class="badge" style="background: rgba(0, 242, 254, 0.15); color: #38bdf8; border: 1px solid rgba(0, 242, 254, 0.35); padding: 0.45rem 0.85rem; font-size: 0.82rem; font-weight: 700;">
-                    
-                    </span>
-                </div>
+            <div class="d-flex align-items-center gap-2">
+                <!-- Hamburger Menu Toggle (Mobile & Tablet) -->
+                <button class="cyh-mobile-toggle d-lg-none" type="button" @onclick="ToggleMobileNav" aria-label="Toggle navigation">
+                    <i class="bi bi-list"></i>
+                </button>
+
+                <span class="badge d-flex align-items-center gap-1" style="background: rgba(0, 242, 254, 0.15); color: #38bdf8; border: 1px solid rgba(0, 242, 254, 0.35); padding: 0.45rem 0.75rem; font-size: 0.82rem; font-weight: 700;">
+                    <i class="bi bi-heart-pulse-fill"></i>
+                    <span class="d-none d-sm-inline">Doctor Clinical Workspace</span>
+                    <span class="d-inline d-sm-none">Doctor Workspace</span>
+                </span>
             </div>
 
-            <div class="d-flex align-items-center gap-3">
+            <div class="d-flex align-items-center gap-2">
                 <!-- User Profile Pill -->
                 <div class="user-profile-pill" style="border-color: rgba(0, 242, 254, 0.35);">
                     <div class="user-avatar" style="background: linear-gradient(135deg, #00f2fe, #4facfe); color: #070d1e; overflow: hidden; display: flex; align-items: center; justify-content: center;">
@@ -36,42 +44,20 @@
                             @(string.IsNullOrEmpty(CurrentUser?.FullName) ? 'D' : CurrentUser.FullName[0])
                         }
                     </div>
-                    <div>
-                        <div style="font-size: 0.85rem; font-weight: 600; line-height: 1.1; color: #ffffff;">
+                    <div class="d-none d-sm-block">
+                        <div style="font-size: 0.85rem; font-weight: 600; line-height: 1.1; color: #ffffff; max-width: 140px;" class="text-truncate">
                             @(CurrentUser?.FullName ?? "Dr. A. Sharma")
                         </div>
-                        <div style="font-size: 0.72rem; color: #00f2fe; font-weight: 600;">
+                        <div class="d-none d-md-block text-truncate" style="font-size: 0.72rem; color: #00f2fe; font-weight: 600; max-width: 140px;">
                             @(CurrentUser?.Department ?? "Cardiologist Specialist")
                         </div>
                     </div>
-                    <button class="btn btn-link text-muted p-0 ms-2" @onclick="Logout" title="Logout">
-                        <i class="bi bi-box-arrow-right text-danger"></i>
+                    <button class="btn btn-link text-muted p-0 ms-1" @onclick="Logout" title="Logout" style="width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center;">
+                        <i class="bi bi-box-arrow-right text-danger fs-6"></i>
                     </button>
                 </div>
             </div>
         </header>
-
-        <!-- Pending Activation Notice Bar -->
-@*         @if (CurrentUser != null && !CurrentUser.IsActive)
-        {
-            <div class="p-3 px-4 d-flex align-items-center justify-content-between flex-wrap gap-3" style="background: rgba(245, 158, 11, 0.14); border-bottom: 1px solid rgba(245, 158, 11, 0.4);">
-                <div class="d-flex align-items-center gap-3">
-                    <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(245, 158, 11, 0.25); color: #fbbf24; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0;">
-                        <i class="bi bi-clock-history"></i>
-                    </div>
-                    <div>
-                        <div class="fw-bold text-white small d-flex align-items-center gap-2">
-                            <span>Account Status: Pending Admin Activation</span>
-                            <span class="badge bg-warning text-dark px-2 py-0" style="font-size: 0.65rem;">LOCKED MODE</span>
-                        </div>
-                        <div class="small" style="color: #cbd5e1;">Your doctor profile is registered. Only your <strong>Profile</strong> is unlocked. All workspace modules will unlock when Hospital Admin activates your account.</div>
-                    </div>
-                </div>
-                <a href="doctor/profile" class="btn btn-sm btn-outline-warning fw-semibold px-3" style="border-radius: 8px;">
-                    <i class="bi bi-person-circle me-1"></i>Go to Profile
-                </a>
-            </div>
-        } *@
 
         <!-- Body Content -->
         <main class="cyh-body">
@@ -80,19 +66,18 @@
     </div>
 </div>
 
-
-
 @code {
     private CurrentUserDTO? CurrentUser;
     private bool _disposed = false;
+    private bool isMobileNavOpen = false;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             AuthStateProvider.AuthenticationStateChanged += OnAuthStateChanged;
+            NavigationManager.LocationChanged += OnLocationChanged;
 
-            // Resilient Session Recovery on Page Reload / Refresh:
             CurrentUser = await AuthService.GetOrRestoreCurrentUserAsync();
 
             if (CurrentUser == null)
@@ -112,6 +97,25 @@
         catch
         {
             // Gracefully handle reload
+        }
+    }
+
+    private void ToggleMobileNav()
+    {
+        isMobileNavOpen = !isMobileNavOpen;
+    }
+
+    private void CloseMobileNav()
+    {
+        isMobileNavOpen = false;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        if (isMobileNavOpen)
+        {
+            isMobileNavOpen = false;
+            InvokeAsync(StateHasChanged);
         }
     }
 
@@ -193,6 +197,7 @@
         popupCts?.Cancel();
         popupCts?.Dispose();
         AuthStateProvider.AuthenticationStateChanged -= OnAuthStateChanged;
+        NavigationManager.LocationChanged -= OnLocationChanged;
     }
 
     private async Task Logout()
@@ -202,5 +207,5 @@
     }
 }
 
-<!-- Floating Toast Notification Popup (Rendered at Root Layout, Top-Right Viewport) -->
+<!-- Floating Toast Notification Popup -->
 <ToastPopup Notification="ActivePopup" OnDismiss="DismissPopup" />

@@ -9,6 +9,8 @@
 
 @inject IBannerAiService BannerAiService
 @inject IBannerRepository BannerRepo
+@inject ICreditRepository CreditRepo
+@inject IBannerTemplateRepository BannerTemplateRepo
 @inject IDoctorRepository DoctorRepo
 @inject IAuthService AuthService
 @inject IJSRuntime JSRuntime
@@ -49,11 +51,16 @@
                 Healthcare <span style="background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Banner Design Studio</span>
             </h2>
             <p class="text-secondary mb-0" style="font-size: 0.92rem;">
-                Right side canvas mein Heading, Doctor Card, aur Photos ko **mouse se drag** karke position set karein.
+                Canvas mein Heading, Doctor Card, aur Photos ko drag / touch se move karke position set karein.
             </p>
         </div>
 
-        <div class="d-flex flex-wrap gap-2">
+        <div class="d-flex flex-wrap gap-2 studio-header-actions">
+            <NavLink href="@GetTemplatesUrl()" class="btn btn-outline-info d-flex align-items-center gap-2 px-3 py-2" style="border-radius: 10px;">
+                <i class="bi bi-grid-1x2-fill"></i>
+                <span>Template Gallery</span>
+            </NavLink>
+
             <NavLink href="@GetListUrl()" class="btn btn-outline-secondary d-flex align-items-center gap-2 px-3 py-2" style="border-radius: 10px;">
                 <i class="bi bi-collection-fill text-info"></i>
                 <span>My Banners</span>
@@ -69,7 +76,7 @@
                 else
                 {
                     <i class="bi bi-save2"></i>
-                    <span>@(state.Id > 0 ? "Update Draft" : "Save Draft")</span>
+                    <span>@(state.Id > 0 ? "Save Changes" : "Save & Create Banner")</span>
                 }
             </button>
 
@@ -95,10 +102,53 @@
         </div>
     </div>
 
-    <!-- Main 2-Column Grid Layout -->
+    <!-- Published or Admin Status Alert Banner -->
+    @if (IsPublished)
+    {
+        <div class="alert alert-success d-flex flex-wrap align-items-center justify-content-between p-3 rounded-4 mb-4 shadow" style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.4); color: #ecfdf5;">
+            <div class="d-flex align-items-center gap-3">
+                <div class="bg-success bg-opacity-25 p-2 rounded-circle text-success">
+                    <i class="bi bi-shield-lock-fill fs-3"></i>
+                </div>
+                <div>
+                    <h5 class="fw-bold text-white mb-0">Banner Published &amp; Locked</h5>
+                    <div class="small text-white-50">
+                        Ye banner final publish ho chuka hai aur locked hai. Text, positioning aur images सुरक्षित hain. High-Resolution PNG download aur share active hain.
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex gap-2 mt-2 mt-md-0">
+                <button type="button" class="btn btn-info fw-bold d-flex align-items-center gap-2 px-3 py-2" @onclick="DownloadBannerPng" style="background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); border: none; border-radius: 10px; color: #070d1e;">
+                    <i class="bi bi-download"></i>
+                    <span>Download HD PNG</span>
+                </button>
+                <button type="button" class="btn btn-outline-success d-flex align-items-center gap-2 px-3 py-2" @onclick="ShareOnSocialMedia" style="border-radius: 10px;">
+                    <i class="bi bi-share-fill"></i>
+                    <span>Share</span>
+                </button>
+            </div>
+        </div>
+    }
+    else if (IsAdmin)
+    {
+        <div class="alert alert-info d-flex align-items-center justify-content-between p-3 rounded-4 mb-4" style="background: rgba(0, 242, 254, 0.1); border: 1px solid rgba(0, 242, 254, 0.3);">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-eye-fill fs-4 text-info"></i>
+                <div>
+                    <strong class="text-white">Admin Inspection Mode (Read-Only)</strong>
+                    <div class="small text-white-50">Aap specialist banner ka live canvas inspect kar rahe hain. Editing ya saving available nahi hai.</div>
+                </div>
+            </div>
+            <button type="button" class="btn btn-info btn-sm fw-bold" @onclick="DownloadBannerPng">
+                <i class="bi bi-download me-1"></i> Download HD PNG
+            </button>
+        </div>
+    }
+
+    <!-- Main 2-Column Grid Layout (Mobile: Canvas on Top, Controls Below) -->
     <div class="row g-4">
         <!-- LEFT COLUMN: EDITABLE CONTROLS & TABS (5 Cols) -->
-        <div class="col-xl-5 col-lg-6 col-12">
+        <div class="col-xl-5 col-lg-6 col-12 order-2 order-lg-1">
             <div class="glass-panel p-3 p-md-4 rounded-4" style="background: rgba(14, 25, 48, 0.7); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08);">
                 
                 <!-- Tab Navigation Pill Bar -->
@@ -217,7 +267,7 @@
 
                         <!-- Trigger AI Generation Button -->
                         <div class="mb-3">
-                            <button type="button" class="btn btn-outline-info w-100 py-2 d-flex align-items-center justify-content-center gap-2 fw-semibold" @onclick="TriggerAiGeneration" disabled="@isGenerating" style="border-radius: 8px;">
+                            <button type="button" class="btn btn-outline-info w-100 py-2 d-flex align-items-center justify-content-center gap-2 fw-semibold" @onclick="TriggerAiGeneration" disabled="@(isGenerating || IsPublished || IsAdmin)" style="border-radius: 8px;">
                                 @if (isGenerating)
                                 {
                                     <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
@@ -230,6 +280,56 @@
                                 }
                             </button>
                         </div>
+
+                        <!-- OR Custom Background Image Upload (Guaranteed < 2 MB Compression) -->
+                        <div class="p-3 mb-3 rounded-3" style="background: rgba(14, 25, 48, 0.85); border: 1px solid rgba(0, 242, 254, 0.25);">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <span class="fw-bold text-white d-flex align-items-center gap-2" style="font-size: 0.88rem;">
+                                    <i class="bi bi-image-fill text-info"></i>
+                                    <span>Custom Background Image</span>
+                                </span>
+                                <span class="badge bg-success bg-opacity-20 text-success border border-success" style="font-size: 0.7rem;">
+                                    &lt; 2 MB Compressed
+                                </span>
+                            </div>
+                            <p class="text-secondary mb-3" style="font-size: 0.78rem;">
+                                Apni device se koi bhi photo upload karein. Automatic compress karke <strong>2 MB se kam</strong> size me canvas par fit karega.
+                            </p>
+
+                            @if (!string.IsNullOrWhiteSpace(state.BackgroundImageUrl))
+                            {
+                                <div class="p-2 mb-3 rounded-2 d-flex align-items-center justify-content-between" style="background: rgba(3, 8, 20, 0.7); border: 1px solid rgba(0, 242, 254, 0.2);">
+                                    <div class="d-flex align-items-center gap-2 text-truncate">
+                                        <img src="@state.BackgroundImageUrl" style="width: 44px; height: 44px; object-fit: cover; border-radius: 6px; border: 1px solid #00f2fe;" />
+                                        <div class="text-truncate">
+                                            <div class="text-white fw-semibold small text-truncate">
+                                                @(string.IsNullOrWhiteSpace(state.BackgroundImageFileName) ? "Active Background" : state.BackgroundImageFileName)
+                                            </div>
+                                            <div class="text-info" style="font-size: 0.72rem;">
+                                                @(string.IsNullOrWhiteSpace(bgCompressionInfo) ? (state.BackgroundImageSizeBytes.HasValue ? $"{Math.Round((double)state.BackgroundImageSizeBytes.Value / 1024)} KB" : "< 2 MB Compressed") : bgCompressionInfo)
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn btn-outline-danger btn-sm p-1 px-2" @onclick="RemoveCustomBackground" title="Revert to Default">
+                                        <i class="bi bi-trash3"></i>
+                                    </button>
+                                </div>
+                            }
+
+                            <label class="btn btn-info w-100 d-flex align-items-center justify-content-center gap-2 py-2 fw-semibold" style="background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); border: none; border-radius: 8px; color: #070d1e; cursor: pointer;">
+                                @if (isCompressingBg)
+                                {
+                                    <span class="spinner-border spinner-border-sm" role="status"></span>
+                                    <span>Compressing &lt; 2MB...</span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-cloud-arrow-up-fill"></i>
+                                    <span>Change Background Image</span>
+                                }
+                                <InputFile OnChange="HandleCustomBackgroundUpload" accept="image/*" disabled="@isCompressingBg" style="display: none;" />
+                            </label>
+                        </div>
                     </div>
                 }
 
@@ -237,18 +337,261 @@
                 @if (activeTab == "content")
                 {
                     <div class="tab-pane-content fade-in">
-                        <div class="p-2 mb-3 rounded-2 text-info" style="background: rgba(0, 242, 254, 0.08); font-size: 0.78rem;">
-                            <i class="bi bi-cursor-fill me-1"></i> <strong>Tip:</strong> Aap Heading, Doctor Card, aur Badges ko right preview canvas mein mouse se drag karke kahin bhi shift kar sakte hain!
+                        <!-- Language Switcher Pill Bar (English / Hindi) -->
+                        <div class="p-2 mb-3 rounded-3 d-flex align-items-center justify-content-between" style="background: rgba(14, 25, 48, 0.9); border: 1px solid rgba(0, 242, 254, 0.3);">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi bi-translate text-info fs-5"></i>
+                                <div>
+                                    <div class="fw-bold text-white" style="font-size: 0.84rem;">Banner Language / भाषा</div>
+                                    <div class="text-secondary" style="font-size: 0.7rem;">English &amp; Hindi (Devanagari) Fonts</div>
+                                </div>
+                            </div>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn @(state.Language == "en" ? "btn-info text-dark fw-bold" : "btn-outline-secondary text-white")" style="font-size: 0.76rem; padding: 4px 10px;" @onclick='() => SetLanguage("en")'>
+                                    🇬🇧 English
+                                </button>
+                                <button type="button" class="btn @(state.Language == "hi" ? "btn-info text-dark fw-bold" : "btn-outline-secondary text-white")" style="font-size: 0.76rem; padding: 4px 10px;" @onclick='() => SetLanguage("hi")'>
+                                    🇮🇳 हिन्दी
+                                </button>
+                            </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label text-secondary fw-semibold" style="font-size: 0.85rem;">Main Heading / Topic</label>
-                            <input type="text" class="form-control bg-dark text-white border-secondary" @bind="state.Heading" @bind:after="RenderCanvas" placeholder="e.g. World Heart Day Awareness" style="border-radius: 8px;" />
+                        <!-- 1-Click Ready Medical Slogans (Language Adaptive) -->
+                        <div class="p-2 mb-3 rounded-2" style="background: rgba(15, 23, 42, 0.65); border: 1px dashed rgba(255, 255, 255, 0.12);">
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <small class="text-info fw-bold" style="font-size: 0.76rem;">
+                                    <i class="bi bi-stars me-1"></i> @(state.Language == "hi" ? "1-क्लिक लोकप्रिय हिन्दी स्लोगन" : "1-Click Popular Medical Slogans")
+                                </small>
+                                <span class="badge bg-dark text-secondary" style="font-size: 0.68rem;">Quick Insert</span>
+                            </div>
+                            <div class="d-flex flex-wrap gap-1" style="max-height: 96px; overflow-y: auto;">
+                                @if (state.Language == "hi")
+                                {
+                                    <button type="button" class="btn btn-xs btn-outline-info text-start py-1 px-2" style="font-size: 0.72rem; border-radius: 6px;" @onclick='() => ApplyPresetSlogan("विश्व हृदय दिवस: स्वस्थ दिल, खुशहाल जीवन", "हर धड़कन अनमोल है। नियमित कार्डियक चेकअप से दिल को सुरक्षित रखें।", "कार्डियक केयर")'>
+                                        ❤️ दिल की सुरक्षा
+                                    </button>
+                                    <button type="button" class="btn btn-xs btn-outline-info text-start py-1 px-2" style="font-size: 0.72rem; border-radius: 6px;" @onclick='() => ApplyPresetSlogan("निःशुल्क स्वास्थ्य जांच एवं परामर्श शिविर", "रविवार विशेष: बीपी, शुगर, ईसीजी व अनुभवी डॉक्टरों द्वारा परामर्श।", "फ्री हेल्थ कैंप")'>
+                                        🏥 फ्री हेल्थ कैंप
+                                    </button>
+                                    <button type="button" class="btn btn-xs btn-outline-info text-start py-1 px-2" style="font-size: 0.72rem; border-radius: 6px;" @onclick='() => ApplyPresetSlogan("दांतों की संपूर्ण देखभाल एवं सुरक्षित मुस्कान", "दांतों के दर्द, रूट कैनाल एवं डेंटल इंप्लांट्स का आधुनिक व दर्द-रहित इलाज।", "दंत चिकित्सा")'>
+                                        🦷 डेंटल केयर
+                                    </button>
+                                    <button type="button" class="btn btn-xs btn-outline-info text-start py-1 px-2" style="font-size: 0.72rem; border-radius: 6px;" @onclick='() => ApplyPresetSlogan("बच्चों का संपूर्ण टीकाकरण एवं पोषण परामर्श", "मौसम के बदलाव में बच्चों की विशेष देखभाल। अनुभवी शिशु रोग विशेषज्ञ द्वारा परामर्श।", "शिशु रोग ओपीडी")'>
+                                        👶 बाल स्वास्थ्य
+                                    </button>
+                                    <button type="button" class="btn btn-xs btn-outline-info text-start py-1 px-2" style="font-size: 0.72rem; border-radius: 6px;" @onclick='() => ApplyPresetSlogan("जोड़ों व रीढ़ के दर्द से पाएं तुरंत राहत", "आधुनिक ऑर्थोपेडिक व आर्थराइटिस केयर। बिना रुकावट फिर से चलें-फिरें।", "हड्डी व जोड़ रोग")'>
+                                        🦴 हड्डी व जोड़
+                                    </button>
+                                    <button type="button" class="btn btn-xs btn-outline-info text-start py-1 px-2" style="font-size: 0.72rem; border-radius: 6px;" @onclick='() => ApplyPresetSlogan("डायबिटीज एवं हाई बीपी पर रखें पूरा नियंत्रण", "संतुलित खान-पान, नियमित जांच और सही दवाओं से स्वस्थ जीवन जीएं।", "डायबिटीज क्लीनिक")'>
+                                        🩸 शुगर व बीपी
+                                    </button>
+                                    <button type="button" class="btn btn-xs btn-outline-info text-start py-1 px-2" style="font-size: 0.72rem; border-radius: 6px;" @onclick='() => ApplyPresetSlogan("24 घंटे आपातकालीन एवं ट्रामा केयर सेवा", "तत्काल एम्बुलेंस, आईसीयू एवं आपातकालीन जीवन रक्षक सुविधाओं से लैस।", "24x7 इमरजेंसी")'>
+                                        🚨 24x7 इमरजेंसी
+                                    </button>
+                                    <button type="button" class="btn btn-xs btn-outline-info text-start py-1 px-2" style="font-size: 0.72rem; border-radius: 6px;" @onclick='() => ApplyPresetSlogan("शुभ दीपावली: उत्तम स्वास्थ्य और खुशहाली की शुभकामनाएं", "खुशियों का यह पावन पर्व आपके और आपके परिवार के लिए उत्तम स्वास्थ्य और समृद्धि लाए।", "हार्दिक शुभकामनाएं")'>
+                                        🪔 पर्व शुभकामनाएं
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button type="button" class="btn btn-xs btn-outline-info text-start py-1 px-2" style="font-size: 0.72rem; border-radius: 6px;" @onclick='() => ApplyPresetSlogan("World Heart Day: Keep Your Heart Young & Healthy", "Regular preventive cardiac screenings protect your heart for a healthier tomorrow.", "CARDIAC CARE")'>
+                                        ❤️ Healthy Heart
+                                    </button>
+                                    <button type="button" class="btn btn-xs btn-outline-info text-start py-1 px-2" style="font-size: 0.72rem; border-radius: 6px;" @onclick='() => ApplyPresetSlogan("Free Multi-Specialty Health Screening Camp", "Complimentary BP, blood sugar checkup and one-on-one specialist consultation.", "HEALTH CAMP")'>
+                                        🏥 Free Camp
+                                    </button>
+                                    <button type="button" class="btn btn-xs btn-outline-info text-start py-1 px-2" style="font-size: 0.72rem; border-radius: 6px;" @onclick='() => ApplyPresetSlogan("Advanced Dental Care & Complete Smile Makeover", "Painless root canals, precision dental implants and cosmetic teeth whitening.", "DENTAL CLINIC")'>
+                                        🦷 Dental Clinic
+                                    </button>
+                                    <button type="button" class="btn btn-xs btn-outline-info text-start py-1 px-2" style="font-size: 0.72rem; border-radius: 6px;" @onclick='() => ApplyPresetSlogan("Expert Pediatric Care & Timely Child Vaccination", "Compassionate childcare, developmental milestone tracking and seasonal wellness checkups.", "PEDIATRICS")'>
+                                        👶 Child Care
+                                    </button>
+                                    <button type="button" class="btn btn-xs btn-outline-info text-start py-1 px-2" style="font-size: 0.72rem; border-radius: 6px;" @onclick='() => ApplyPresetSlogan("Say Goodbye to Chronic Joint & Spine Pain", "Advanced orthopedic arthritis management and minimally invasive joint treatments.", "ORTHOPEDICS")'>
+                                        🦴 Orthopedics
+                                    </button>
+                                    <button type="button" class="btn btn-xs btn-outline-info text-start py-1 px-2" style="font-size: 0.72rem; border-radius: 6px;" @onclick='() => ApplyPresetSlogan("Comprehensive Diabetes & Hypertension Control", "Holistic sugar control, metabolic monitoring and tailored medical lifestyle coaching.", "DIABETES CARE")'>
+                                        🩸 Diabetes Care
+                                    </button>
+                                    <button type="button" class="btn btn-xs btn-outline-info text-start py-1 px-2" style="font-size: 0.72rem; border-radius: 6px;" @onclick='() => ApplyPresetSlogan("Immediate 24x7 Emergency & Critical Care", "Round-the-clock intensive care, ventilator support and fast emergency resuscitation.", "24x7 TRAUMA")'>
+                                        🚨 Emergency 24x7
+                                    </button>
+                                }
+                            </div>
                         </div>
 
+                        <!-- Main Heading & Font Size / Style -->
                         <div class="mb-3">
-                            <label class="form-label text-secondary fw-semibold" style="font-size: 0.85rem;">Subtitle / Description</label>
-                            <textarea class="form-control bg-dark text-white border-secondary" rows="2" @bind="state.Subtitle" @bind:after="RenderCanvas" placeholder="Brief clinical message or advice" style="border-radius: 8px; font-size: 0.85rem;"></textarea>
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <label class="form-label text-secondary fw-semibold mb-0" style="font-size: 0.85rem;">Main Heading / Topic</label>
+                                <span class="badge bg-dark border border-secondary text-info" style="font-size: 0.72rem;">Font: @(state.HeadingFontSize)px</span>
+                            </div>
+                            <input type="text" class="form-control bg-dark text-white border-secondary mb-2" @bind="state.Heading" @bind:after="RenderCanvas" placeholder="@(state.Language == "hi" ? "उदा. विश्व हृदय दिवस: स्वस्थ दिल, खुशहाल जीवन" : "e.g. World Heart Day Awareness")" style="border-radius: 8px;" />
+                            
+                            <!-- Heading Font Sizing & Typography Row -->
+                            <div class="row g-2 align-items-center mb-1">
+                                <div class="col-7">
+                                    <select class="form-select form-select-sm bg-dark text-white border-secondary" @bind="state.HeadingFontFamily" @bind:after="RenderCanvas" style="border-radius: 8px; font-size: 0.76rem;">
+                                        <optgroup label="🇮🇳 Hindi &amp; Bilingual (हिंदी)">
+                                            <option value="Noto Sans Devanagari">Noto Sans Devanagari (स्पष्ट एवं आधुनिक)</option>
+                                            <option value="Poppins">Poppins (बोल्ड एवं स्टाइलिश)</option>
+                                            <option value="Mukta">Mukta (आधुनिक देवनागरी)</option>
+                                            <option value="Rozha One">Rozha One (रॉयल हेडिंग)</option>
+                                            <option value="Hind">Hind (साफ और सुपाठ्य)</option>
+                                            <option value="Yatra One">Yatra One (पोस्टर डिस्प्ले)</option>
+                                        </optgroup>
+                                        <optgroup label="🇬🇧 English Typography">
+                                            <option value="Poppins">Poppins (Modern Bold)</option>
+                                            <option value="Inter">Inter (Clean Tech)</option>
+                                            <option value="Montserrat">Montserrat (Impactful)</option>
+                                            <option value="Playfair Display">Playfair Display (Luxury Serif)</option>
+                                            <option value="Merriweather">Merriweather (Classic Trust)</option>
+                                        </optgroup>
+                                    </select>
+                                </div>
+                                <div class="col-5 d-flex align-items-center gap-1">
+                                    <input type="range" class="form-range flex-grow-1" min="32" max="80" step="2" @bind="state.HeadingFontSize" @bind:after="RenderCanvas" />
+                                    <span class="text-info fw-bold small" style="min-width: 36px; font-size: 0.74rem;">@(state.HeadingFontSize)px</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Subtitle / Description & Font Size Control -->
+                        <div class="mb-3">
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <label class="form-label text-secondary fw-semibold mb-0" style="font-size: 0.85rem;">Subtitle / Description</label>
+                                <span class="badge bg-dark border border-secondary text-info" style="font-size: 0.72rem;">Font: @(state.SubtitleFontSize)px</span>
+                            </div>
+                            <textarea class="form-control bg-dark text-white border-secondary mb-2" rows="2" @bind="state.Subtitle" @bind:after="RenderCanvas" placeholder="Brief clinical message or advice" style="border-radius: 8px; font-size: 0.85rem;"></textarea>
+                            
+                            <!-- Subtitle Font Sizing Box -->
+                            <div class="p-2 rounded-2 mb-2" style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(0, 242, 254, 0.2);">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <small class="text-secondary fw-semibold" style="font-size: 0.76rem;">Subtitle Font Size:</small>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button type="button" class="btn btn-xs @(state.SubtitleFontSize == 20 ? "btn-info text-dark fw-bold" : "btn-outline-secondary text-white")" style="font-size: 0.7rem; padding: 2px 7px;" @onclick='() => SetSubtitleSize(20)'>Small</button>
+                                        <button type="button" class="btn btn-xs @(state.SubtitleFontSize == 28 ? "btn-info text-dark fw-bold" : "btn-outline-secondary text-white")" style="font-size: 0.7rem; padding: 2px 7px;" @onclick='() => SetSubtitleSize(28)'>Medium</button>
+                                        <button type="button" class="btn btn-xs @(state.SubtitleFontSize == 36 ? "btn-info text-dark fw-bold" : "btn-outline-secondary text-white")" style="font-size: 0.7rem; padding: 2px 7px;" @onclick='() => SetSubtitleSize(36)'>Large</button>
+                                        <button type="button" class="btn btn-xs @(state.SubtitleFontSize == 46 ? "btn-info text-dark fw-bold" : "btn-outline-secondary text-white")" style="font-size: 0.7rem; padding: 2px 7px;" @onclick='() => SetSubtitleSize(46)'>XL</button>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <input type="range" class="form-range flex-grow-1" min="16" max="54" step="2" @bind="state.SubtitleFontSize" @bind:after="RenderCanvas" />
+                                    <span class="text-info fw-bold small" style="min-width: 42px;">@(state.SubtitleFontSize)px</span>
+                                </div>
+                                <div class="row g-2 align-items-center mb-1">
+                                    <div class="col-6">
+                                        <label class="text-secondary mb-0" style="font-size: 0.72rem;">Subtitle Font Style:</label>
+                                        <select class="form-select form-select-sm bg-dark text-white border-secondary" @bind="state.SubtitleFontFamily" @bind:after="RenderCanvas" style="border-radius: 8px; font-size: 0.75rem;">
+                                            <optgroup label="🇮🇳 Hindi &amp; Bilingual">
+                                                <option value="Noto Sans Devanagari">Noto Sans Devanagari</option>
+                                                <option value="Poppins">Poppins</option>
+                                                <option value="Mukta">Mukta</option>
+                                                <option value="Hind">Hind</option>
+                                            </optgroup>
+                                            <optgroup label="🇬🇧 English Typography">
+                                                <option value="Poppins">Poppins</option>
+                                                <option value="Inter">Inter</option>
+                                                <option value="Montserrat">Montserrat</option>
+                                                <option value="Merriweather">Merriweather</option>
+                                            </optgroup>
+                                        </select>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <label class="text-secondary mb-0" style="font-size: 0.72rem;">Line Spacing:</label>
+                                            <span class="text-secondary small">@(state.SubtitleLineHeight)px</span>
+                                        </div>
+                                        <input type="range" class="form-range" min="22" max="65" step="2" @bind="state.SubtitleLineHeight" @bind:after="RenderCanvas" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Doctor Card Size, Font & Spacing Section -->
+                        <div class="p-3 mb-3 rounded-3" style="background: rgba(14, 25, 48, 0.85); border: 1px solid rgba(0, 242, 254, 0.25);">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <div class="fw-bold text-white d-flex align-items-center gap-2" style="font-size: 0.88rem;">
+                                    <i class="bi bi-person-badge-fill text-info"></i>
+                                    <span>Doctor Card Size &amp; Typography</span>
+                                </div>
+                                <span class="badge bg-info bg-opacity-20 text-info border border-info border-opacity-50" style="font-size: 0.7rem;">Interactive Drag Active</span>
+                            </div>
+
+                            <!-- Card Overall Scale / Size -->
+                            <div class="mb-2">
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <small class="text-secondary" style="font-size: 0.76rem;">Card Overall Scale / Size:</small>
+                                    <span class="text-info fw-bold small">@((int)(state.DoctorCardScale * 100))%</span>
+                                </div>
+                                <input type="range" class="form-range" min="0.6" max="1.4" step="0.05" @bind="state.DoctorCardScale" @bind:after="RenderCanvas" />
+                            </div>
+
+                            <!-- Doctor Name Font Size & Spec Font Size -->
+                            <div class="row g-2 mb-2">
+                                <div class="col-6">
+                                    <div class="d-flex align-items-center justify-content-between mb-1">
+                                        <small class="text-secondary" style="font-size: 0.74rem;">Name Font:</small>
+                                        <span class="text-info fw-semibold" style="font-size: 0.74rem;">@(state.DoctorNameFontSize)px</span>
+                                    </div>
+                                    <input type="range" class="form-range" min="20" max="52" step="2" @bind="state.DoctorNameFontSize" @bind:after="RenderCanvas" />
+                                </div>
+                                <div class="col-6">
+                                    <div class="d-flex align-items-center justify-content-between mb-1">
+                                        <small class="text-secondary" style="font-size: 0.74rem;">Dept Font:</small>
+                                        <span class="text-info fw-semibold" style="font-size: 0.74rem;">@(state.DoctorSpecFontSize)px</span>
+                                    </div>
+                                    <input type="range" class="form-range" min="14" max="36" step="1" @bind="state.DoctorSpecFontSize" @bind:after="RenderCanvas" />
+                                </div>
+                            </div>
+
+                            <!-- Doctor Card Font Family Selector -->
+                            <div class="mb-2">
+                                <label class="text-secondary mb-1" style="font-size: 0.76rem;">Doctor Card Font Style:</label>
+                                <select class="form-select form-select-sm bg-dark text-white border-secondary" @bind="state.DoctorCardFontFamily" @bind:after="RenderCanvas" style="border-radius: 8px; font-size: 0.8rem;">
+                                    <optgroup label="🇮🇳 Hindi &amp; Bilingual (हिंदी)">
+                                        <option value="Noto Sans Devanagari">Noto Sans Devanagari (सर्वश्रेष्ठ स्पष्टता)</option>
+                                        <option value="Poppins">Poppins (बोल्ड एवं मॉडर्न)</option>
+                                        <option value="Mukta">Mukta (सॉफ्ट देवनागरी)</option>
+                                        <option value="Hind">Hind (साफ और सुपाठ्य)</option>
+                                    </optgroup>
+                                    <optgroup label="🇬🇧 English Typography">
+                                        <option value="Poppins">Poppins (Bold Geometric Professional)</option>
+                                        <option value="Inter">Inter (Modern Clean Healthcare)</option>
+                                        <option value="Montserrat">Montserrat (Executive Prestige)</option>
+                                        <option value="Playfair Display">Playfair Display (Luxury Clinic Aesthetic)</option>
+                                        <option value="Merriweather">Merriweather (Classic Trust)</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+
+                            <!-- Corner Radius & Padding -->
+                            <div class="row g-2 mb-2">
+                                <div class="col-6">
+                                    <div class="d-flex align-items-center justify-content-between mb-1">
+                                        <small class="text-secondary" style="font-size: 0.74rem;">Card Padding:</small>
+                                        <span class="text-secondary" style="font-size: 0.74rem;">@(state.DoctorCardPadding)px</span>
+                                    </div>
+                                    <input type="range" class="form-range" min="10" max="36" step="2" @bind="state.DoctorCardPadding" @bind:after="RenderCanvas" />
+                                </div>
+                                <div class="col-6">
+                                    <div class="d-flex align-items-center justify-content-between mb-1">
+                                        <small class="text-secondary" style="font-size: 0.74rem;">Corner Curve:</small>
+                                        <span class="text-secondary" style="font-size: 0.74rem;">@(state.DoctorCardBorderRadius)px</span>
+                                    </div>
+                                    <input type="range" class="form-range" min="0" max="36" step="2" @bind="state.DoctorCardBorderRadius" @bind:after="RenderCanvas" />
+                                </div>
+                            </div>
+
+                            <!-- Accent Bar Toggle & Reset -->
+                            <div class="d-flex align-items-center justify-content-between pt-2 border-top border-secondary border-opacity-25">
+                                <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input" type="checkbox" id="accentBarCheck" @bind="state.ShowDoctorCardAccentBar" @bind:after="RenderCanvas">
+                                    <label class="form-check-label text-secondary small" for="accentBarCheck">Accent Bar</label>
+                                </div>
+                                <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size: 0.75rem;" @onclick="ResetDoctorCardPositions">
+                                    <i class="bi bi-arrow-counterclockwise me-1"></i> Reset Card Size
+                                </button>
+                            </div>
                         </div>
 
                         <div class="row g-2 mb-3">
@@ -464,26 +807,94 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Typography & Multi-Language Fonts -->
+                        <div class="p-3 mb-3 rounded-3" style="background: rgba(14, 25, 48, 0.75); border: 1px solid rgba(0, 242, 254, 0.25);">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <span class="fw-bold text-white" style="font-size: 0.85rem;">
+                                    <i class="bi bi-fonts text-info me-1"></i> Typography &amp; Fonts (English / हिंदी)
+                                </span>
+                                <span class="badge bg-info bg-opacity-20 text-info" style="font-size: 0.68rem;">Google Fonts</span>
+                            </div>
+                            
+                            <div class="mb-2">
+                                <label class="form-label text-secondary mb-1" style="font-size: 0.74rem;">Heading Font Family:</label>
+                                <select class="form-select form-select-sm bg-dark text-white border-secondary" @bind="state.HeadingFontFamily" @bind:after="RenderCanvas" style="border-radius: 8px; font-size: 0.78rem;">
+                                    <optgroup label="🇮🇳 Hindi &amp; Bilingual (हिंदी)">
+                                        <option value="Noto Sans Devanagari">Noto Sans Devanagari (सर्वश्रेष्ठ स्पष्टता)</option>
+                                        <option value="Poppins">Poppins (बोल्ड एवं स्टाइलिश)</option>
+                                        <option value="Mukta">Mukta (आधुनिक देवनागरी)</option>
+                                        <option value="Rozha One">Rozha One (रॉयल हेडिंग)</option>
+                                        <option value="Hind">Hind (साफ और सुपाठ्य)</option>
+                                        <option value="Yatra One">Yatra One (पोस्टर डिस्प्ले)</option>
+                                    </optgroup>
+                                    <optgroup label="🇬🇧 English Typography">
+                                        <option value="Poppins">Poppins (Modern Bold)</option>
+                                        <option value="Inter">Inter (Clean Tech)</option>
+                                        <option value="Montserrat">Montserrat (Impactful)</option>
+                                        <option value="Playfair Display">Playfair Display (Luxury Serif)</option>
+                                        <option value="Merriweather">Merriweather (Classic Trust)</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+
+                            <div class="mb-2">
+                                <label class="form-label text-secondary mb-1" style="font-size: 0.74rem;">Subtitle Font Family:</label>
+                                <select class="form-select form-select-sm bg-dark text-white border-secondary" @bind="state.SubtitleFontFamily" @bind:after="RenderCanvas" style="border-radius: 8px; font-size: 0.78rem;">
+                                    <optgroup label="🇮🇳 Hindi &amp; Bilingual (हिंदी)">
+                                        <option value="Noto Sans Devanagari">Noto Sans Devanagari</option>
+                                        <option value="Poppins">Poppins</option>
+                                        <option value="Mukta">Mukta</option>
+                                        <option value="Hind">Hind</option>
+                                    </optgroup>
+                                    <optgroup label="🇬🇧 English Typography">
+                                        <option value="Poppins">Poppins</option>
+                                        <option value="Inter">Inter</option>
+                                        <option value="Montserrat">Montserrat</option>
+                                        <option value="Merriweather">Merriweather</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="form-label text-secondary mb-1" style="font-size: 0.74rem;">Doctor Card Font Family:</label>
+                                <select class="form-select form-select-sm bg-dark text-white border-secondary" @bind="state.DoctorCardFontFamily" @bind:after="RenderCanvas" style="border-radius: 8px; font-size: 0.78rem;">
+                                    <optgroup label="🇮🇳 Hindi &amp; Bilingual (हिंदी)">
+                                        <option value="Noto Sans Devanagari">Noto Sans Devanagari (सर्वश्रेष्ठ स्पष्टता)</option>
+                                        <option value="Poppins">Poppins (बोल्ड एवं मॉडर्न)</option>
+                                        <option value="Mukta">Mukta (सॉफ्ट देवनागरी)</option>
+                                        <option value="Hind">Hind (साफ और सुपाठ्य)</option>
+                                    </optgroup>
+                                    <optgroup label="🇬🇧 English Typography">
+                                        <option value="Poppins">Poppins (Bold Geometric Professional)</option>
+                                        <option value="Inter">Inter (Modern Clean Healthcare)</option>
+                                        <option value="Montserrat">Montserrat (Executive Prestige)</option>
+                                        <option value="Playfair Display">Playfair Display (Luxury Clinic Aesthetic)</option>
+                                        <option value="Merriweather">Merriweather (Classic Trust)</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+                        </div>
                     </div>
                 }
             </div>
         </div>
 
         <!-- RIGHT COLUMN: INTERACTIVE CANVAS PREVIEW & EXPORT ACTIONS (7 Cols) -->
-        <div class="col-xl-7 col-lg-6 col-12">
+        <div class="col-xl-7 col-lg-6 col-12 order-1 order-lg-2">
             <div class="glass-panel p-3 p-md-4 rounded-4 position-sticky" style="top: 20px; background: rgba(14, 25, 48, 0.7); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08);">
                 
                 <!-- Preview Canvas Header -->
-                <div class="d-flex align-items-center justify-content-between mb-3">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
                     <div class="d-flex align-items-center gap-2">
                         <span class="live-dot" style="@(IsPublished ? "background-color: #10b981; box-shadow: 0 0 8px #10b981;" : "background-color: #f59e0b; box-shadow: 0 0 8px #f59e0b;")"></span>
                         <span class="fw-bold text-white" style="font-size: 0.95rem;">Live Interactive Canvas</span>
-                        <span class="badge bg-dark text-secondary border border-secondary" style="font-size: 0.72rem;">@state.AspectRatio â€¢ HD 1080p</span>
+                        <span class="badge bg-dark text-secondary border border-secondary" style="font-size: 0.72rem;">@state.AspectRatio • HD 1080p</span>
                     </div>
 
                     <div class="d-flex align-items-center gap-2">
                         <span class="badge px-2 py-1" style="background: rgba(0, 242, 254, 0.15); border: 1px solid rgba(0, 242, 254, 0.4); color: #00f2fe; font-size: 0.72rem;">
-                            <i class="bi bi-hand-index-thumb me-1"></i> Mouse Drag & Drop Active
+                            <i class="bi bi-hand-index-thumb me-1"></i> <span class="d-none d-sm-inline">Drag &amp; Drop Active</span><span class="d-inline d-sm-none">Touch / Drag</span>
                         </span>
                     </div>
                 </div>
@@ -505,15 +916,15 @@
                 <!-- Action Toolbar: Download, Share, Re-generate -->
                 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 pt-2 border-top border-secondary border-opacity-25">
                     <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-outline-info d-flex align-items-center gap-2 px-3 py-2" @onclick="TriggerAiGeneration" disabled="@isGenerating" style="border-radius: 10px; font-size: 0.88rem;">
+                        <button type="button" class="btn btn-outline-info d-flex align-items-center gap-2 px-3 py-2" @onclick="TriggerAiGeneration" disabled="@(isGenerating || IsPublished || IsAdmin)" style="border-radius: 10px; font-size: 0.88rem;">
                             <i class="bi bi-arrow-repeat"></i>
                             <span>Regenerate Background</span>
                         </button>
                     </div>
 
                     <!-- Download & Share Buttons -->
-                    <div class="d-flex align-items-center gap-2 ms-auto">
-                        @if (!IsPublished)
+                    <div class="d-flex flex-wrap align-items-center gap-2 ms-auto">
+                        @if (!IsPublished && !IsAdmin)
                         {
                             <button type="button" class="btn btn-success d-flex align-items-center gap-2 px-3 py-2 fw-semibold" @onclick="PublishBannerAsync" disabled="@isSaving" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; border-radius: 10px; font-size: 0.88rem;">
                                 <i class="bi bi-send-check-fill"></i>
@@ -642,8 +1053,18 @@
 </style>
 
 @code {
-    [SupplyParameterFromQuery]
-    public int? Id { get; set; }
+    [SupplyParameterFromQuery(Name = "id")]
+    public string? RawEncryptedId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "token")]
+    public string? TokenId { get; set; }
+
+    public int? Id => UrlEncryptionHelper.DecryptId(RawEncryptedId ?? TokenId);
+
+    [SupplyParameterFromQuery(Name = "templateId")]
+    public string? RawEncryptedTemplateId { get; set; }
+
+    public int? TemplateId => UrlEncryptionHelper.DecryptId(RawEncryptedTemplateId);
 
     private string activeTab = "content";
     private bool isGenerating = false;
@@ -700,7 +1121,9 @@
     private DotNetObjectReference<BannerDesign>? dotNetRef;
 
     private bool IsPublished => state.Status == "Published";
+    private bool IsAdmin => currentUser?.Role == "Admin";
     private int? loadedId;
+    private int? loadedTemplateId;
 
     protected override async Task OnInitializedAsync()
     {
@@ -712,16 +1135,27 @@
         }
 
         var relPath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri).ToLowerInvariant();
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        var queryString = uri.Query;
+
         if (currentUser?.Role == "Doctor" && !relPath.StartsWith("doctor"))
         {
-            var q = Id.HasValue ? $"?id={Id.Value}" : "";
-            NavigationManager.NavigateTo($"doctor/banner-design{q}");
+            NavigationManager.NavigateTo($"doctor/banner-design{queryString}", replace: true);
             return;
         }
         if (currentUser?.Role == "Admin" && !relPath.StartsWith("admin"))
         {
-            var q = Id.HasValue ? $"?id={Id.Value}" : "";
-            NavigationManager.NavigateTo($"admin/banner-design{q}");
+            NavigationManager.NavigateTo($"admin/banner-design{queryString}", replace: true);
+            return;
+        }
+
+        // Auto-encrypt URL in browser address bar if user accessed with plain integer (e.g. ?id=1)
+        if (!string.IsNullOrWhiteSpace(RawEncryptedId) && int.TryParse(RawEncryptedId, out int rawId) && rawId > 0)
+        {
+            var encToken = UrlEncryptionHelper.EncryptId(rawId);
+            var prefix = (currentUser?.Role == "Doctor" || relPath.StartsWith("doctor")) ? "doctor/" : 
+                         ((currentUser?.Role == "Admin" || relPath.StartsWith("admin")) ? "admin/" : "");
+            NavigationManager.NavigateTo($"{prefix}banner-design?id={encToken}", replace: true);
             return;
         }
 
@@ -732,15 +1166,103 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if (Id != loadedId)
+        var relPath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri).ToLowerInvariant();
+        if (!string.IsNullOrWhiteSpace(RawEncryptedId) && int.TryParse(RawEncryptedId, out int rawId) && rawId > 0)
+        {
+            var encToken = UrlEncryptionHelper.EncryptId(rawId);
+            var prefix = (currentUser?.Role == "Doctor" || relPath.StartsWith("doctor")) ? "doctor/" : 
+                         ((currentUser?.Role == "Admin" || relPath.StartsWith("admin")) ? "admin/" : "");
+            NavigationManager.NavigateTo($"{prefix}banner-design?id={encToken}", replace: true);
+            return;
+        }
+
+        if (Id != loadedId || TemplateId != loadedTemplateId)
         {
             await LoadBannerRecordAsync();
         }
     }
 
+    private async Task PopulateDoctorProfileAsync()
+    {
+        if (currentUser == null) return;
+        try
+        {
+            DoctorProfile? doc = null;
+            if (currentUser.DoctorProfileId.HasValue)
+            {
+                doc = await DoctorRepo.GetByIdAsync(currentUser.DoctorProfileId.Value);
+            }
+            if (doc == null && !string.IsNullOrEmpty(currentUser.UserId))
+            {
+                doc = await DoctorRepo.GetByUserIdAsync(currentUser.UserId);
+            }
+
+            if (doc != null)
+            {
+                state.DoctorName = !string.IsNullOrWhiteSpace(doc.DisplayName) ? doc.DisplayName : doc.FullName;
+                if (!string.IsNullOrWhiteSpace(doc.Qualifications) && !state.DoctorName.Contains(doc.Qualifications))
+                {
+                    state.DoctorName += $", {doc.Qualifications}";
+                }
+                if (!string.IsNullOrWhiteSpace(doc.Specialization))
+                {
+                    state.Specialization = doc.Specialization;
+                }
+                if (!string.IsNullOrWhiteSpace(doc.ClinicName))
+                {
+                    state.HospitalName = doc.ClinicName;
+                }
+                if (!string.IsNullOrWhiteSpace(doc.MobileNo))
+                {
+                    state.ContactPhone = doc.MobileNo;
+                }
+                if (!string.IsNullOrWhiteSpace(doc.ClinicAddress))
+                {
+                    state.Address = doc.ClinicAddress;
+                }
+                if (!string.IsNullOrWhiteSpace(doc.WebsiteUrl))
+                {
+                    state.Website = doc.WebsiteUrl;
+                }
+                if (!string.IsNullOrWhiteSpace(doc.ProfilePic))
+                {
+                    if (!state.OverlayImages.Any(x => x.Name == "Doctor Profile Photo"))
+                    {
+                        state.OverlayImages.Add(new BannerOverlayImage
+                        {
+                            Name = "Doctor Profile Photo",
+                            ImageUrl = doc.ProfilePic,
+                            X = 780,
+                            Y = 400,
+                            Width = 220,
+                            Height = 220,
+                            IsCircle = true,
+                            IsVisible = true
+                        });
+                    }
+                }
+            }
+            else
+            {
+                if (!string.IsNullOrWhiteSpace(currentUser.FullName))
+                {
+                    state.DoctorName = currentUser.Role == "Doctor" ? $"Dr. {currentUser.FullName}" : currentUser.FullName;
+                }
+                if (!string.IsNullOrWhiteSpace(currentUser.Department))
+                {
+                    state.Specialization = currentUser.Department;
+                }
+            }
+        }
+        catch { }
+    }
+
     private async Task LoadBannerRecordAsync()
     {
         loadedId = Id;
+        loadedTemplateId = TemplateId;
+
+        // 1. Load Existing Saved Banner if Id provided
         if (Id.HasValue && Id.Value > 0)
         {
             var existingRecord = await BannerRepo.GetBannerByIdAsync(Id.Value);
@@ -761,6 +1283,7 @@
                 state.Id = existingRecord.Id;
                 state.Status = existingRecord.Status;
                 state.Heading = existingRecord.Heading;
+                state.Subtitle = existingRecord.Subtitle ?? state.Subtitle;
                 state.DoctorName = existingRecord.DoctorName;
                 state.HospitalName = existingRecord.HospitalName;
                 state.TemplateType = existingRecord.TemplateType;
@@ -776,111 +1299,63 @@
             }
         }
 
-        if (currentUser != null)
+        // 2. Load SQL Template if TemplateId provided
+        if (TemplateId.HasValue && TemplateId.Value > 0)
         {
-            try
+            var template = await BannerTemplateRepo.GetTemplateByIdAsync(TemplateId.Value);
+            if (template != null)
             {
-                DoctorProfile? doc = null;
-                if (currentUser.DoctorProfileId.HasValue)
-                {
-                    doc = await DoctorRepo.GetByIdAsync(currentUser.DoctorProfileId.Value);
-                }
-                if (doc == null && !string.IsNullOrEmpty(currentUser.UserId))
-                {
-                    doc = await DoctorRepo.GetByUserIdAsync(currentUser.UserId);
-                }
+                state = template.GetConfigState();
+                state.Id = 0; // Fresh editable draft for doctor
+                state.Status = "Draft";
+                state.TemplateType = template.CategoryName;
+                state.Heading = template.DefaultHeading;
+                state.Subtitle = template.DefaultSubtitle ?? state.Subtitle;
+                state.BadgeText = template.BadgeText ?? state.BadgeText;
+                state.PrimaryColor = template.PrimaryColor;
+                state.SecondaryColor = template.SecondaryColor;
+                state.TextColor = template.TextColor;
+                state.BackgroundImageUrl = template.BackgroundImageUrl;
+                state.BackgroundStyle = "ai-image";
+                state.AspectRatio = template.AspectRatio;
+                aiRequest.AspectRatio = template.AspectRatio;
+                aiRequest.TemplateType = template.CategoryName;
 
-                if (doc != null)
-                {
-                    state.DoctorName = !string.IsNullOrWhiteSpace(doc.DisplayName) ? doc.DisplayName : doc.FullName;
-                    if (!string.IsNullOrWhiteSpace(doc.Qualifications) && !state.DoctorName.Contains(doc.Qualifications))
-                    {
-                        state.DoctorName += $", {doc.Qualifications}";
-                    }
-                    if (!string.IsNullOrWhiteSpace(doc.Specialization))
-                    {
-                        state.Specialization = doc.Specialization;
-                    }
-                    if (!string.IsNullOrWhiteSpace(doc.ClinicName))
-                    {
-                        state.HospitalName = doc.ClinicName;
-                    }
-                    if (!string.IsNullOrWhiteSpace(doc.MobileNo))
-                    {
-                        state.ContactPhone = doc.MobileNo;
-                    }
-                    if (!string.IsNullOrWhiteSpace(doc.ClinicAddress))
-                    {
-                        state.Address = doc.ClinicAddress;
-                    }
-                    if (!string.IsNullOrWhiteSpace(doc.WebsiteUrl))
-                    {
-                        state.Website = doc.WebsiteUrl;
-                    }
-                    if (!string.IsNullOrWhiteSpace(doc.ProfilePic))
-                    {
-                        if (!state.OverlayImages.Any(x => x.Name == "Doctor Profile Photo"))
-                        {
-                            state.OverlayImages.Add(new BannerOverlayImage
-                            {
-                                Name = "Doctor Profile Photo",
-                                ImageUrl = doc.ProfilePic,
-                                X = 780,
-                                Y = 400,
-                                Width = 220,
-                                Height = 220,
-                                IsCircle = true,
-                                IsVisible = true
-                            });
-                        }
-                    }
-                }
-                else
-                {
-                    if (!string.IsNullOrWhiteSpace(currentUser.FullName))
-                    {
-                        state.DoctorName = currentUser.Role == "Doctor" ? $"Dr. {currentUser.FullName}" : currentUser.FullName;
-                    }
-                    if (!string.IsNullOrWhiteSpace(currentUser.Department))
-                    {
-                        state.Specialization = currentUser.Department;
-                    }
-                }
+                await PopulateDoctorProfileAsync();
+
+                statusMessage = $"Loaded SQL Template #{template.Id} '{template.Title}'. Canvas me mouse se drag karein aur customize karein!";
+                ShowPopup("Template Ready", $"'{template.Title}' load ho gaya hai! Apne hisaab se customize, download ya share karein.", "save");
+                await RenderCanvas();
+                return;
             }
-            catch { }
         }
 
+        // 3. Fallback / Default
+        await PopulateDoctorProfileAsync();
         ApplyTemplatePreset(state.TemplateType);
         await RenderCanvas();
     }
 
     private async Task<bool> EnsureBannerStudioLoadedAsync()
     {
-        for (int i = 0; i < 25; i++)
-        {
-            try
-            {
-                var isReady = await JSRuntime.InvokeAsync<bool>("eval", 
-                    "typeof window.bannerStudio !== 'undefined' && typeof window.bannerStudio.init === 'function'");
-                if (isReady) return true;
-            }
-            catch { }
-            await Task.Delay(50);
-        }
-
         try
         {
-            await JSRuntime.InvokeVoidAsync("eval", @"
-                if (!document.getElementById('banner-studio-dynamic-script')) {
+            var isReady = await JSRuntime.InvokeAsync<bool>("eval", @"
+                new Promise((resolve) => {
+                    if (typeof window.bannerStudio !== 'undefined' && typeof window.bannerStudio.init === 'function') {
+                        return resolve(true);
+                    }
+                    const existing = document.getElementById('banner-studio-dynamic-script');
+                    if (existing) existing.remove();
                     const s = document.createElement('script');
                     s.id = 'banner-studio-dynamic-script';
-                    s.src = 'js/bannerStudio.js?v=" + DateTime.UtcNow.Ticks + @"';
+                    s.src = 'js/bannerStudio.js?v=' + Date.now();
+                    s.onload = () => resolve(typeof window.bannerStudio !== 'undefined' && typeof window.bannerStudio.init === 'function');
+                    s.onerror = () => resolve(false);
                     document.head.appendChild(s);
-                }
+                })
             ");
-            await Task.Delay(150);
-            return await JSRuntime.InvokeAsync<bool>("eval", 
-                "typeof window.bannerStudio !== 'undefined' && typeof window.bannerStudio.init === 'function'");
+            return isReady;
         }
         catch
         {
@@ -1115,6 +1590,191 @@
         await RenderCanvas();
     }
 
+    private bool isCompressingBg = false;
+    private string? bgCompressionInfo;
+
+    private async Task HandleCustomBackgroundUpload(InputFileChangeEventArgs e)
+    {
+        EnsureDraftMode();
+        var file = e.File;
+        if (file == null) return;
+
+        isCompressingBg = true;
+        bgCompressionInfo = "Reading & compressing background image under 2 MB...";
+        StateHasChanged();
+
+        try
+        {
+            const long maxRawSize = 20 * 1024 * 1024;
+            if (file.Size > maxRawSize)
+            {
+                ShowPopup("File Too Large", "Kripya 20 MB se choti image select karein.", "warning");
+                return;
+            }
+
+            var format = file.ContentType;
+            var buffer = new byte[file.Size];
+            await file.OpenReadStream(maxRawSize).ReadExactlyAsync(buffer);
+            var rawBase64 = $"data:{format};base64,{Convert.ToBase64String(buffer)}";
+
+            await EnsureBannerStudioLoadedAsync();
+
+            CompressionResult? compResult = null;
+            try
+            {
+                compResult = await JSRuntime.InvokeAsync<CompressionResult>("bannerStudio.compressBase64Under2MB", rawBase64, file.Name);
+            }
+            catch (Exception compEx)
+            {
+                Console.WriteLine($"JS compression fallback triggered: {compEx.Message}");
+            }
+
+            if (compResult != null && compResult.Success && !string.IsNullOrEmpty(compResult.DataUrl))
+            {
+                state.BackgroundImageUrl = compResult.DataUrl;
+                state.BackgroundStyle = "ai-image";
+                state.BackgroundImageFileName = compResult.FileName;
+                state.BackgroundImageSizeBytes = compResult.SizeBytes;
+
+                bgCompressionInfo = $"✅ Compressed: {compResult.SizeFormatted} (Strictly under 2 MB limit)";
+                ShowPopup("Background Updated", $"Background image change ho gayi! Size: {compResult.SizeFormatted} (under 2 MB limit).", "save");
+                await RenderCanvas();
+            }
+            else
+            {
+                if (file.Size <= 2 * 1024 * 1024)
+                {
+                    state.BackgroundImageUrl = rawBase64;
+                    state.BackgroundStyle = "ai-image";
+                    state.BackgroundImageFileName = file.Name;
+                    state.BackgroundImageSizeBytes = file.Size;
+                    var origKb = Math.Round((double)file.Size / 1024);
+                    bgCompressionInfo = $"✅ Active Background: {origKb} KB (under 2 MB)";
+                    ShowPopup("Background Updated", $"Background image set ho gayi! Size: {origKb} KB.", "save");
+                    await RenderCanvas();
+                }
+                else
+                {
+                    ShowPopup("Compression Warning", compResult?.Message ?? "Could not compress image under 2 MB.", "warning");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowPopup("Upload Error", ex.Message, "error");
+        }
+        finally
+        {
+            isCompressingBg = false;
+            StateHasChanged();
+        }
+    }
+
+    private void RemoveCustomBackground()
+    {
+        EnsureDraftMode();
+        state.BackgroundImageUrl = null;
+        state.BackgroundStyle = "gradient";
+        state.BackgroundImageFileName = null;
+        state.BackgroundImageSizeBytes = null;
+        bgCompressionInfo = null;
+        _ = RenderCanvas();
+    }
+
+    private async Task SetLanguage(string lang)
+    {
+        EnsureDraftMode();
+        state.Language = lang;
+        if (lang == "hi")
+        {
+            state.HeadingFontFamily = "Noto Sans Devanagari";
+            state.SubtitleFontFamily = "Noto Sans Devanagari";
+            state.DoctorCardFontFamily = "Noto Sans Devanagari";
+            if (state.Heading == "Specialist Health Consultation" || string.IsNullOrWhiteSpace(state.Heading))
+            {
+                state.Heading = "विश्व हृदय दिवस: स्वस्थ दिल, खुशहाल जीवन";
+                state.Subtitle = "हर धड़कन अनमोल है। नियमित कार्डियक चेकअप से दिल को सुरक्षित रखें।";
+                state.BadgeText = "कार्डियक केयर";
+            }
+        }
+        else
+        {
+            state.HeadingFontFamily = "Poppins";
+            state.SubtitleFontFamily = "Poppins";
+            state.DoctorCardFontFamily = "Poppins";
+            if (state.Heading == "विश्व हृदय दिवस: स्वस्थ दिल, खुशहाल जीवन")
+            {
+                state.Heading = "World Heart Day: Keep Your Heart Young & Healthy";
+                state.Subtitle = "Regular preventive cardiac screenings protect your heart for a healthier tomorrow.";
+                state.BadgeText = "CARDIAC CARE";
+            }
+        }
+        await RenderCanvas();
+        StateHasChanged();
+    }
+
+    private async Task ApplyPresetSlogan(string heading, string subtitle, string badge)
+    {
+        EnsureDraftMode();
+        state.Heading = heading;
+        state.Subtitle = subtitle;
+        state.BadgeText = badge;
+        if (state.Language == "hi")
+        {
+            state.HeadingFontFamily = "Noto Sans Devanagari";
+            state.SubtitleFontFamily = "Noto Sans Devanagari";
+        }
+        else
+        {
+            state.HeadingFontFamily = "Poppins";
+            state.SubtitleFontFamily = "Poppins";
+        }
+        await RenderCanvas();
+        ShowPopup("Preset Applied", $"'{heading}' set to banner!", "edit");
+    }
+
+    private async Task SetSubtitleSize(int size)
+    {
+        EnsureDraftMode();
+        state.SubtitleFontSize = size;
+        state.SubtitleLineHeight = (int)Math.Round(size * 1.4);
+        await RenderCanvas();
+    }
+
+    private async Task SetHeadingSize(int size)
+    {
+        EnsureDraftMode();
+        state.HeadingFontSize = size;
+        await RenderCanvas();
+    }
+
+    private async Task ResetDoctorCardPositions()
+    {
+        EnsureDraftMode();
+        state.DoctorCardX = null;
+        state.DoctorCardY = null;
+        state.DoctorCardScale = 1.0;
+        state.DoctorNameFontSize = 34;
+        state.DoctorSpecFontSize = 22;
+        state.DoctorCardPadding = 20;
+        state.DoctorCardBorderRadius = 20;
+        await RenderCanvas();
+        ShowPopup("Card Reset", "Doctor Card position aur size default kar diya gaya hai.", "delete");
+    }
+
+    private class CompressionResult
+    {
+        public bool Success { get; set; }
+        public string? DataUrl { get; set; }
+        public string? FileName { get; set; }
+        public long SizeBytes { get; set; }
+        public string? SizeFormatted { get; set; }
+        public int Width { get; set; }
+        public int Height { get; set; }
+        public bool IsUnder2MB { get; set; }
+        public string? Message { get; set; }
+    }
+
     private async Task ResetPositions()
     {
         EnsureDraftMode();
@@ -1138,7 +1798,8 @@
         state.Status = "Draft";
         if (state.Id > 0)
         {
-            await BannerRepo.SaveDraftAsync(state, currentUser?.UserId);
+            var effectiveUserId = currentUser?.Role == "Admin" ? null : currentUser?.UserId;
+            await BannerRepo.SaveDraftAsync(state, effectiveUserId);
         }
         await RenderCanvas();
         statusMessage = "Banner converted to Draft mode! Mouse drag and text editing are now UNLOCKED.";
@@ -1147,6 +1808,7 @@
 
     private async Task SaveDraftAsync()
     {
+        if (IsPublished || IsAdmin) return;
         isSaving = true;
         savingMode = "draft";
         statusMessage = null;
@@ -1154,12 +1816,32 @@
         try
         {
             state.Status = "Draft";
-            var savedId = await BannerRepo.SaveDraftAsync(state, currentUser?.UserId);
+            if (string.IsNullOrWhiteSpace(state.Heading))
+            {
+                state.Heading = state.Language == "hi" ? "स्वास्थ्य परामर्श एवं उपचार" : "Specialist Medical Care";
+            }
+            if (string.IsNullOrWhiteSpace(state.DoctorName))
+            {
+                state.DoctorName = currentUser != null && !string.IsNullOrWhiteSpace(currentUser.FullName)
+                    ? (currentUser.Role == "Doctor" ? $"Dr. {currentUser.FullName}" : currentUser.FullName)
+                    : "Dr. Specialist, MD";
+            }
+
+            var effectiveUserId = currentUser?.Role == "Admin" ? null : currentUser?.UserId;
+            var savedId = await BannerRepo.SaveDraftAsync(state, effectiveUserId);
             if (savedId > 0)
             {
                 state.Id = savedId;
-                statusMessage = $"Banner draft #{savedId} saved successfully in SQL database! Mouse positions and photos saved.";
-                ShowPopup("Draft Saved!", $"Banner draft #{savedId} SQL database mein successfully save ho gaya hai!", "save");
+                loadedId = savedId;
+
+                var relPath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri).ToLowerInvariant();
+                var prefix = (currentUser?.Role == "Doctor" || relPath.StartsWith("doctor")) ? "doctor/" : 
+                             ((currentUser?.Role == "Admin" || relPath.StartsWith("admin")) ? "admin/" : "");
+                var encId = UrlEncryptionHelper.EncryptId(savedId);
+                NavigationManager.NavigateTo($"{prefix}banner-design?id={encId}", replace: true);
+
+                statusMessage = $"Banner #{savedId} saved successfully in SQL database! Mouse positions and photos saved.";
+                ShowPopup("Banner Saved!", $"Banner #{savedId} SQL database mein successfully save ho gaya hai!", "save");
             }
             else
             {
@@ -1169,7 +1851,7 @@
         }
         catch (Exception ex)
         {
-            statusMessage = $"Error saving draft: {ex.Message}";
+            statusMessage = $"Error saving banner: {ex.Message}";
             ShowPopup("Save Error", ex.Message, "error");
         }
         finally
@@ -1177,6 +1859,14 @@
             isSaving = false;
             StateHasChanged();
         }
+    }
+
+    private string GetTemplatesUrl()
+    {
+        var relPath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri).ToLowerInvariant();
+        if (currentUser?.Role == "Doctor" || relPath.StartsWith("doctor")) return "doctor/template-gallery";
+        if (currentUser?.Role == "Admin" || relPath.StartsWith("admin")) return "admin/template-gallery";
+        return "template-gallery";
     }
 
     private string GetListUrl()
@@ -1189,6 +1879,7 @@
 
     private async Task PublishBannerAsync()
     {
+        if (IsPublished || IsAdmin) return;
         isSaving = true;
         savingMode = "publish";
         statusMessage = null;
@@ -1196,16 +1887,73 @@
         try
         {
             state.Status = "Published";
-            var savedId = await BannerRepo.SaveDraftAsync(state, currentUser?.UserId);
+            if (string.IsNullOrWhiteSpace(state.Heading))
+            {
+                state.Heading = state.Language == "hi" ? "स्वास्थ्य परामर्श एवं उपचार" : "Specialist Medical Care";
+            }
+            if (string.IsNullOrWhiteSpace(state.DoctorName))
+            {
+                state.DoctorName = currentUser != null && !string.IsNullOrWhiteSpace(currentUser.FullName)
+                    ? (currentUser.Role == "Doctor" ? $"Dr. {currentUser.FullName}" : currentUser.FullName)
+                    : "Dr. Specialist, MD";
+            }
+
+            var effectiveUserId = currentUser?.Role == "Admin" ? null : currentUser?.UserId;
+            var savedId = await BannerRepo.SaveDraftAsync(state, effectiveUserId);
             if (savedId > 0)
             {
                 state.Id = savedId;
-                var pubSuccess = await BannerRepo.PublishBannerAsync(savedId, currentUser?.UserId);
+                loadedId = savedId;
+
+                var relPath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri).ToLowerInvariant();
+                var prefix = (currentUser?.Role == "Doctor" || relPath.StartsWith("doctor")) ? "doctor/" : 
+                             ((currentUser?.Role == "Admin" || relPath.StartsWith("admin")) ? "admin/" : "");
+                var encId = UrlEncryptionHelper.EncryptId(savedId);
+                NavigationManager.NavigateTo($"{prefix}banner-design?id={encId}", replace: true);
+
+                // Credit System Validation & Deduction
+                int doctorProfileId = 0;
+                if (currentUser?.Role == "Doctor")
+                {
+                    if (currentUser.DoctorProfileId.HasValue && currentUser.DoctorProfileId.Value > 0)
+                    {
+                        doctorProfileId = currentUser.DoctorProfileId.Value;
+                    }
+                    else if (!string.IsNullOrEmpty(currentUser.UserId))
+                    {
+                        var docProf = await DoctorRepo.GetByUserIdAsync(currentUser.UserId);
+                        if (docProf != null) doctorProfileId = docProf.Id;
+                    }
+
+                    if (doctorProfileId > 0)
+                    {
+                        // Determine whether it's AI banner or Template
+                        string creditCode = (!string.IsNullOrEmpty(RawEncryptedTemplateId) || state.TemplateType == "Template")
+                            ? "TEMPLATE_PUBLISH"
+                            : "AI_BANNER_PUBLISH";
+
+                        var (credOk, credMsg, remaining) = await CreditRepo.DeductCreditOnPublishAsync(
+                            doctorProfileId, 
+                            creditCode, 
+                            savedId.ToString(), 
+                            $"Published banner #{savedId}: {state.Heading}");
+
+                        if (!credOk)
+                        {
+                            statusMessage = credMsg;
+                            ShowPopup("Insufficient Credits", credMsg, "warning");
+                            isSaving = false;
+                            return;
+                        }
+                    }
+                }
+
+                var pubSuccess = await BannerRepo.PublishBannerAsync(savedId, effectiveUserId);
                 if (pubSuccess)
                 {
                     await RenderCanvas();
                     statusMessage = $"🎉 Banner #{savedId} successfully Published & LOCKED! Download and Social Share are now active.";
-                    ShowPopup("Banner Published!", $"🎉 Banner #{savedId} successfully publish ho gaya hai! HD Export aur Share ready hain.", "save");
+                    ShowPopup("Banner Published!", $"🎉 Banner #{savedId} successfully publish ho gaya hai! 1 Credit deduct hua. HD Export aur Share ready hain.", "save");
                 }
                 else
                 {
@@ -1292,6 +2040,7 @@
     {
         try
         {
+            await EnsureBannerStudioLoadedAsync();
             var filename = $"CYH_Banner_{state.TemplateType}_{DateTime.UtcNow:yyyyMMdd_HHmmss}.png";
             await JSRuntime.InvokeVoidAsync("bannerStudio.downloadBanner", "bannerCanvas", filename);
             statusMessage = "Banner downloaded successfully in high resolution PNG!";
@@ -1308,7 +2057,8 @@
     {
         try
         {
-            var shareTitle = $"{state.Heading} â€” {state.HospitalName}";
+            await EnsureBannerStudioLoadedAsync();
+            var shareTitle = $"{state.Heading} — {state.HospitalName}";
             var shareText = $"{state.Heading}\n{state.Subtitle}\nConsult {state.DoctorName} at {state.HospitalName}.\nHelpline: {state.ContactPhone}";
             
             var res = await JSRuntime.InvokeAsync<ShareResult>("bannerStudio.shareBanner", "bannerCanvas", shareTitle, shareText);

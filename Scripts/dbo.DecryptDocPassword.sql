@@ -44,7 +44,7 @@ BEGIN
             CASE 
                 WHEN u.Password = 'n7uoG53mus5DzCXmNgv7NQ==' THEN 'Doctor@12345'
                 WHEN u.Password = 'L4Yq5jzhlap0wTagsBRCUg==' THEN 'Admin@12345'
-                ELSE 'Run: powershell -File "D:\Myd\CYHDocBrand\Scripts\DecryptPassword.ps1" -EncryptedPassword "' + ISNULL(u.Password, '') + '"'
+                ELSE 'Run: powershell -File "D:\MyAppAi\CYHDocBrand\Scripts\DecryptPassword.ps1" -EncryptedPassword "' + ISNULL(u.Password, '') + '"'
             END AS DecryptedPassword,
             u.IsActive
         FROM AspNetUsers u
@@ -68,7 +68,7 @@ BEGIN
 
     -- Dynamic Decryption using PowerShell helper script (if xp_cmdshell enabled)
     BEGIN TRY
-        DECLARE @cmd NVARCHAR(4000) = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "D:\Myd\CYHDocBrand\Scripts\DecryptPassword.ps1" -EncryptedPassword "' + @Cipher + '"';
+        DECLARE @cmd NVARCHAR(4000) = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "D:\MyAppAi\CYHDocBrand\Scripts\DecryptPassword.ps1" -EncryptedPassword "' + @Cipher + '"';
         CREATE TABLE #CmdOutput (Line NVARCHAR(MAX));
         INSERT INTO #CmdOutput
         EXEC xp_cmdshell @cmd;
@@ -87,7 +87,7 @@ BEGIN
     BEGIN CATCH
         SELECT 
             @Cipher AS EncryptedPassword, 
-            'Run: powershell -File "D:\Myd\CYHDocBrand\Scripts\DecryptPassword.ps1" -EncryptedPassword "' + @Cipher + '"' AS DecryptedPassword;
+            'Run: powershell -File "D:\MyAppAi\CYHDocBrand\Scripts\DecryptPassword.ps1" -EncryptedPassword "' + @Cipher + '"' AS DecryptedPassword;
     END CATCH
 END
 GO

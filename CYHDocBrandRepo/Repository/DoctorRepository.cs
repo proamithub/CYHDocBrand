@@ -17,7 +17,7 @@ public class DoctorRepository : IDoctorRepository
     public DoctorRepository(IConfiguration configuration, ILogger<DoctorRepository>? logger = null)
     {
         _conn = configuration.GetConnectionString("DefaultConnection") 
-            ?? "Server=VRS-AMITPC\\SQLEXPRESS;Database=CYHDocBrandBD;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
+            ?? "Server=AMITLAP;Database=CYHDocBrandBD;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
         _logger = logger;
     }
 

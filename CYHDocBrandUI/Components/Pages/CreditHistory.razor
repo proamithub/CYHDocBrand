@@ -1,0 +1,504 @@
+@page "/credit-history"
+@page "/doctor/credit-history"
+@page "/admin/credit-history"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+@using CYHDocBrandModel.DTO
+@using CYHDocBrandData.Entities
+@using CYHDocBrandUI.Components.Common
+
+@inject ICreditRepository CreditRepo
+@inject IDoctorRepository DoctorRepo
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+
+<!-- Animated Floating Toast Popup -->
+<ToastPopup Notification="activePopup" OnDismiss="DismissPopup" />
+
+<div class="credit-history-container fade-in">
+    <!-- Header -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge px-3 py-2" style="background: rgba(0, 242, 254, 0.15); border: 1px solid rgba(0, 242, 254, 0.4); color: #00f2fe; border-radius: 8px; font-weight: 700;">
+                    <i class="bi bi-clock-history me-1"></i> LIVE USAGE &amp; AUDIT LEDGER
+                </span>
+                <span class="text-secondary" style="font-size: 0.85rem;">CYH Creative Studio</span>
+            </div>
+            <h2 class="fw-bold text-white mb-1">Credit &amp; Activity History</h2>
+            <p class="text-secondary mb-0" style="font-size: 0.9rem;">
+                Doctor-wise real-time tracking of Template publishes, AI banner creations, and administrative credit grants.
+            </p>
+        </div>
+
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <button class="glass-btn-secondary" @onclick="LoadDataAsync">
+                <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+            </button>
+            @if (IsAdmin)
+            {
+                <button class="glass-btn-primary" @onclick='() => NavigationManager.NavigateTo("admin/credits")'>
+                    <i class="bi bi-coin me-1"></i> Manage System Credits
+                </button>
+            }
+            else
+            {
+                <button class="glass-btn-primary" @onclick="RequestTopUp">
+                    <i class="bi bi-lightning-charge-fill me-1"></i> Request Credits
+                </button>
+            }
+        </div>
+    </div>
+
+    @if (IsAdmin && AllDoctors.Any())
+    {
+        <!-- Admin Doctor Switcher Filter -->
+        <div class="glass-card p-3 mb-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <i class="bi bi-person-badge text-warning fs-4"></i>
+                <div>
+                    <div class="text-white fw-bold">Admin Specialist Selector</div>
+                    <div class="small text-white-50">Filter audit records for specific doctor</div>
+                </div>
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <select class="form-select bg-dark border-secondary text-white" style="min-width: 250px;"
+                        value="@SelectedDoctorId" @onchange="OnDoctorChanged">
+                    <option value="0">All Specialists (Global)</option>
+                    @foreach (var doc in AllDoctors)
+                    {
+                        <option value="@doc.Id">@doc.FullName (@doc.Specialization)</option>
+                    }
+                </select>
+            </div>
+        </div>
+    }
+
+    <!-- Dynamic Credit Balances Cards Row -->
+    <div class="row g-3 mb-4">
+        @if (!DoctorCredits.Any())
+        {
+            <div class="col-12">
+                <div class="glass-card p-4 text-center text-white-50">
+                    <div class="spinner-border spinner-border-sm text-info me-2" role="status"></div>
+                    <span>Loading live credit ledger...</span>
+                </div>
+            </div>
+        }
+        else
+        {
+            @foreach (var cred in DoctorCredits)
+            {
+                <div class="col-12 col-md-6 col-xl">
+                    <div class="glass-card stat-card h-100 p-3">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="stat-label">@cred.CreditTypeName</span>
+                            <div class="stat-icon-wrapper" style="background: @(cred.IsPaid ? "rgba(245, 158, 11, 0.2)" : "rgba(16, 185, 129, 0.2)"); color: @(cred.IsPaid ? "#fbbf24" : "#10b981");">
+                                <i class="bi @(cred.IsPaid ? "bi-cash-coin" : "bi-gift-fill")"></i>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-baseline gap-2">
+                            <span class="stat-value fw-bold @(cred.RemainingCredits > 0 ? "text-info" : "text-danger")" style="font-size: 1.8rem;">
+                                @cred.RemainingCredits
+                            </span>
+                            <span class="text-secondary small">/ @cred.TotalCredits granted</span>
+                        </div>
+                        <div class="progress mt-2" style="height: 6px; background: rgba(255, 255, 255, 0.08); border-radius: 4px;">
+                            @{
+                                var pct = cred.TotalCredits > 0 ? (cred.RemainingCredits * 100 / cred.TotalCredits) : 0;
+                            }
+                            <div class="progress-bar" style="width: @pct%; background: @(cred.IsPaid ? "linear-gradient(90deg, #f59e0b, #fbbf24)" : "linear-gradient(90deg, #00f2fe, #4facfe)"); border-radius: 4px;"></div>
+                        </div>
+                        <div class="d-flex justify-content-between mt-2 pt-1 border-top border-secondary border-opacity-10 small text-white-50" style="font-size: 0.72rem;">
+                            <span>@(cred.IsPaid ? "Paid Service" : "Free Service")</span>
+                            <span>Used: <strong class="text-white">@cred.UsedCredits</strong></span>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Summary Card -->
+            <div class="col-12 col-md-6 col-xl">
+                <div class="glass-card stat-card h-100 p-3">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="stat-label">Total Transactions</span>
+                        <div class="stat-icon-wrapper" style="background: rgba(139, 92, 246, 0.2); color: #a78bfa;">
+                            <i class="bi bi-journal-check"></i>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-baseline gap-2">
+                        <span class="stat-value text-white fw-bold" style="font-size: 1.8rem;">@Transactions.Count</span>
+                        <span class="text-secondary small">recorded</span>
+                    </div>
+                    <div class="small text-white-50 mt-2">
+                        Published debits: <strong class="text-danger">@Transactions.Count(t => t.TransactionType == "DEBIT_ON_PUBLISH")</strong>
+                    </div>
+                    <div class="small text-white-50 mt-1">
+                        Admin grants: <strong class="text-success">@Transactions.Count(t => t.TransactionType == "ADMIN_ADD")</strong>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Filter Toolbar -->
+    <div class="glass-card p-3 mb-4">
+        <div class="row g-2 align-items-center">
+            <!-- Filter Pills -->
+            <div class="col-12 col-lg-6">
+                <div class="scroll-pills-mobile gap-1">
+                    <button class="filter-pill @(SelectedTypeFilter == "ALL" ? "active" : "")" @onclick='() => SetTypeFilter("ALL")'>
+                        All Records
+                    </button>
+                    @foreach (var ct in AvailableCreditTypes)
+                    {
+                        <button class="filter-pill @(SelectedTypeFilter == ct.Code ? "active" : "")" @onclick="() => SetTypeFilter(ct.Code)">
+                            @ct.Name
+                        </button>
+                    }
+                    <button class="filter-pill @(SelectedTypeFilter == "ADMIN_ADD" ? "active" : "")" @onclick='() => SetTypeFilter("ADMIN_ADD")'>
+                        <i class="bi bi-plus-circle me-1"></i> Added
+                    </button>
+                    <button class="filter-pill @(SelectedTypeFilter == "DEBIT_ON_PUBLISH" ? "active" : "")" @onclick='() => SetTypeFilter("DEBIT_ON_PUBLISH")'>
+                        <i class="bi bi-dash-circle me-1"></i> Published
+                    </button>
+                </div>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="col-12 col-sm-8 col-lg-4">
+                <div class="search-input-wrapper">
+                    <i class="bi bi-search search-icon"></i>
+                    <input type="text" class="glass-input ps-5" placeholder="Search transactions, notes, ref..."
+                           @bind="SearchTerm" @bind:event="oninput" />
+                </div>
+            </div>
+
+            <!-- Timeframe Dropdown -->
+            <div class="col-12 col-sm-4 col-lg-2">
+                <select class="form-select bg-dark border-secondary text-white small" @bind="SelectedTimeframe" @bind:after="FilterByTimeframe">
+                    <option value="ALL">All Time</option>
+                    <option value="TODAY">Today</option>
+                    <option value="7DAYS">Last 7 Days</option>
+                    <option value="30DAYS">Last 30 Days</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Activity Ledger Table -->
+    <div class="glass-card p-0 overflow-hidden mb-4">
+        <div class="p-3 border-bottom border-secondary border-opacity-25 d-flex align-items-center justify-content-between">
+            <h6 class="text-white fw-bold mb-0">
+                <i class="bi bi-receipt me-2 text-info"></i>Audit Transaction Log
+            </h6>
+            <span class="text-white-50 small">Showing @FilteredTransactions.Count() entries</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle mb-0" style="background: transparent;">
+                <thead>
+                    <tr class="text-white-50 small border-secondary">
+                        <th class="ps-3">Date &amp; Time</th>
+                        <th>Specialist</th>
+                        <th>Credit Service</th>
+                        <th>Transaction Action</th>
+                        <th class="text-end">Cost / Change</th>
+                        <th class="text-end">Balance After</th>
+                        <th>Action By</th>
+                        <th>Notes / Ref</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!FilteredTransactions.Any())
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center py-5 text-white-50">
+                                <i class="bi bi-inbox fs-1 d-block mb-2 text-white-50"></i>
+                                <span>No transaction records match the current filters.</span>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var tx in FilteredTransactions)
+                        {
+                            <tr>
+                                <td class="ps-3 text-white-50 small">
+                                    <div class="fw-semibold text-white">@tx.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")</div>
+                                    <div style="font-size: 0.72rem;">@tx.CreatedAt.ToLocalTime().ToString("hh:mm:ss tt")</div>
+                                </td>
+                                <td class="fw-bold text-white small">@tx.DoctorName</td>
+                                <td>
+                                    <span class="badge" style="background: rgba(0, 242, 254, 0.15); color: #00f2fe; border: 1px solid rgba(0, 242, 254, 0.3);">
+                                        @tx.CreditTypeName
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge @tx.BadgeClass">
+                                        @tx.TransactionLabel
+                                    </span>
+                                </td>
+                                <td class="text-end fw-bold fs-6 @(tx.IsCredit ? "text-success" : "text-danger")">
+                                    @tx.SignedAmount
+                                </td>
+                                <td class="text-end fw-bold text-warning font-monospace">
+                                    @tx.BalanceAfter
+                                </td>
+                                <td class="small text-white-50">
+                                    @(string.IsNullOrEmpty(tx.ActionBy) ? "System" : tx.ActionBy)
+                                </td>
+                                <td class="small text-white-50" style="max-width: 250px;">
+                                    @(string.IsNullOrEmpty(tx.Note) ? (tx.ReferenceId ?? "-") : tx.Note)
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .credit-history-container {
+        padding: 0.5rem 0;
+    }
+    .glass-card {
+        background: rgba(15, 23, 42, 0.65);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 14px;
+        backdrop-filter: blur(12px);
+    }
+    .stat-label {
+        font-size: 0.78rem;
+        color: #94a3b8;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .stat-icon-wrapper {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+    }
+    .filter-pill {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #cbd5e1;
+        padding: 0.35rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.78rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .filter-pill:hover {
+        background: rgba(0, 242, 254, 0.15);
+        border-color: rgba(0, 242, 254, 0.4);
+        color: #00f2fe;
+    }
+    .filter-pill.active {
+        background: linear-gradient(135deg, rgba(0, 242, 254, 0.3), rgba(79, 172, 254, 0.3));
+        border-color: #00f2fe;
+        color: #ffffff;
+        font-weight: 700;
+    }
+    .search-input-wrapper {
+        position: relative;
+    }
+    .search-icon {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #64748b;
+    }
+    .glass-input {
+        background: rgba(0, 0, 0, 0.35);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        color: #ffffff;
+        padding: 0.45rem 0.85rem;
+        width: 100%;
+        font-size: 0.85rem;
+    }
+    .glass-input:focus {
+        outline: none;
+        border-color: #00f2fe;
+    }
+    .glass-btn-primary {
+        background: linear-gradient(135deg, #00f2fe, #4facfe);
+        color: #070d1e;
+        border: none;
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        font-weight: 700;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .glass-btn-secondary {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: #ffffff;
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        font-weight: 600;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+</style>
+
+@code {
+    private ToastNotificationDTO? activePopup;
+    private bool IsAdmin = false;
+    private int CurrentDoctorId = 0;
+    private int SelectedDoctorId = 0;
+
+    private List<DoctorProfile> AllDoctors = new();
+    private List<CreditTypeDTO> AvailableCreditTypes = new();
+    private List<DoctorCreditDTO> DoctorCredits = new();
+    private List<CreditTransactionDTO> Transactions = new();
+
+    private string SelectedTypeFilter = "ALL";
+    private string SearchTerm = string.Empty;
+    private string SelectedTimeframe = "ALL";
+    private DateTime? FilterFromDate = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var currentUser = await AuthService.GetOrRestoreCurrentUserAsync();
+        if (currentUser == null)
+        {
+            NavigationManager.NavigateTo("login");
+            return;
+        }
+
+        IsAdmin = currentUser.Role == "Admin";
+
+        if (IsAdmin)
+        {
+            AllDoctors = await DoctorRepo.GetAllWithUsersAsync();
+        }
+        else
+        {
+            if (currentUser.DoctorProfileId.HasValue && currentUser.DoctorProfileId.Value > 0)
+            {
+                CurrentDoctorId = currentUser.DoctorProfileId.Value;
+            }
+            else
+            {
+                var doc = await DoctorRepo.GetByUserIdAsync(currentUser.UserId);
+                if (doc != null) CurrentDoctorId = doc.Id;
+            }
+            SelectedDoctorId = CurrentDoctorId;
+        }
+
+        AvailableCreditTypes = await CreditRepo.GetAllCreditTypesAsync(onlyActive: true);
+        await LoadDataAsync();
+    }
+
+    private async Task OnDoctorChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int id))
+        {
+            SelectedDoctorId = id;
+            await LoadDataAsync();
+        }
+    }
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            int? docIdFilter = SelectedDoctorId > 0 ? SelectedDoctorId : (IsAdmin ? null : (int?)CurrentDoctorId);
+
+            if (docIdFilter.HasValue && docIdFilter.Value > 0)
+            {
+                DoctorCredits = await CreditRepo.GetDoctorCreditsAsync(docIdFilter.Value);
+            }
+            else
+            {
+                DoctorCredits = new();
+            }
+
+            Transactions = await CreditRepo.GetTransactionsAsync(
+                doctorId: docIdFilter,
+                fromDate: FilterFromDate);
+        }
+        catch (Exception ex)
+        {
+            ShowPopup("Error", $"Failed to fetch ledger: {ex.Message}", "warning");
+        }
+    }
+
+    private IEnumerable<CreditTransactionDTO> FilteredTransactions
+    {
+        get
+        {
+            var q = Transactions.AsEnumerable();
+
+            if (SelectedTypeFilter == "ADMIN_ADD")
+                q = q.Where(t => t.TransactionType == "ADMIN_ADD");
+            else if (SelectedTypeFilter == "DEBIT_ON_PUBLISH")
+                q = q.Where(t => t.TransactionType == "DEBIT_ON_PUBLISH");
+            else if (SelectedTypeFilter != "ALL")
+                q = q.Where(t => t.CreditTypeCode == SelectedTypeFilter);
+
+            if (!string.IsNullOrWhiteSpace(SearchTerm))
+            {
+                var term = SearchTerm.Trim().ToLowerInvariant();
+                q = q.Where(t => (t.DoctorName?.ToLowerInvariant().Contains(term) ?? false) ||
+                                 (t.CreditTypeName?.ToLowerInvariant().Contains(term) ?? false) ||
+                                 (t.Note?.ToLowerInvariant().Contains(term) ?? false) ||
+                                 (t.ReferenceId?.ToLowerInvariant().Contains(term) ?? false));
+            }
+
+            return q;
+        }
+    }
+
+    private void SetTypeFilter(string filter)
+    {
+        SelectedTypeFilter = filter;
+    }
+
+    private async Task FilterByTimeframe()
+    {
+        var now = DateTime.UtcNow;
+        FilterFromDate = SelectedTimeframe switch
+        {
+            "TODAY" => now.Date,
+            "7DAYS" => now.AddDays(-7),
+            "30DAYS" => now.AddDays(-30),
+            _ => null
+        };
+        await LoadDataAsync();
+    }
+
+    private void RequestTopUp()
+    {
+        ShowPopup("Contact Hospital Admin", "Credit balance can be added by the CYH Administrator via the Admin Portal.", "info");
+    }
+
+    private void ShowPopup(string title, string message, string type = "save")
+    {
+        activePopup = new ToastNotificationDTO
+        {
+            Title = title,
+            Message = message,
+            Type = type
+        };
+    }
+
+    private void DismissPopup()
+    {
+        activePopup = null;
+    }
+}

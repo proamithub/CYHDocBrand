@@ -1,4 +1,4 @@
-using System.Data;
+﻿using System.Data;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 
@@ -59,6 +59,46 @@ public static class DbInitializer
                 END
 
                 -- Ensure extended profile columns exist on DoctorProfiles table
+                IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[BannerCategories_CYH]') AND type in (N'U'))
+                BEGIN
+                    CREATE TABLE [dbo].[BannerCategories_CYH] (
+                        [Id]           INT IDENTITY(1,1) NOT NULL,
+                        [CategoryName] NVARCHAR(100) NOT NULL,
+                        [Slug]         NVARCHAR(100) NOT NULL,
+                        [IconClass]    NVARCHAR(100) NOT NULL DEFAULT ('bi-folder-fill'),
+                        [BadgeColor]   NVARCHAR(50)  NULL DEFAULT ('#00f2fe'),
+                        [DisplayOrder] INT NOT NULL DEFAULT (0),
+                        [IsActive]     BIT NOT NULL DEFAULT (1),
+                        [CreatedAt]    DATETIME2(7) NOT NULL DEFAULT (SYSUTCDATETIME()),
+                        CONSTRAINT [PK_BannerCategories_CYH] PRIMARY KEY CLUSTERED ([Id] ASC)
+                    );
+                END
+
+                IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[BannerTemplates_CYH]') AND type in (N'U'))
+                BEGIN
+                    CREATE TABLE [dbo].[BannerTemplates_CYH] (
+                        [Id]                 INT IDENTITY(1,1) NOT NULL,
+                        [CategoryId]         INT NOT NULL,
+                        [Title]              NVARCHAR(200) NOT NULL,
+                        [StyleTheme]         NVARCHAR(100) NOT NULL,
+                        [AspectRatio]        NVARCHAR(50) NOT NULL DEFAULT ('1:1'),
+                        [BackgroundImageUrl] NVARCHAR(500) NOT NULL,
+                        [ThumbnailUrl]       NVARCHAR(500) NULL,
+                        [PrimaryColor]       NVARCHAR(50) NOT NULL DEFAULT ('#00f2fe'),
+                        [SecondaryColor]     NVARCHAR(50) NOT NULL DEFAULT ('#0a192f'),
+                        [TextColor]          NVARCHAR(50) NOT NULL DEFAULT ('#ffffff'),
+                        [DefaultHeading]     NVARCHAR(500) NOT NULL,
+                        [DefaultSubtitle]    NVARCHAR(MAX) NULL,
+                        [BadgeText]          NVARCHAR(100) NULL,
+                        [ConfigJson]         NVARCHAR(MAX) NOT NULL,
+                        [DisplayOrder]       INT NOT NULL DEFAULT (0),
+                        [IsActive]           BIT NOT NULL DEFAULT (1),
+                        [CreatedAt]          DATETIME2(7) NOT NULL DEFAULT (SYSUTCDATETIME()),
+                        CONSTRAINT [PK_BannerTemplates_CYH] PRIMARY KEY CLUSTERED ([Id] ASC)
+                    );
+                END
+
+                -- Ensure extended profile columns exist on DoctorProfiles table
                 IF COL_LENGTH('DoctorProfiles', 'DisplayName') IS NULL
                     ALTER TABLE [dbo].[DoctorProfiles] ADD [DisplayName] NVARCHAR(100) NULL;
                 IF COL_LENGTH('DoctorProfiles', 'Qualifications') IS NULL
@@ -88,7 +128,63 @@ public static class DbInitializer
                 IF COL_LENGTH('DoctorProfiles', 'AiCredits') IS NULL
                     ALTER TABLE [dbo].[DoctorProfiles] ADD [AiCredits] INT NOT NULL DEFAULT (25);
                 IF COL_LENGTH('DoctorProfiles', 'IsVerified') IS NULL
-                    ALTER TABLE [dbo].[DoctorProfiles] ADD [IsVerified] BIT NOT NULL DEFAULT (1);";
+                    ALTER TABLE [dbo].[DoctorProfiles] ADD [IsVerified] BIT NOT NULL DEFAULT (1);
+                IF COL_LENGTH('DoctorProfiles', 'IsVerified') IS NULL
+                    ALTER TABLE [dbo].[DoctorProfiles] ADD [IsVerified] BIT NOT NULL DEFAULT (1);
+
+                -- Credit System Tables
+                IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[CreditTypes_CYH]') AND type in (N'U'))
+                BEGIN
+                    CREATE TABLE [dbo].[CreditTypes_CYH] (
+                        [Id]           INT IDENTITY(1,1) NOT NULL,
+                        [Name]         NVARCHAR(100) NOT NULL,
+                        [Code]         NVARCHAR(100) NOT NULL,
+                        [ServiceType]  NVARCHAR(50)  NOT NULL DEFAULT ('Free'),
+                        [IsPaid]       BIT           NOT NULL DEFAULT (0),
+                        [IsActive]     BIT           NOT NULL DEFAULT (1),
+                        [Description]  NVARCHAR(500) NULL,
+                        [CreditCost]   INT           NOT NULL DEFAULT (1),
+                        [CreatedAt]    DATETIME2(7)  NOT NULL DEFAULT (SYSUTCDATETIME()),
+                        CONSTRAINT [PK_CreditTypes_CYH] PRIMARY KEY CLUSTERED ([Id] ASC),
+                        CONSTRAINT [UQ_CreditTypes_Code] UNIQUE ([Code])
+                    );
+                END
+
+                IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[DoctorCredits_CYH]') AND type in (N'U'))
+                BEGIN
+                    CREATE TABLE [dbo].[DoctorCredits_CYH] (
+                        [Id]             INT IDENTITY(1,1) NOT NULL,
+                        [DoctorId]       INT NOT NULL,
+                        [CreditTypeId]   INT NOT NULL,
+                        [TotalCredits]   INT NOT NULL DEFAULT (0),
+                        [UsedCredits]    INT NOT NULL DEFAULT (0),
+                        [IsActive]       BIT NOT NULL DEFAULT (1),
+                        [LastUpdatedAt]  DATETIME2(7) NOT NULL DEFAULT (SYSUTCDATETIME()),
+                        CONSTRAINT [PK_DoctorCredits_CYH] PRIMARY KEY CLUSTERED ([Id] ASC),
+                        CONSTRAINT [UQ_Doctor_CreditType] UNIQUE ([DoctorId], [CreditTypeId])
+                    );
+                    CREATE NONCLUSTERED INDEX [IX_DoctorCredits_DoctorId] ON [dbo].[DoctorCredits_CYH]([DoctorId]);
+                END
+
+                IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[CreditTransactions_CYH]') AND type in (N'U'))
+                BEGIN
+                    CREATE TABLE [dbo].[CreditTransactions_CYH] (
+                        [Id]              INT IDENTITY(1,1) NOT NULL,
+                        [DoctorId]        INT NOT NULL,
+                        [CreditTypeId]    INT NOT NULL,
+                        [TransactionType] NVARCHAR(50)  NOT NULL,
+                        [CreditsChanged]  INT           NOT NULL,
+                        [BalanceBefore]   INT           NOT NULL,
+                        [BalanceAfter]    INT           NOT NULL,
+                        [ActionBy]        NVARCHAR(200) NULL,
+                        [ReferenceId]     NVARCHAR(100) NULL,
+                        [Note]            NVARCHAR(500) NULL,
+                        [CreatedAt]       DATETIME2(7)  NOT NULL DEFAULT (SYSUTCDATETIME()),
+                        CONSTRAINT [PK_CreditTransactions_CYH] PRIMARY KEY CLUSTERED ([Id] ASC)
+                    );
+                    CREATE NONCLUSTERED INDEX [IX_CreditTransactions_DoctorId] ON [dbo].[CreditTransactions_CYH]([DoctorId]);
+                    CREATE NONCLUSTERED INDEX [IX_CreditTransactions_CreatedAt] ON [dbo].[CreditTransactions_CYH]([CreatedAt] DESC);
+                END";
 
             await using (var cmdTable = new SqlCommand(createTableSql, con))
             {
@@ -313,6 +409,8 @@ public static class DbInitializer
                                 @FullName, 'MBBS', '#00f2fe', '#4facfe', 'Inter', 25, 0
                             );
 
+                            DECLARE @NewDocId INT = SCOPE_IDENTITY();
+                            EXEC dbo.ManageCredits_CYH @Flag = 'INIT_DOCTOR_CREDITS', @DoctorId = @NewDocId;
                             COMMIT TRANSACTION;
                             SELECT 1 AS StatusCode, 'Doctor registered successfully (Pending Approval).' AS Message, @NewUserId AS UserId;
                         END TRY
@@ -721,7 +819,573 @@ public static class DbInitializer
                 await cmdDecrypt.ExecuteNonQueryAsync();
             }
 
-            // 7. Initial seed via Stored Procedure
+            // 7. Ensure ManageBannerCategories_CYH and ManageBannerTemplates_CYH Stored Procedures exist
+            var spCategorySql = @"
+                CREATE OR ALTER PROCEDURE dbo.ManageBannerCategories_CYH
+                    @Flag NVARCHAR(50),
+                    @Id INT = NULL,
+                    @CategoryName NVARCHAR(100) = NULL,
+                    @Slug NVARCHAR(100) = NULL,
+                    @IconClass NVARCHAR(100) = NULL,
+                    @BadgeColor NVARCHAR(50) = NULL,
+                    @DisplayOrder INT = NULL,
+                    @IsActive BIT = NULL
+                AS
+                BEGIN
+                    SET NOCOUNT ON;
+
+                    IF @Flag = 'GET_ACTIVE_WITH_COUNTS'
+                    BEGIN
+                        SELECT 
+                            c.Id, 
+                            c.CategoryName, 
+                            c.Slug, 
+                            c.IconClass, 
+                            c.BadgeColor, 
+                            c.DisplayOrder, 
+                            c.IsActive, 
+                            c.CreatedAt,
+                            COUNT(t.Id) AS TemplateCount
+                        FROM [dbo].[BannerCategories_CYH] c
+                        LEFT JOIN [dbo].[BannerTemplates_CYH] t ON c.Id = t.CategoryId AND t.IsActive = 1
+                        WHERE c.IsActive = 1
+                        GROUP BY c.Id, c.CategoryName, c.Slug, c.IconClass, c.BadgeColor, c.DisplayOrder, c.IsActive, c.CreatedAt
+                        ORDER BY c.DisplayOrder ASC, c.CategoryName ASC;
+                    END
+
+                    ELSE IF @Flag = 'GET_ALL'
+                    BEGIN
+                        SELECT 
+                            c.Id, 
+                            c.CategoryName, 
+                            c.Slug, 
+                            c.IconClass, 
+                            c.BadgeColor, 
+                            c.DisplayOrder, 
+                            c.IsActive, 
+                            c.CreatedAt,
+                            COUNT(t.Id) AS TemplateCount
+                        FROM [dbo].[BannerCategories_CYH] c
+                        LEFT JOIN [dbo].[BannerTemplates_CYH] t ON c.Id = t.CategoryId
+                        GROUP BY c.Id, c.CategoryName, c.Slug, c.IconClass, c.BadgeColor, c.DisplayOrder, c.IsActive, c.CreatedAt
+                        ORDER BY c.DisplayOrder ASC;
+                    END
+
+                    ELSE IF @Flag = 'GET_BY_ID'
+                    BEGIN
+                        SELECT c.*, 0 AS TemplateCount
+                        FROM [dbo].[BannerCategories_CYH] c
+                        WHERE c.Id = @Id;
+                    END
+
+                    ELSE IF @Flag = 'INSERT'
+                    BEGIN
+                        INSERT INTO [dbo].[BannerCategories_CYH] 
+                        (CategoryName, Slug, IconClass, BadgeColor, DisplayOrder, IsActive, CreatedAt)
+                        VALUES 
+                        (@CategoryName, @Slug, ISNULL(@IconClass, 'bi-folder-fill'), ISNULL(@BadgeColor, '#00f2fe'), ISNULL(@DisplayOrder, 0), ISNULL(@IsActive, 1), SYSUTCDATETIME());
+
+                        SELECT SCOPE_IDENTITY() AS ResultId;
+                    END
+
+                    ELSE IF @Flag = 'UPDATE'
+                    BEGIN
+                        UPDATE [dbo].[BannerCategories_CYH]
+                        SET CategoryName = ISNULL(@CategoryName, CategoryName),
+                            Slug = ISNULL(@Slug, Slug),
+                            IconClass = ISNULL(@IconClass, IconClass),
+                            BadgeColor = ISNULL(@BadgeColor, BadgeColor),
+                            DisplayOrder = ISNULL(@DisplayOrder, DisplayOrder),
+                            IsActive = ISNULL(@IsActive, IsActive)
+                        WHERE Id = @Id;
+
+                        SELECT @@ROWCOUNT AS RowsAffected;
+                    END
+
+                    ELSE IF @Flag = 'DELETE'
+                    BEGIN
+                        DELETE FROM [dbo].[BannerCategories_CYH] WHERE Id = @Id;
+                        SELECT @@ROWCOUNT AS RowsAffected;
+                    END
+                END";
+
+            await using (var cmdCat = new SqlCommand(spCategorySql, con))
+            {
+                await cmdCat.ExecuteNonQueryAsync();
+            }
+
+            var spTemplatesSql = @"
+                CREATE OR ALTER PROCEDURE dbo.ManageBannerTemplates_CYH
+                    @Flag NVARCHAR(50),
+                    @Id INT = NULL,
+                    @CategoryId INT = NULL,
+                    @Title NVARCHAR(200) = NULL,
+                    @StyleTheme NVARCHAR(100) = NULL,
+                    @AspectRatio NVARCHAR(50) = NULL,
+                    @BackgroundImageUrl NVARCHAR(500) = NULL,
+                    @ThumbnailUrl NVARCHAR(500) = NULL,
+                    @PrimaryColor NVARCHAR(50) = NULL,
+                    @SecondaryColor NVARCHAR(50) = NULL,
+                    @TextColor NVARCHAR(50) = NULL,
+                    @DefaultHeading NVARCHAR(500) = NULL,
+                    @DefaultSubtitle NVARCHAR(MAX) = NULL,
+                    @BadgeText NVARCHAR(100) = NULL,
+                    @ConfigJson NVARCHAR(MAX) = NULL,
+                    @DisplayOrder INT = NULL,
+                    @IsActive BIT = NULL,
+                    @Search NVARCHAR(200) = NULL
+                AS
+                BEGIN
+                    SET NOCOUNT ON;
+
+                    IF @Flag = 'GET_ALL'
+                    BEGIN
+                        SELECT 
+                            t.Id,
+                            t.CategoryId,
+                            c.CategoryName,
+                            c.IconClass AS CategoryIcon,
+                            t.Title,
+                            t.StyleTheme,
+                            t.AspectRatio,
+                            t.BackgroundImageUrl,
+                            t.ThumbnailUrl,
+                            t.PrimaryColor,
+                            t.SecondaryColor,
+                            t.TextColor,
+                            t.DefaultHeading,
+                            t.DefaultSubtitle,
+                            t.BadgeText,
+                            t.ConfigJson,
+                            t.DisplayOrder,
+                            t.IsActive,
+                            t.CreatedAt
+                        FROM [dbo].[BannerTemplates_CYH] t
+                        INNER JOIN [dbo].[BannerCategories_CYH] c ON t.CategoryId = c.Id
+                        WHERE (t.IsActive = 1)
+                          AND (@CategoryId IS NULL OR @CategoryId = 0 OR t.CategoryId = @CategoryId)
+                          AND (@StyleTheme IS NULL OR @StyleTheme = 'All' OR t.StyleTheme = @StyleTheme)
+                          AND (
+                                @Search IS NULL 
+                                OR t.Title LIKE '%' + @Search + '%' 
+                                OR t.DefaultHeading LIKE '%' + @Search + '%'
+                                OR t.DefaultSubtitle LIKE '%' + @Search + '%'
+                                OR c.CategoryName LIKE '%' + @Search + '%'
+                              )
+                        ORDER BY t.DisplayOrder ASC, t.Id ASC;
+                    END
+
+                    ELSE IF @Flag = 'GET_BY_ID'
+                    BEGIN
+                        SELECT 
+                            t.Id,
+                            t.CategoryId,
+                            c.CategoryName,
+                            c.IconClass AS CategoryIcon,
+                            t.Title,
+                            t.StyleTheme,
+                            t.AspectRatio,
+                            t.BackgroundImageUrl,
+                            t.ThumbnailUrl,
+                            t.PrimaryColor,
+                            t.SecondaryColor,
+                            t.TextColor,
+                            t.DefaultHeading,
+                            t.DefaultSubtitle,
+                            t.BadgeText,
+                            t.ConfigJson,
+                            t.DisplayOrder,
+                            t.IsActive,
+                            t.CreatedAt
+                        FROM [dbo].[BannerTemplates_CYH] t
+                        INNER JOIN [dbo].[BannerCategories_CYH] c ON t.CategoryId = c.Id
+                        WHERE t.Id = @Id;
+                    END
+
+                    ELSE IF @Flag = 'SAVE_TEMPLATE'
+                    BEGIN
+                        IF @Id IS NOT NULL AND @Id > 0 AND EXISTS (SELECT 1 FROM [dbo].[BannerTemplates_CYH] WHERE Id = @Id)
+                        BEGIN
+                            UPDATE [dbo].[BannerTemplates_CYH]
+                            SET CategoryId = ISNULL(@CategoryId, CategoryId),
+                                Title = ISNULL(@Title, Title),
+                                StyleTheme = ISNULL(@StyleTheme, StyleTheme),
+                                AspectRatio = ISNULL(@AspectRatio, AspectRatio),
+                                BackgroundImageUrl = ISNULL(@BackgroundImageUrl, BackgroundImageUrl),
+                                ThumbnailUrl = ISNULL(@ThumbnailUrl, ThumbnailUrl),
+                                PrimaryColor = ISNULL(@PrimaryColor, PrimaryColor),
+                                SecondaryColor = ISNULL(@SecondaryColor, SecondaryColor),
+                                TextColor = ISNULL(@TextColor, TextColor),
+                                DefaultHeading = ISNULL(@DefaultHeading, DefaultHeading),
+                                DefaultSubtitle = ISNULL(@DefaultSubtitle, DefaultSubtitle),
+                                BadgeText = ISNULL(@BadgeText, BadgeText),
+                                ConfigJson = ISNULL(@ConfigJson, ConfigJson),
+                                DisplayOrder = ISNULL(@DisplayOrder, DisplayOrder),
+                                IsActive = ISNULL(@IsActive, IsActive)
+                            WHERE Id = @Id;
+
+                            SELECT @Id AS ResultId;
+                        END
+                        ELSE
+                        BEGIN
+                            INSERT INTO [dbo].[BannerTemplates_CYH]
+                            (
+                                CategoryId, Title, StyleTheme, AspectRatio, BackgroundImageUrl,
+                                ThumbnailUrl, PrimaryColor, SecondaryColor, TextColor, DefaultHeading,
+                                DefaultSubtitle, BadgeText, ConfigJson, DisplayOrder, IsActive, CreatedAt
+                            )
+                            VALUES
+                            (
+                                @CategoryId, @Title, ISNULL(@StyleTheme, 'Modern Clean'), ISNULL(@AspectRatio, '1:1'),
+                                @BackgroundImageUrl, @ThumbnailUrl, ISNULL(@PrimaryColor, '#00f2fe'),
+                                ISNULL(@SecondaryColor, '#0a192f'), ISNULL(@TextColor, '#ffffff'),
+                                @DefaultHeading, @DefaultSubtitle, @BadgeText, @ConfigJson,
+                                ISNULL(@DisplayOrder, 0), ISNULL(@IsActive, 1), SYSUTCDATETIME()
+                            );
+
+                            SELECT SCOPE_IDENTITY() AS ResultId;
+                        END
+                    END
+
+                    ELSE IF @Flag = 'DELETE'
+                    BEGIN
+                        DELETE FROM [dbo].[BannerTemplates_CYH] WHERE Id = @Id;
+                        SELECT @@ROWCOUNT AS RowsAffected;
+                    END
+                END";
+
+            await using (var cmdTpl = new SqlCommand(spTemplatesSql, con))
+            {
+                await cmdTpl.ExecuteNonQueryAsync();
+            }
+
+            // 8. Seed Banner Categories and 50 Templates if not already present
+            
+            // 7.1. Ensure ManageCredits_CYH Stored Procedure exists & updated
+            var spCreditsSql = @"
+                CREATE OR ALTER PROCEDURE dbo.ManageCredits_CYH
+                    @Flag NVARCHAR(50),
+                    @DoctorId INT = NULL,
+                    @CreditTypeId INT = NULL,
+                    @Code NVARCHAR(100) = NULL,
+                    @Name NVARCHAR(100) = NULL,
+                    @ServiceType NVARCHAR(50) = NULL,
+                    @IsPaid BIT = NULL,
+                    @IsActive BIT = NULL,
+                    @Description NVARCHAR(500) = NULL,
+                    @CreditCost INT = NULL,
+                    @Amount INT = NULL,
+                    @ActionBy NVARCHAR(200) = NULL,
+                    @ReferenceId NVARCHAR(100) = NULL,
+                    @Note NVARCHAR(500) = NULL,
+                    @TransactionType NVARCHAR(50) = NULL,
+                    @FromDate DATETIME2(7) = NULL,
+                    @ToDate DATETIME2(7) = NULL,
+                    @OnlyActive BIT = 0,
+                    @OutSuccess BIT = NULL OUTPUT,
+                    @OutMessage NVARCHAR(500) = NULL OUTPUT,
+                    @OutBalanceAfter INT = NULL OUTPUT
+                AS
+                BEGIN
+                    SET NOCOUNT ON;
+
+                    -- 1. Initialize Doctor Credits (create 00 entries for any active CreditType not yet in DoctorCredits_CYH)
+                    IF @Flag = 'INIT_DOCTOR_CREDITS'
+                    BEGIN
+                        INSERT INTO [dbo].[DoctorCredits_CYH] (DoctorId, CreditTypeId, TotalCredits, UsedCredits, IsActive, LastUpdatedAt)
+                        SELECT @DoctorId, ct.Id, 0, 0, 1, SYSUTCDATETIME()
+                        FROM [dbo].[CreditTypes_CYH] ct
+                        WHERE ct.IsActive = 1
+                          AND NOT EXISTS (
+                              SELECT 1 FROM [dbo].[DoctorCredits_CYH] dc 
+                              WHERE dc.DoctorId = @DoctorId AND dc.CreditTypeId = ct.Id
+                          );
+
+                        -- Insert SYSTEM_INIT log if no transaction exists for this doctor
+                        IF NOT EXISTS (SELECT 1 FROM [dbo].[CreditTransactions_CYH] WHERE DoctorId = @DoctorId)
+                        BEGIN
+                            INSERT INTO [dbo].[CreditTransactions_CYH]
+                            (DoctorId, CreditTypeId, TransactionType, CreditsChanged, BalanceBefore, BalanceAfter, ActionBy, Note, CreatedAt)
+                            SELECT @DoctorId, ct.Id, 'SYSTEM_INIT', 0, 0, 0, 'System', 'Doctor account credit initialization at 0', SYSUTCDATETIME()
+                            FROM [dbo].[CreditTypes_CYH] ct
+                            WHERE ct.IsActive = 1;
+                        END
+
+                        SELECT @@ROWCOUNT AS RowsAffected;
+                    END
+
+                    -- 2. Get All Credit Types
+                    ELSE IF @Flag = 'GET_TYPES'
+                    BEGIN
+                        SELECT Id, Name, Code, ServiceType, IsPaid, IsActive, Description, CreditCost, CreatedAt
+                        FROM [dbo].[CreditTypes_CYH]
+                        WHERE (@OnlyActive = 0 OR IsActive = 1)
+                        ORDER BY Id ASC;
+                    END
+
+                    -- 3. Get Credit Type by ID
+                    ELSE IF @Flag = 'GET_TYPE_BY_ID'
+                    BEGIN
+                        SELECT Id, Name, Code, ServiceType, IsPaid, IsActive, Description, CreditCost, CreatedAt
+                        FROM [dbo].[CreditTypes_CYH]
+                        WHERE Id = @CreditTypeId;
+                    END
+
+                    -- 4. Get Credit Type by Code
+                    ELSE IF @Flag = 'GET_TYPE_BY_CODE'
+                    BEGIN
+                        SELECT Id, Name, Code, ServiceType, IsPaid, IsActive, Description, CreditCost, CreatedAt
+                        FROM [dbo].[CreditTypes_CYH]
+                        WHERE Code = @Code;
+                    END
+
+                    -- 5. Save/Update Credit Type
+                    ELSE IF @Flag = 'SAVE_TYPE'
+                    BEGIN
+                        IF @CreditTypeId IS NOT NULL AND @CreditTypeId > 0 AND EXISTS (SELECT 1 FROM [dbo].[CreditTypes_CYH] WHERE Id = @CreditTypeId)
+                        BEGIN
+                            UPDATE [dbo].[CreditTypes_CYH]
+                            SET Name = ISNULL(@Name, Name),
+                                Code = ISNULL(@Code, Code),
+                                ServiceType = ISNULL(@ServiceType, ServiceType),
+                                IsPaid = ISNULL(@IsPaid, IsPaid),
+                                IsActive = ISNULL(@IsActive, IsActive),
+                                Description = ISNULL(@Description, Description),
+                                CreditCost = ISNULL(@CreditCost, CreditCost)
+                            WHERE Id = @CreditTypeId;
+
+                            SELECT @CreditTypeId AS ResultId;
+                        END
+                        ELSE
+                        BEGIN
+                            INSERT INTO [dbo].[CreditTypes_CYH]
+                            (Name, Code, ServiceType, IsPaid, IsActive, Description, CreditCost, CreatedAt)
+                            VALUES
+                            (@Name, @Code, ISNULL(@ServiceType, 'Free'), ISNULL(@IsPaid, 0), ISNULL(@IsActive, 1), @Description, ISNULL(@CreditCost, 1), SYSUTCDATETIME());
+
+                            DECLARE @NewTypeId INT = SCOPE_IDENTITY();
+
+                            -- Auto add this new credit type to all existing doctors with 0
+                            INSERT INTO [dbo].[DoctorCredits_CYH] (DoctorId, CreditTypeId, TotalCredits, UsedCredits, IsActive, LastUpdatedAt)
+                            SELECT d.Id, @NewTypeId, 0, 0, 1, SYSUTCDATETIME()
+                            FROM [dbo].[DoctorProfiles] d
+                            WHERE NOT EXISTS (
+                                SELECT 1 FROM [dbo].[DoctorCredits_CYH] dc WHERE dc.DoctorId = d.Id AND dc.CreditTypeId = @NewTypeId
+                            );
+
+                            SELECT @NewTypeId AS ResultId;
+                        END
+                    END
+
+                    -- 6. Toggle Type Active/Inactive
+                    ELSE IF @Flag = 'TOGGLE_TYPE_STATUS'
+                    BEGIN
+                        UPDATE [dbo].[CreditTypes_CYH]
+                        SET IsActive = @IsActive
+                        WHERE Id = @CreditTypeId;
+
+                        SELECT @@ROWCOUNT AS RowsAffected;
+                    END
+
+                    -- 7. Toggle Type Paid/Free
+                    ELSE IF @Flag = 'TOGGLE_TYPE_PAID'
+                    BEGIN
+                        UPDATE [dbo].[CreditTypes_CYH]
+                        SET IsPaid = @IsPaid,
+                            ServiceType = ISNULL(@ServiceType, CASE WHEN @IsPaid = 1 THEN 'Paid' ELSE 'Free' END)
+                        WHERE Id = @CreditTypeId;
+
+                        SELECT @@ROWCOUNT AS RowsAffected;
+                    END
+
+                    -- 8. Get Doctor Credits
+                    ELSE IF @Flag = 'GET_DOCTOR_CREDITS'
+                    BEGIN
+                        SELECT 
+                            dc.Id, 
+                            dc.DoctorId, 
+                            d.FullName AS DoctorName, 
+                            dc.CreditTypeId, 
+                            ct.Name AS CreditTypeName, 
+                            ct.Code AS CreditTypeCode, 
+                            ct.ServiceType, 
+                            ct.IsPaid, 
+                            dc.TotalCredits, 
+                            dc.UsedCredits, 
+                            (dc.TotalCredits - dc.UsedCredits) AS RemainingCredits, 
+                            dc.IsActive, 
+                            dc.LastUpdatedAt
+                        FROM [dbo].[DoctorCredits_CYH] dc
+                        INNER JOIN [dbo].[CreditTypes_CYH] ct ON dc.CreditTypeId = ct.Id
+                        INNER JOIN [dbo].[DoctorProfiles] d ON dc.DoctorId = d.Id
+                        WHERE dc.DoctorId = @DoctorId
+                        ORDER BY ct.Id ASC;
+                    END
+
+                    -- 9. Admin Adjust Credits (Add or Deduct)
+                    ELSE IF @Flag = 'ADMIN_ADJUST'
+                    BEGIN
+                        DECLARE @CurrentTotal INT = 0;
+                        DECLARE @CurrentUsed INT = 0;
+                        DECLARE @CurrentBalance INT = 0;
+                        DECLARE @NewTotal INT = 0;
+                        DECLARE @NewBalance INT = 0;
+                        DECLARE @AdjustTxType NVARCHAR(50) = CASE WHEN @Amount >= 0 THEN 'ADMIN_ADD' ELSE 'ADMIN_DEDUCT' END;
+
+                        -- Ensure row exists
+                        IF NOT EXISTS (SELECT 1 FROM [dbo].[DoctorCredits_CYH] WHERE DoctorId = @DoctorId AND CreditTypeId = @CreditTypeId)
+                        BEGIN
+                            INSERT INTO [dbo].[DoctorCredits_CYH] (DoctorId, CreditTypeId, TotalCredits, UsedCredits, IsActive, LastUpdatedAt)
+                            VALUES (@DoctorId, @CreditTypeId, 0, 0, 1, SYSUTCDATETIME());
+                        END
+
+                        SELECT @CurrentTotal = TotalCredits, @CurrentUsed = UsedCredits
+                        FROM [dbo].[DoctorCredits_CYH]
+                        WHERE DoctorId = @DoctorId AND CreditTypeId = @CreditTypeId;
+
+                        SET @CurrentBalance = @CurrentTotal - @CurrentUsed;
+                        SET @NewTotal = @CurrentTotal + @Amount;
+                        IF @NewTotal < 0 SET @NewTotal = 0;
+                        SET @NewBalance = @NewTotal - @CurrentUsed;
+
+                        UPDATE [dbo].[DoctorCredits_CYH]
+                        SET TotalCredits = @NewTotal,
+                            LastUpdatedAt = SYSUTCDATETIME()
+                        WHERE DoctorId = @DoctorId AND CreditTypeId = @CreditTypeId;
+
+                        INSERT INTO [dbo].[CreditTransactions_CYH]
+                        (DoctorId, CreditTypeId, TransactionType, CreditsChanged, BalanceBefore, BalanceAfter, ActionBy, Note, CreatedAt)
+                        VALUES
+                        (@DoctorId, @CreditTypeId, @AdjustTxType, @Amount, @CurrentBalance, @NewBalance, ISNULL(@ActionBy, 'Admin'), @Note, SYSUTCDATETIME());
+
+                        SET @OutSuccess = 1;
+                        SET @OutMessage = 'Credits updated successfully.';
+                        SET @OutBalanceAfter = @NewBalance;
+                    END
+
+                    -- 10. Deduct on Publish (Template or AI Banner)
+                    ELSE IF @Flag = 'DEDUCT_PUBLISH'
+                    BEGIN
+                        DECLARE @FoundTypeId INT = NULL;
+                        DECLARE @CreditCostToDeduct INT = 1;
+                        DECLARE @TypeActive BIT = 1;
+
+                        SELECT @FoundTypeId = Id, @CreditCostToDeduct = CreditCost, @TypeActive = IsActive
+                        FROM [dbo].[CreditTypes_CYH]
+                        WHERE Code = @Code;
+
+                        IF @FoundTypeId IS NULL
+                        BEGIN
+                            SET @OutSuccess = 0;
+                            SET @OutMessage = 'Invalid credit service code.';
+                            SET @OutBalanceAfter = 0;
+                            RETURN;
+                        END
+
+                        IF @TypeActive = 0
+                        BEGIN
+                            SET @OutSuccess = 0;
+                            SET @OutMessage = 'This credit service is currently inactive.';
+                            SET @OutBalanceAfter = 0;
+                            RETURN;
+                        END
+
+                        -- Ensure row exists for doctor
+                        IF NOT EXISTS (SELECT 1 FROM [dbo].[DoctorCredits_CYH] WHERE DoctorId = @DoctorId AND CreditTypeId = @FoundTypeId)
+                        BEGIN
+                            INSERT INTO [dbo].[DoctorCredits_CYH] (DoctorId, CreditTypeId, TotalCredits, UsedCredits, IsActive, LastUpdatedAt)
+                            VALUES (@DoctorId, @FoundTypeId, 0, 0, 1, SYSUTCDATETIME());
+                        END
+
+                        DECLARE @DocTotal INT = 0;
+                        DECLARE @DocUsed INT = 0;
+                        DECLARE @DocBalanceBefore INT = 0;
+                        DECLARE @DocBalanceAfter INT = 0;
+                        DECLARE @DocCreditActive BIT = 1;
+
+                        SELECT @DocTotal = TotalCredits, @DocUsed = UsedCredits, @DocCreditActive = IsActive
+                        FROM [dbo].[DoctorCredits_CYH]
+                        WHERE DoctorId = @DoctorId AND CreditTypeId = @FoundTypeId;
+
+                        IF @DocCreditActive = 0
+                        BEGIN
+                            SET @OutSuccess = 0;
+                            SET @OutMessage = 'Your credit account for this service is disabled. Contact Admin.';
+                            SET @OutBalanceAfter = @DocTotal - @DocUsed;
+                            RETURN;
+                        END
+
+                        SET @DocBalanceBefore = @DocTotal - @DocUsed;
+
+                        IF @DocBalanceBefore < @CreditCostToDeduct
+                        BEGIN
+                            SET @OutSuccess = 0;
+                            SET @OutMessage = 'Insufficient credits (' + CAST(@DocBalanceBefore AS NVARCHAR(10)) + ' remaining). Please contact Admin to add credits.';
+                            SET @OutBalanceAfter = @DocBalanceBefore;
+                            RETURN;
+                        END
+
+                        -- Deduct credit
+                        SET @DocUsed = @DocUsed + @CreditCostToDeduct;
+                        SET @DocBalanceAfter = @DocTotal - @DocUsed;
+
+                        UPDATE [dbo].[DoctorCredits_CYH]
+                        SET UsedCredits = @DocUsed,
+                            LastUpdatedAt = SYSUTCDATETIME()
+                        WHERE DoctorId = @DoctorId AND CreditTypeId = @FoundTypeId;
+
+                        INSERT INTO [dbo].[CreditTransactions_CYH]
+                        (DoctorId, CreditTypeId, TransactionType, CreditsChanged, BalanceBefore, BalanceAfter, ActionBy, ReferenceId, Note, CreatedAt)
+                        VALUES
+                        (@DoctorId, @FoundTypeId, 'DEBIT_ON_PUBLISH', -@CreditCostToDeduct, @DocBalanceBefore, @DocBalanceAfter, ISNULL(@ActionBy, 'Doctor'), @ReferenceId, @Note, SYSUTCDATETIME());
+
+                        SET @OutSuccess = 1;
+                        SET @OutMessage = 'Credit deducted successfully.';
+                        SET @OutBalanceAfter = @DocBalanceAfter;
+                    END
+
+                    -- 11. Get Transactions / History
+                    ELSE IF @Flag = 'GET_TRANSACTIONS'
+                    BEGIN
+                        SELECT 
+                            t.Id,
+                            t.DoctorId,
+                            d.FullName AS DoctorName,
+                            t.CreditTypeId,
+                            ct.Name AS CreditTypeName,
+                            ct.Code AS CreditTypeCode,
+                            ct.ServiceType,
+                            t.TransactionType,
+                            t.CreditsChanged,
+                            t.BalanceBefore,
+                            t.BalanceAfter,
+                            t.ActionBy,
+                            t.ReferenceId,
+                            t.Note,
+                            t.CreatedAt
+                        FROM [dbo].[CreditTransactions_CYH] t
+                        INNER JOIN [dbo].[CreditTypes_CYH] ct ON t.CreditTypeId = ct.Id
+                        INNER JOIN [dbo].[DoctorProfiles] d ON t.DoctorId = d.Id
+                        WHERE (@DoctorId IS NULL OR t.DoctorId = @DoctorId)
+                          AND (@CreditTypeId IS NULL OR t.CreditTypeId = @CreditTypeId)
+                          AND (@TransactionType IS NULL OR @TransactionType = 'ALL' OR t.TransactionType = @TransactionType)
+                          AND (@FromDate IS NULL OR t.CreatedAt >= @FromDate)
+                          AND (@ToDate IS NULL OR t.CreatedAt <= @ToDate)
+                        ORDER BY t.CreatedAt DESC, t.Id DESC;
+                    END
+                END";
+
+            await using (var cmdCredits = new SqlCommand(spCreditsSql, con))
+            {
+                await cmdCredits.ExecuteNonQueryAsync();
+            }
+
+            // 8.1. Seed Credit System Types and Doctor Credits
+            await SeedCreditSystemIfEmptyAsync(con, logger);
+
+            await SeedBannerTemplatesIfEmptyAsync(con, logger);
+
+            // 9. Initial seed via Stored Procedure
             try
             {
                 await using var cmd = new SqlCommand("ManageDoctor_CYH", con);
@@ -738,6 +1402,184 @@ public static class DbInitializer
         catch (Exception ex)
         {
             logger?.LogError(ex, "Failed to initialize database tables.");
+        }
+    }
+
+    private static async Task SeedBannerTemplatesIfEmptyAsync(SqlConnection con, ILogger? logger)
+    {
+        try
+        {
+            // 1. Check if categories already exist
+            int categoryCount = 0;
+            await using (var cmdCheck = new SqlCommand("SELECT COUNT(1) FROM [dbo].[BannerCategories_CYH]", con))
+            {
+                var val = await cmdCheck.ExecuteScalarAsync();
+                categoryCount = Convert.ToInt32(val);
+            }
+
+            var categoryMap = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+            if (categoryCount == 0)
+            {
+                logger?.LogInformation("Seeding initial 10 Dynamic Banner Categories into SQL...");
+                var categories = TemplateSeedData.GetCategories();
+                foreach (var cat in categories)
+                {
+                    await using var cmd = new SqlCommand("ManageBannerCategories_CYH", con);
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@Flag", "INSERT");
+                    cmd.Parameters.AddWithValue("@CategoryName", cat.Name);
+                    cmd.Parameters.AddWithValue("@Slug", cat.Slug);
+                    cmd.Parameters.AddWithValue("@IconClass", cat.Icon);
+                    cmd.Parameters.AddWithValue("@BadgeColor", cat.Color);
+                    cmd.Parameters.AddWithValue("@DisplayOrder", cat.Order);
+                    cmd.Parameters.AddWithValue("@IsActive", true);
+
+                    var idObj = await cmd.ExecuteScalarAsync();
+                    if (idObj != null && int.TryParse(idObj.ToString(), out int newId))
+                    {
+                        categoryMap[cat.Slug] = newId;
+                    }
+                }
+            }
+            else
+            {
+                // Load existing categories map
+                await using var cmd = new SqlCommand("SELECT Id, Slug FROM [dbo].[BannerCategories_CYH]", con);
+                await using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    categoryMap[reader.GetString(1)] = reader.GetInt32(0);
+                }
+            }
+
+            // 2. Check if templates already exist
+            int templateCount = 0;
+            await using (var cmdCheckTpl = new SqlCommand("SELECT COUNT(1) FROM [dbo].[BannerTemplates_CYH]", con))
+            {
+                var val = await cmdCheckTpl.ExecuteScalarAsync();
+                templateCount = Convert.ToInt32(val);
+            }
+
+            if (templateCount == 0 && categoryMap.Count > 0)
+            {
+                logger?.LogInformation("Seeding 50 Healthcare Banner Templates into SQL...");
+                var templates = TemplateSeedData.GetTemplates();
+                var categories = TemplateSeedData.GetCategories().ToDictionary(c => c.Slug, c => c.Name);
+
+                foreach (var tpl in templates)
+                {
+                    if (!categoryMap.TryGetValue(tpl.CategorySlug, out int catId))
+                    {
+                        catId = categoryMap.Values.FirstOrDefault();
+                    }
+
+                    string categoryName = categories.TryGetValue(tpl.CategorySlug, out var cn) ? cn : "Healthcare";
+                    string configJson = TemplateSeedData.GenerateConfigJson(tpl, categoryName);
+
+                    await using var cmd = new SqlCommand("ManageBannerTemplates_CYH", con);
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@Flag", "SAVE_TEMPLATE");
+                    cmd.Parameters.AddWithValue("@CategoryId", catId);
+                    cmd.Parameters.AddWithValue("@Title", tpl.Title);
+                    cmd.Parameters.AddWithValue("@StyleTheme", tpl.StyleTheme);
+                    cmd.Parameters.AddWithValue("@AspectRatio", tpl.AspectRatio);
+                    cmd.Parameters.AddWithValue("@BackgroundImageUrl", tpl.ImageUrl);
+                    cmd.Parameters.AddWithValue("@ThumbnailUrl", tpl.ImageUrl);
+                    cmd.Parameters.AddWithValue("@PrimaryColor", tpl.PrimaryColor);
+                    cmd.Parameters.AddWithValue("@SecondaryColor", tpl.SecondaryColor);
+                    cmd.Parameters.AddWithValue("@TextColor", "#ffffff");
+                    cmd.Parameters.AddWithValue("@DefaultHeading", tpl.Heading);
+                    cmd.Parameters.AddWithValue("@DefaultSubtitle", (object?)tpl.Subtitle ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@BadgeText", (object?)tpl.BadgeText ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@ConfigJson", configJson);
+                    cmd.Parameters.AddWithValue("@DisplayOrder", tpl.Order);
+                    cmd.Parameters.AddWithValue("@IsActive", true);
+
+                    await cmd.ExecuteScalarAsync();
+                }
+                logger?.LogInformation("50 Banner Templates successfully seeded into SQL Database.");
+            }
+        }
+        catch (Exception ex)
+        {
+            logger?.LogError(ex, "Error while seeding banner categories & templates in SQL.");
+}
+        }
+    
+    private static async Task SeedCreditSystemIfEmptyAsync(SqlConnection con, ILogger? logger)
+    {
+        try
+        {
+            // 1. Ensure Default Credit Types exist
+            int typeCount = 0;
+            await using (var cmdCheck = new SqlCommand("SELECT COUNT(1) FROM [dbo].[CreditTypes_CYH]", con))
+            {
+                var val = await cmdCheck.ExecuteScalarAsync();
+                typeCount = Convert.ToInt32(val);
+            }
+
+            if (typeCount == 0)
+            {
+                logger?.LogInformation("Seeding default Credit Types into CreditTypes_CYH...");
+
+                // Type 1: Template Photo (Free service, toggleable)
+                await using (var cmd1 = new SqlCommand("ManageCredits_CYH", con))
+                {
+                    cmd1.CommandType = CommandType.StoredProcedure;
+                    cmd1.Parameters.AddWithValue("@Flag", "SAVE_TYPE");
+                    cmd1.Parameters.AddWithValue("@Name", "Template Photo Publish");
+                    cmd1.Parameters.AddWithValue("@Code", "TEMPLATE_PUBLISH");
+                    cmd1.Parameters.AddWithValue("@ServiceType", "Free");
+                    cmd1.Parameters.AddWithValue("@IsPaid", false);
+                    cmd1.Parameters.AddWithValue("@IsActive", true);
+                    cmd1.Parameters.AddWithValue("@Description", "Standard healthcare template customization and publish");
+                    cmd1.Parameters.AddWithValue("@CreditCost", 1);
+                    await cmd1.ExecuteScalarAsync();
+                }
+
+                // Type 2: AI Banner (Paid service, toggleable)
+                await using (var cmd2 = new SqlCommand("ManageCredits_CYH", con))
+                {
+                    cmd2.CommandType = CommandType.StoredProcedure;
+                    cmd2.Parameters.AddWithValue("@Flag", "SAVE_TYPE");
+                    cmd2.Parameters.AddWithValue("@Name", "AI Banner Creation & Publish");
+                    cmd2.Parameters.AddWithValue("@Code", "AI_BANNER_PUBLISH");
+                    cmd2.Parameters.AddWithValue("@ServiceType", "Paid");
+                    cmd2.Parameters.AddWithValue("@IsPaid", true);
+                    cmd2.Parameters.AddWithValue("@IsActive", true);
+                    cmd2.Parameters.AddWithValue("@Description", "AI generated prompt healthcare banner customization and publish");
+                    cmd2.Parameters.AddWithValue("@CreditCost", 1);
+                    await cmd2.ExecuteScalarAsync();
+                }
+
+                logger?.LogInformation("Default Credit Types seeded successfully.");
+            }
+
+            // 2. Ensure all existing doctors have initialized 00 entries for all active credit types
+            await using (var cmdDocs = new SqlCommand("SELECT Id FROM [dbo].[DoctorProfiles]", con))
+            {
+                var docIds = new List<int>();
+                await using var reader = await cmdDocs.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    docIds.Add(reader.GetInt32(0));
+                }
+                await reader.CloseAsync();
+
+                foreach (var docId in docIds)
+                {
+                    await using var cmdInit = new SqlCommand("ManageCredits_CYH", con);
+                    cmdInit.CommandType = CommandType.StoredProcedure;
+                    cmdInit.Parameters.AddWithValue("@Flag", "INIT_DOCTOR_CREDITS");
+                    cmdInit.Parameters.AddWithValue("@DoctorId", docId);
+                    await cmdInit.ExecuteNonQueryAsync();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger?.LogError(ex, "Error while seeding default Credit Types in SQL.");
         }
     }
 }

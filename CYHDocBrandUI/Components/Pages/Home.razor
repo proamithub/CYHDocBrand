@@ -3,9 +3,9 @@
 @inject NavigationManager NavigationManager
 
 @code {
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        var user = AuthService.GetCurrentUser();
+        var user = await AuthService.GetOrRestoreCurrentUserAsync();
         if (user == null)
         {
             NavigationManager.NavigateTo("login");

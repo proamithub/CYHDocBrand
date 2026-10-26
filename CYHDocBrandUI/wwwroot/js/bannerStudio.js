@@ -1,5 +1,5 @@
 /**
- * CYH DoctorHub â€” AI Banner Studio JavaScript Interop
+ * CYH DoctorHub - AI Banner Studio JavaScript Interop
  * Features:
  * - High-DPI Canvas Rendering & Compositing
  * - Interactive Mouse Drag & Drop (Heading, Subtitle, Doctor Card, Badges, Overlay Images)
@@ -38,15 +38,44 @@ window.bannerStudio = window.bannerStudio || {
             if (!src) return resolve(null);
             if (this.cachedImages[src]) return resolve(this.cachedImages[src]);
 
+            const cachedKeys = Object.keys(this.cachedImages);
+            if (cachedKeys.length > 40) {
+                for (let i = 0; i < 20; i++) {
+                    delete this.cachedImages[cachedKeys[i]];
+                }
+            }
+
             const img = new Image();
-            img.crossOrigin = "anonymous";
+            if (src.startsWith('http://') || src.startsWith('https://')) {
+                try {
+                    const parsedUrl = new URL(src, window.location.href);
+                    if (parsedUrl.origin !== window.location.origin) {
+                        img.crossOrigin = "anonymous";
+                    }
+                } catch {
+                    img.crossOrigin = "anonymous";
+                }
+            }
             img.onload = () => {
                 this.cachedImages[src] = img;
                 resolve(img);
             };
             img.onerror = (err) => {
-                console.warn("Failed to load image for banner canvas:", src, err);
-                resolve(null);
+                if (img.crossOrigin) {
+                    const fallbackImg = new Image();
+                    fallbackImg.onload = () => {
+                        this.cachedImages[src] = fallbackImg;
+                        resolve(fallbackImg);
+                    };
+                    fallbackImg.onerror = () => {
+                        console.warn("Failed to load image for banner canvas:", src);
+                        resolve(null);
+                    };
+                    fallbackImg.src = src;
+                } else {
+                    console.warn("Failed to load image for banner canvas:", src);
+                    resolve(null);
+                }
             };
             img.src = src;
         });
@@ -66,10 +95,25 @@ window.bannerStudio = window.bannerStudio || {
         }
     },
 
+    getFontStack: function (customFont, isHeading = false) {
+        const devanagariFallbacks = "'Noto Sans Devanagari', 'Poppins', 'Mukta', 'Hind', 'Segoe UI', -apple-system, sans-serif";
+        if (!customFont || customFont === 'inherit') {
+            return isHeading ? `'Poppins', ${devanagariFallbacks}` : `'Noto Sans Devanagari', 'Poppins', ${devanagariFallbacks}`;
+        }
+        if (customFont.includes(',')) {
+            return customFont;
+        }
+        return `"${customFont}", ${devanagariFallbacks}`;
+    },
+
     renderBanner: function (canvasId, state) {
-        this.currentState = state;
-        this.currentCanvasId = canvasId;
-        this.attachMouseListeners(canvasId);
+        if (!state) return Promise.resolve();
+
+        if (canvasId === 'bannerCanvas') {
+            this.currentState = state;
+            this.currentCanvasId = canvasId;
+            this.attachMouseListeners(canvasId);
+        }
 
         if (this.renderTimeout) {
             cancelAnimationFrame(this.renderTimeout);
@@ -84,8 +128,21 @@ window.bannerStudio = window.bannerStudio || {
     },
 
     _executeRender: async function (canvasId, state) {
-        const canvas = document.getElementById(canvasId);
-        if (!canvas) return;
+        let canvas = document.getElementById(canvasId);
+        if (!canvas) {
+            await new Promise(r => setTimeout(r, 60));
+            canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+        }
+
+        // Ensure English & Hindi web fonts are completely loaded before measuring/rendering
+        if (document.fonts && document.fonts.ready) {
+            try {
+                await document.fonts.ready;
+            } catch (fontErr) {
+                // Ignore font loading errors
+            }
+        }
 
         // Preload any uncached images in parallel
         const preloadTasks = [];
@@ -180,7 +237,8 @@ window.bannerStudio = window.bannerStudio || {
         // 2. Category Badge (Interactive Position or Default)
         if (state.badgeText) {
             ctx.save();
-            ctx.font = `700 ${Math.round(W * 0.022)}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+            const badgeFontFamily = this.getFontStack(state.fontFamily || state.FontFamily, false);
+            ctx.font = `700 ${Math.round(W * 0.022)}px ${badgeFontFamily}`;
             const badgeTxt = state.badgeText.toUpperCase();
             const badgeMetrics = ctx.measureText(badgeTxt);
             const bWidth = badgeMetrics.width + 36;
@@ -212,7 +270,8 @@ window.bannerStudio = window.bannerStudio || {
         if (state.hospitalName) {
             ctx.save();
             const fontSize = Math.round(W * 0.028);
-            ctx.font = `600 ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+            const hospFontFamily = this.getFontStack(state.headingFontFamily || state.HeadingFontFamily || state.fontFamily || state.FontFamily, true);
+            ctx.font = `600 ${fontSize}px ${hospFontFamily}`;
             const hospMetrics = ctx.measureText(state.hospitalName.toUpperCase());
             const hw = hospMetrics.width;
             const hh = fontSize * 1.3;
@@ -234,11 +293,12 @@ window.bannerStudio = window.bannerStudio || {
 
         // 4. Main Heading (Interactive or Default)
         ctx.save();
-        const headingFontSize = Math.round(W * 0.065);
-        ctx.font = `900 ${headingFontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+        const headingFontSize = (state.headingFontSize || state.HeadingFontSize) ? Math.round(state.headingFontSize || state.HeadingFontSize) : Math.round(W * 0.065);
+        const headingFontFamily = this.getFontStack(state.headingFontFamily || state.HeadingFontFamily || state.fontFamily || state.FontFamily, true);
+        ctx.font = `800 ${headingFontSize}px ${headingFontFamily}`;
         ctx.fillStyle = state.textColor || '#ffffff';
         ctx.textBaseline = 'top';
-        const headingLineHeight = Math.round(W * 0.078);
+        const headingLineHeight = Math.round(headingFontSize * 1.25);
         const maxTextWidth = W - (padding * 2);
 
         const headingLines = this.wrapText(ctx, state.heading || "Specialist Health Consultation", maxTextWidth);
@@ -267,11 +327,13 @@ window.bannerStudio = window.bannerStudio || {
         // 5. Subtitle (Interactive or Default)
         if (state.subtitle) {
             ctx.save();
-            const subFontSize = Math.round(W * 0.032);
-            ctx.font = `400 ${subFontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+            const subFontSize = (state.subtitleFontSize || state.SubtitleFontSize) ? Math.round(state.subtitleFontSize || state.SubtitleFontSize) : Math.round(W * 0.032);
+            const subFontWeight = state.subtitleFontWeight || state.SubtitleFontWeight || '400';
+            const subFontFamily = this.getFontStack(state.subtitleFontFamily || state.SubtitleFontFamily || state.fontFamily || state.FontFamily, false);
+            ctx.font = `${subFontWeight} ${subFontSize}px ${subFontFamily}`;
             ctx.fillStyle = 'rgba(203, 213, 225, 0.9)';
             ctx.textBaseline = 'top';
-            const subLineHeight = Math.round(W * 0.044);
+            const subLineHeight = (state.subtitleLineHeight || state.SubtitleLineHeight) ? Math.round(state.subtitleLineHeight || state.SubtitleLineHeight) : Math.round(subFontSize * 1.4);
             const subLines = this.wrapText(ctx, state.subtitle, maxTextWidth);
             const subTotalHeight = subLines.length * subLineHeight;
 
@@ -348,47 +410,60 @@ window.bannerStudio = window.bannerStudio || {
         }
 
         // 7. Doctor Info Card (Interactive or Default)
-        const doctorCardHeight = Math.round(H * 0.13);
+        const cardScale = state.doctorCardScale || state.DoctorCardScale || 1.0;
+        const defaultCardWidth = maxTextWidth;
+        const doctorCardWidth = (state.doctorCardWidth || state.DoctorCardWidth) ? Math.round(state.doctorCardWidth || state.DoctorCardWidth) : Math.round(defaultCardWidth * cardScale);
+        const defaultCardHeight = Math.round(H * 0.13);
+        const doctorCardHeight = (state.doctorCardHeight || state.DoctorCardHeight) ? Math.round(state.doctorCardHeight || state.DoctorCardHeight) : Math.round(defaultCardHeight * cardScale);
+        const cardRadius = state.doctorCardBorderRadius || state.DoctorCardBorderRadius || 20;
+        const cardBg = state.doctorCardBgColor || state.DoctorCardBgColor || 'rgba(15, 23, 42, 0.85)';
+        const cardBorder = state.doctorCardBorderColor || state.DoctorCardBorderColor || 'rgba(255, 255, 255, 0.15)';
+        const cardPadding = state.doctorCardPadding || state.DoctorCardPadding || 20;
+        const docFontFamily = this.getFontStack(state.doctorCardFontFamily || state.DoctorCardFontFamily || state.fontFamily || state.FontFamily, false);
+        const nameFontSize = (state.doctorNameFontSize || state.DoctorNameFontSize) ? Math.round(state.doctorNameFontSize || state.DoctorNameFontSize) : Math.round(34 * cardScale);
+        const specFontSize = (state.doctorSpecFontSize || state.DoctorSpecFontSize) ? Math.round(state.doctorSpecFontSize || state.DoctorSpecFontSize) : Math.round(22 * cardScale);
         const docX = (state.doctorCardX !== null && state.doctorCardX !== undefined) ? state.doctorCardX : (state.DoctorCardX !== null && state.DoctorCardX !== undefined ? state.DoctorCardX : padding);
         const docY = (state.doctorCardY !== null && state.doctorCardY !== undefined) ? state.doctorCardY : (state.DoctorCardY !== null && state.DoctorCardY !== undefined ? state.DoctorCardY : (H - (H * 0.32)));
 
         ctx.save();
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.82)';
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.14)';
+        ctx.fillStyle = cardBg;
+        ctx.strokeStyle = cardBorder;
         ctx.lineWidth = 2;
-        this.drawRoundedRect(ctx, docX, docY, maxTextWidth, doctorCardHeight, 20);
+        this.drawRoundedRect(ctx, docX, docY, doctorCardWidth, doctorCardHeight, cardRadius);
         ctx.fill();
         ctx.stroke();
 
         // Accent indicator bar
-        ctx.fillStyle = state.primaryColor || '#00f2fe';
-        this.drawRoundedRect(ctx, docX + 16, docY + 16, 6, doctorCardHeight - 32, 3);
-        ctx.fill();
+        if (state.showDoctorCardAccentBar !== false && state.ShowDoctorCardAccentBar !== false) {
+            ctx.fillStyle = state.primaryColor || '#00f2fe';
+            this.drawRoundedRect(ctx, docX + 16, docY + 16, 6, doctorCardHeight - 32, 3);
+            ctx.fill();
+        }
 
-        ctx.font = `800 ${Math.round(W * 0.038)}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+        ctx.font = `800 ${nameFontSize}px ${docFontFamily}`;
         ctx.fillStyle = '#ffffff';
         ctx.textBaseline = 'top';
         ctx.fillText(state.doctorName || "Dr. Medical Specialist", docX + 34, docY + 20);
 
-        ctx.font = `500 ${Math.round(W * 0.026)}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+        ctx.font = `500 ${specFontSize}px ${docFontFamily}`;
         ctx.fillStyle = state.primaryColor || '#00f2fe';
         ctx.fillText(state.specialization || "Senior Consultant & Surgeon", docX + 34, docY + 22 + Math.round(W * 0.042));
 
         if (state.contactPhone) {
-            ctx.font = `700 ${Math.round(W * 0.026)}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+            ctx.font = `700 ${Math.round(specFontSize * 1.05)}px ${docFontFamily}`;
             ctx.fillStyle = '#ffffff';
             ctx.textAlign = 'right';
-            ctx.fillText("ðŸ“ž " + state.contactPhone, docX + maxTextWidth - 24, docY + 24);
+            ctx.fillText("\uD83D\uDCDE " + state.contactPhone, docX + doctorCardWidth - cardPadding, docY + 24);
 
             if (state.emergencyPhone) {
-                ctx.font = `500 ${Math.round(W * 0.022)}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+                ctx.font = `500 ${Math.round(specFontSize * 0.9)}px ${docFontFamily}`;
                 ctx.fillStyle = '#f59e0b';
-                ctx.fillText(state.emergencyPhone, docX + maxTextWidth - 24, docY + 24 + Math.round(W * 0.038));
+                ctx.fillText(state.emergencyPhone, docX + doctorCardWidth - cardPadding, docY + 24 + Math.round(W * 0.038));
             }
         }
         ctx.restore();
 
-        this.registerHitElement('doctorCard', docX, docY, maxTextWidth, doctorCardHeight, true);
+        this.registerHitElement('doctorCard', docX, docY, doctorCardWidth, doctorCardHeight, true);
 
         // 8. FIXED BOTTOM BRANDING SECTION
         const finalLogoUrl = state.logoUrl || "images/branding/cyh-logo.svg";
@@ -453,7 +528,7 @@ window.bannerStudio = window.bannerStudio || {
         }
 
         // Draw Active Drag / Selection Box
-        if (this.draggingElement) {
+        if (canvasId === 'bannerCanvas' && !isPublished && this.draggingElement) {
             const dEl = this.draggingElement;
             ctx.save();
             ctx.strokeStyle = '#00f2fe';
@@ -470,7 +545,7 @@ window.bannerStudio = window.bannerStudio || {
             ctx.fillRect(dEl.x + dEl.w + 4 - (hSize / 2), dEl.y + dEl.h + 4 - (hSize / 2), hSize, hSize);
 
             // Drag Pill Badge Tag with Coordinates
-            const coordText = "âœ¦ " + dEl.id.toUpperCase() + "  (" + Math.round(dEl.x) + ", " + Math.round(dEl.y) + ")";
+            const coordText = dEl.id.toUpperCase() + "  (" + Math.round(dEl.x) + ", " + Math.round(dEl.y) + ")";
             ctx.font = 'bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
             const textWidth = ctx.measureText(coordText).width;
             const tagW = Math.max(140, textWidth + 24);
@@ -531,6 +606,10 @@ window.bannerStudio = window.bannerStudio || {
 
         const onPointerDown = (e) => {
             if (!this.currentState) return;
+            // STRICT LOCK: Published banner cannot be modified or dragged
+            if (this.currentState.status === "Published" || this.currentState.Status === "Published") {
+                return;
+            }
             const coords = getCanvasCoords(e);
 
             for (let i = this.elements.length - 1; i >= 0; i--) {
@@ -544,11 +623,6 @@ window.bannerStudio = window.bannerStudio || {
                     try { canvas.setPointerCapture(e.pointerId); } catch { }
                     e.preventDefault();
 
-                    // If currently published, move converts it to editable draft
-                    if (this.currentState.status === "Published") {
-                        this.currentState.status = "Draft";
-                    }
-
                     this.renderBanner(canvasId, this.currentState);
                     break;
                 }
@@ -557,9 +631,14 @@ window.bannerStudio = window.bannerStudio || {
 
         const onPointerMove = (e) => {
             if (!this.currentState) return;
+            // STRICT LOCK: Published banner cannot be dragged
+            if (this.currentState.status === "Published" || this.currentState.Status === "Published") {
+                canvas.style.cursor = 'default';
+                return;
+            }
             const coords = getCanvasCoords(e);
 
-            if (this.draggingElement) {
+            if (canvasId === 'bannerCanvas' && !isPublished && this.draggingElement) {
                 const dims = this.getDimensions(this.currentState.aspectRatio);
                 const W = dims.width;
                 const H = dims.height;
@@ -632,7 +711,7 @@ window.bannerStudio = window.bannerStudio || {
         };
 
         const onPointerUp = (e) => {
-            if (this.draggingElement) {
+            if (canvasId === 'bannerCanvas' && !isPublished && this.draggingElement) {
                 const el = this.draggingElement;
                 this.draggingElement = null;
                 canvas.style.cursor = 'grab';
@@ -696,15 +775,38 @@ window.bannerStudio = window.bannerStudio || {
     },
 
     downloadBanner: function (canvasId, fileName) {
-        const canvas = document.getElementById(canvasId);
-        if (!canvas) return;
+        try {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) {
+                console.error("downloadBanner: Canvas not found", canvasId);
+                return;
+            }
 
-        const link = document.createElement('a');
-        link.download = fileName || `CYH_Banner_${Date.now()}.png`;
-        link.href = canvas.toDataURL('image/png');
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+            const link = document.createElement('a');
+            link.download = fileName || `CYH_Banner_${Date.now()}.png`;
+
+            try {
+                link.href = canvas.toDataURL('image/png');
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } catch (secErr) {
+                console.warn("toDataURL fallback to toBlob:", secErr);
+                canvas.toBlob((blob) => {
+                    if (!blob) return;
+                    const url = URL.createObjectURL(blob);
+                    link.href = url;
+                    document.body.appendChild(link);
+                    link.click();
+                    setTimeout(() => {
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                    }, 200);
+                }, 'image/png');
+            }
+        } catch (ex) {
+            console.error("Error in downloadBanner:", ex);
+        }
     },
 
     shareBanner: async function (canvasId, title, text) {
@@ -747,6 +849,129 @@ window.bannerStudio = window.bannerStudio || {
         } catch (ex) {
             console.error("Error in shareBanner:", ex);
             return { success: false, message: ex.message };
+        }
+    },
+    compressImageUnder2MB: async function (file) {
+        try {
+            if (!file) return { success: false, message: "No file provided" };
+            const maxBytes = 2 * 1024 * 1024; // 2 MB strict limit
+
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        let width = img.width;
+                        let height = img.height;
+                        const maxDim = 1920;
+
+                        if (width > maxDim || height > maxDim) {
+                            if (width > height) {
+                                height = Math.round((height * maxDim) / width);
+                                width = maxDim;
+                            } else {
+                                width = Math.round((width * maxDim) / height);
+                                height = maxDim;
+                            }
+                        }
+
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        let quality = 0.90;
+                        let dataUrl = canvas.toDataURL('image/jpeg', quality);
+                        let byteLength = Math.round((dataUrl.length - 22) * 3 / 4);
+
+                        // Iteratively compress until < 2 MB
+                        while (byteLength > maxBytes && quality > 0.40) {
+                            quality -= 0.08;
+                            dataUrl = canvas.toDataURL('image/jpeg', quality);
+                            byteLength = Math.round((dataUrl.length - 22) * 3 / 4);
+                        }
+
+                        const sizeInKb = Math.round(byteLength / 1024);
+                        const sizeFormatted = sizeInKb > 1024 ? (sizeInKb / 1024).toFixed(2) + ' MB' : sizeInKb + ' KB';
+
+                        resolve({
+                            success: true,
+                            dataUrl: dataUrl,
+                            fileName: file.name,
+                            sizeBytes: byteLength,
+                            sizeFormatted: sizeFormatted,
+                            width: width,
+                            height: height,
+                            isUnder2MB: byteLength <= maxBytes
+                        });
+                    };
+                    img.onerror = () => resolve({ success: false, message: "Failed to decode image" });
+                    img.src = e.target.result;
+                };
+                reader.onerror = () => resolve({ success: false, message: "Failed to read file" });
+                reader.readAsDataURL(file);
+            });
+        } catch (err) {
+            return { success: false, message: err.message };
+        }
+    },
+
+    compressBase64Under2MB: async function (base64Data, filename = "background.jpg") {
+        try {
+            const maxBytes = 2 * 1024 * 1024; // 2 MB limit
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                    let width = img.width;
+                    let height = img.height;
+                    const maxDim = 1920;
+
+                    if (width > maxDim || height > maxDim) {
+                        if (width > height) {
+                            height = Math.round((height * maxDim) / width);
+                            width = maxDim;
+                        } else {
+                            width = Math.round((width * maxDim) / height);
+                            height = maxDim;
+                        }
+                    }
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    let quality = 0.90;
+                    let dataUrl = canvas.toDataURL('image/jpeg', quality);
+                    let byteLength = Math.round((dataUrl.length - 22) * 3 / 4);
+
+                    while (byteLength > maxBytes && quality > 0.40) {
+                        quality -= 0.08;
+                        dataUrl = canvas.toDataURL('image/jpeg', quality);
+                        byteLength = Math.round((dataUrl.length - 22) * 3 / 4);
+                    }
+
+                    const sizeInKb = Math.round(byteLength / 1024);
+                    const sizeFormatted = sizeInKb > 1024 ? (sizeInKb / 1024).toFixed(2) + ' MB' : sizeInKb + ' KB';
+
+                    resolve({
+                        success: true,
+                        dataUrl: dataUrl,
+                        fileName: filename,
+                        sizeBytes: byteLength,
+                        sizeFormatted: sizeFormatted,
+                        width: width,
+                        height: height,
+                        isUnder2MB: byteLength <= maxBytes
+                    });
+                };
+                img.onerror = () => resolve({ success: false, message: "Failed to load image for compression" });
+                img.src = base64Data;
+            });
+        } catch (err) {
+            return { success: false, message: err.message };
         }
     }
 };

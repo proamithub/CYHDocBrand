@@ -1,4 +1,4 @@
-namespace CYHDocBrandModel.DTO;
+﻿namespace CYHDocBrandModel.DTO;
 
 public class BannerGenerateRequest
 {
@@ -62,7 +62,35 @@ public class BannerCustomizationState
     public string SecondaryColor { get; set; } = "#0a192f"; // Dark Navy overlay
     public string TextColor { get; set; } = "#ffffff";
     public string AccentBadgeColor { get; set; } = "#10b981"; // Emerald
-    public string FontFamily { get; set; } = "Inter, sans-serif";
+    public string FontFamily { get; set; } = "'Poppins', 'Noto Sans Devanagari', sans-serif";
+
+    // Language Support & Multi-language Typography
+    public string Language { get; set; } = "en"; // "en" (English) or "hi" (Hindi)
+    public string HeadingFontFamily { get; set; } = "'Poppins', 'Noto Sans Devanagari', sans-serif";
+    public string SubtitleFontFamily { get; set; } = "'Poppins', 'Noto Sans Devanagari', sans-serif";
+
+    // Typography & Font Sizing
+    public int HeadingFontSize { get; set; } = 54; // px
+    public int SubtitleFontSize { get; set; } = 28; // px
+    public int SubtitleLineHeight { get; set; } = 38; // px
+    public string SubtitleFontWeight { get; set; } = "400"; // 400, 500, 600
+
+    // Doctor Card Sizing, Font & Spacing
+    public double DoctorCardScale { get; set; } = 1.0; // 0.6 to 1.5
+    public int? DoctorCardWidth { get; set; } = null; // null = auto full width
+    public int? DoctorCardHeight { get; set; } = null; // null = auto
+    public int DoctorCardPadding { get; set; } = 20; // px
+    public int DoctorCardBorderRadius { get; set; } = 20; // px
+    public int DoctorNameFontSize { get; set; } = 34; // px
+    public int DoctorSpecFontSize { get; set; } = 22; // px
+    public string DoctorCardFontFamily { get; set; } = "Inter, sans-serif";
+    public string DoctorCardBgColor { get; set; } = "rgba(15, 23, 42, 0.85)";
+    public string DoctorCardBorderColor { get; set; } = "rgba(255, 255, 255, 0.15)";
+    public bool ShowDoctorCardAccentBar { get; set; } = true;
+
+    // Background Image & Compression Info
+    public string? BackgroundImageFileName { get; set; }
+    public long? BackgroundImageSizeBytes { get; set; }
     
     // Branding
     public string LogoUrl { get; set; } = "images/branding/cyh-logo.svg";
@@ -110,4 +138,41 @@ public class BannerDesignRecordDTO
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public DateTime? PublishedAt { get; set; }
+
+    public BannerCustomizationState GetConfigState()
+    {
+        if (!string.IsNullOrWhiteSpace(ConfigJson))
+        {
+            try
+            {
+                var parsed = System.Text.Json.JsonSerializer.Deserialize<BannerCustomizationState>(ConfigJson);
+                if (parsed != null)
+                {
+                    parsed.Id = Id;
+                    parsed.Status = Status;
+                    if (!string.IsNullOrWhiteSpace(Heading)) parsed.Heading = Heading;
+                    if (!string.IsNullOrWhiteSpace(DoctorName)) parsed.DoctorName = DoctorName;
+                    if (!string.IsNullOrWhiteSpace(HospitalName)) parsed.HospitalName = HospitalName;
+                    if (!string.IsNullOrWhiteSpace(AspectRatio)) parsed.AspectRatio = AspectRatio;
+                    if (!string.IsNullOrWhiteSpace(BackgroundImageUrl)) parsed.BackgroundImageUrl = BackgroundImageUrl;
+                    return parsed;
+                }
+            }
+            catch { }
+        }
+
+        return new BannerCustomizationState
+        {
+            Id = Id,
+            Status = Status,
+            TemplateType = TemplateType,
+            Heading = Heading,
+            Subtitle = Subtitle ?? string.Empty,
+            DoctorName = DoctorName,
+            HospitalName = HospitalName,
+            AspectRatio = AspectRatio,
+            PrimaryColor = PrimaryColor,
+            BackgroundImageUrl = BackgroundImageUrl
+        };
+    }
 }

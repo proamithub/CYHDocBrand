@@ -5,12 +5,16 @@
     <div class="cyh-brand-logo" style="@(IsAdmin ? "background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%); color: #070d1e;" : "")">
         <i class="bi @(IsAdmin ? "bi-shield-shaded" : "bi-heart-pulse-fill")"></i>
     </div>
-    <div>
+    <div class="flex-grow-1 min-w-0">
         <div class="cyh-brand-title">CYH @(IsAdmin ? "AdminHub" : "DoctorHub")</div>
         <div class="cyh-brand-subtitle" style="@(IsAdmin ? "color: #fbbf24;" : "")">
             @(IsAdmin ? "Hospital Command" : "Clinical Portal")
         </div>
     </div>
+    <!-- Mobile Close Button -->
+    <button type="button" class="cyh-sidebar-close-btn d-lg-none" @onclick="HandleClose" aria-label="Close menu">
+        <i class="bi bi-x-lg"></i>
+    </button>
 </div>
 
 <div class="cyh-nav">
@@ -18,27 +22,36 @@
     {
         <div class="cyh-nav-divider" style="color: #cbd5e1;">Hospital Administration</div>
 
-        <NavLink class="cyh-nav-item" href="admin/dashboard" Match="NavLinkMatch.All">
+        <NavLink class="cyh-nav-item" href="admin/dashboard" Match="NavLinkMatch.All" @onclick="HandleClose">
             <i class="bi bi-speedometer2 text-warning"></i>
             <span>Admin Dashboard</span>
         </NavLink>
 
-        <NavLink class="cyh-nav-item" href="admin/doctors">
+        <NavLink class="cyh-nav-item" href="admin/doctors" @onclick="HandleClose">
             <i class="bi bi-people-fill text-warning"></i>
             <span>Manage Specialists</span>
         </NavLink>
 
-        <NavLink class="cyh-nav-item" href="banner-design">
+        <NavLink class="cyh-nav-item" href="template-gallery" @onclick="HandleClose">
+            <i class="bi bi-grid-1x2-fill text-warning"></i>
+            <span>Template Gallery</span>
+        </NavLink>
+
+        <NavLink class="cyh-nav-item" href="banner-design" @onclick="HandleClose">
             <i class="bi bi-palette-fill text-warning"></i>
             <span>AI Banner Studio</span>
         </NavLink>
 
-        <NavLink class="cyh-nav-item" href="banner-designs">
+        <NavLink class="cyh-nav-item" href="banner-designs" @onclick="HandleClose">
             <i class="bi bi-collection-play-fill text-warning"></i>
             <span>Banner Designs List</span>
         </NavLink>
+        <NavLink class="cyh-nav-item" href="credit-history" @onclick="HandleClose">
+            <i class="bi bi-clock-history text-info"></i>
+            <span>Credit &amp; Usage History</span>
+        </NavLink>
 
-        <NavLink class="cyh-nav-item" href="admin/system">
+        <NavLink class="cyh-nav-item" href="admin/system" @onclick="HandleClose">
             <i class="bi bi-cpu-fill text-warning"></i>
             <span>System Infrastructure</span>
         </NavLink>
@@ -47,34 +60,34 @@
     {
         <div class="cyh-nav-divider" style="color: #cbd5e1;">Navigation</div>
 
-        <NavLink class="cyh-nav-item" href="doctor/dashboard" Match="NavLinkMatch.All">
+        <NavLink class="cyh-nav-item" href="doctor/dashboard" Match="NavLinkMatch.All" @onclick="HandleClose">
             <i class="bi bi-hospital-fill text-info"></i>
             <span>Doctor Dashboard</span>
         </NavLink>
 
-        <NavLink class="cyh-nav-item" href="doctor/profile">
+        <NavLink class="cyh-nav-item" href="doctor/profile" @onclick="HandleClose">
             <i class="bi bi-person-circle text-info"></i>
             <span>My Profile</span>
         </NavLink>
 
-        <NavLink class="cyh-nav-item" href="banner-design">
+        <NavLink class="cyh-nav-item" href="doctor/template-gallery" @onclick="HandleClose">
+            <i class="bi bi-grid-1x2-fill text-info"></i>
+            <span>Template Gallery</span>
+        </NavLink>
+
+        <NavLink class="cyh-nav-item" href="banner-design" @onclick="HandleClose">
             <i class="bi bi-palette-fill text-info"></i>
             <span>AI Banner Studio</span>
         </NavLink>
 
-        <NavLink class="cyh-nav-item" href="banner-designs">
+        <NavLink class="cyh-nav-item" href="banner-designs" @onclick="HandleClose">
             <i class="bi bi-collection-play-fill text-info"></i>
             <span>Banner Designs List</span>
         </NavLink>
 
-        <NavLink class="cyh-nav-item" href="doctor/schedule">
-            <i class="bi bi-calendar3-week text-info"></i>
-            <span>OPD Timings & Duty</span>
-        </NavLink>
-
-        <NavLink class="cyh-nav-item" href="doctor/colleagues">
-            <i class="bi bi-person-badge-fill text-info"></i>
-            <span>Hospital Faculty</span>
+        <NavLink class="cyh-nav-item" href="credit-history" @onclick="HandleClose">
+            <i class="bi bi-clock-history text-info"></i>
+            <span>Credit &amp; Usage History</span>
         </NavLink>
     }
 </div>
@@ -87,12 +100,23 @@
 </div>
 
 @code {
+    [Parameter]
+    public EventCallback OnCloseMenu { get; set; }
+
     private CurrentUserDTO? CurrentUser;
     private bool IsAdmin => CurrentUser?.Role == "Admin";
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        CurrentUser = AuthService.GetCurrentUser();
+        CurrentUser = await AuthService.GetOrRestoreCurrentUserAsync();
+    }
+
+    private async Task HandleClose()
+    {
+        if (OnCloseMenu.HasDelegate)
+        {
+            await OnCloseMenu.InvokeAsync();
+        }
     }
 
     private async Task Logout()

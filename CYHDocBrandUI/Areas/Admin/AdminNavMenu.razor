@@ -5,10 +5,14 @@
     <div class="cyh-brand-logo" style="background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%); box-shadow: 0 0 20px rgba(245, 158, 11, 0.45); color: #070d1e;">
         <i class="bi bi-shield-shaded"></i>
     </div>
-    <div>
+    <div class="flex-grow-1 min-w-0">
         <div class="cyh-brand-title">CYH AdminHub</div>
         <div class="cyh-brand-subtitle" style="color: #fbbf24;">Hospital Command</div>
     </div>
+    <!-- Mobile Close Button -->
+    <button type="button" class="cyh-sidebar-close-btn d-lg-none" @onclick="HandleClose" aria-label="Close menu">
+        <i class="bi bi-x-lg"></i>
+    </button>
 </div>
 
 <div class="px-3 pt-3">
@@ -22,32 +26,37 @@
 <div class="cyh-nav">
     <div class="cyh-nav-divider" style="color: #cbd5e1;">Administration Command</div>
 
-    <NavLink class="cyh-nav-item" href="admin/dashboard" Match="NavLinkMatch.All">
+    <NavLink class="cyh-nav-item" href="admin/dashboard" Match="NavLinkMatch.All" @onclick="HandleClose">
         <i class="bi bi-speedometer2 text-warning"></i>
         <span>Admin Dashboard</span>
     </NavLink>
 
-    <NavLink class="cyh-nav-item" href="admin/doctors">
+    <NavLink class="cyh-nav-item" href="admin/doctors" @onclick="HandleClose">
         <i class="bi bi-people-fill text-warning"></i>
         <span>Manage Specialists</span>
     </NavLink>
 
-    <NavLink class="cyh-nav-item" href="admin/banner-design">
-        <i class="bi bi-palette-fill text-warning"></i>
-        <span>AI Banner Studio</span>
+    <NavLink class="cyh-nav-item" href="admin/credits" @onclick="HandleClose">
+        <i class="bi bi-coin text-warning"></i>
+        <span>Manage Credit System</span>
     </NavLink>
 
-    <NavLink class="cyh-nav-item" href="admin/banner-designs">
+    <NavLink class="cyh-nav-item" href="admin/banner-designs" @onclick="HandleClose">
         <i class="bi bi-collection-play-fill text-warning"></i>
-        <span>Banner Designs List</span>
+        <span>Doctor Banners (View &amp; Delete)</span>
     </NavLink>
 
-    <NavLink class="cyh-nav-item" href="admin/ai-settings">
+    <NavLink class="cyh-nav-item" href="admin/credit-history" @onclick="HandleClose">
+        <i class="bi bi-clock-history text-warning"></i>
+        <span>Credit &amp; Usage History</span>
+    </NavLink>
+
+    <NavLink class="cyh-nav-item" href="admin/ai-settings" @onclick="HandleClose">
         <i class="bi bi-key-fill text-warning"></i>
         <span>AI API Key Management</span>
     </NavLink>
 
-    <NavLink class="cyh-nav-item" href="admin/system">
+    <NavLink class="cyh-nav-item" href="admin/system" @onclick="HandleClose">
         <i class="bi bi-cpu-fill text-warning"></i>
         <span>System Infrastructure</span>
     </NavLink>
@@ -61,6 +70,17 @@
 </div>
 
 @code {
+    [Parameter]
+    public EventCallback OnCloseMenu { get; set; }
+
+    private async Task HandleClose()
+    {
+        if (OnCloseMenu.HasDelegate)
+        {
+            await OnCloseMenu.InvokeAsync();
+        }
+    }
+
     private async Task Logout()
     {
         await AuthService.LogoutAsync();

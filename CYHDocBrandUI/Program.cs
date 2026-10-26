@@ -25,7 +25,9 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IDoctorRepository, DoctorRepository>();
 builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
 builder.Services.AddScoped<IBannerRepository, BannerRepository>();
+builder.Services.AddScoped<IBannerTemplateRepository, BannerTemplateRepository>();
 builder.Services.AddScoped<IDoctorAiSettingRepository, DoctorAiSettingRepository>();
+builder.Services.AddScoped<ICreditRepository, CreditRepository>();
 
 // 4. Application & Notification Services
 builder.Services.AddHttpClient();

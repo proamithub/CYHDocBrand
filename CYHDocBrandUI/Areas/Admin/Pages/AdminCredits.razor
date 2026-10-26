@@ -1,0 +1,851 @@
+@page "/admin/credits"
+@layout AdminLayout
+@inject ICreditRepository CreditRepo
+@inject IDoctorRepository DoctorRepo
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Credit System Management • CYH AdminHub</PageTitle>
+
+<div class="d-flex flex-column gap-4">
+    <!-- Header -->
+    <div class="glass-panel p-4 d-flex flex-wrap align-items-center justify-content-between gap-3" style="border-left: 4px solid #f59e0b;">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); font-size: 0.72rem; font-weight: 700;">
+                    <i class="bi bi-shield-lock-fill me-1"></i> ADMIN CONSOLE
+                </span>
+                <span class="badge bg-secondary bg-opacity-25 text-white-50" style="font-size: 0.72rem;">
+                    Database Managed • Doctor-Wise
+                </span>
+            </div>
+            <h3 class="fw-bold mb-1 text-white">
+                <i class="bi bi-coin text-warning me-2"></i>Credit System &amp; Quota Management
+            </h3>
+            <p class="small mb-0" style="color: #cbd5e1;">
+                Manage Doctor Credit Balances • Paid &amp; Free Service Config • Audit Ledger • Instant Credit Adjustments
+            </p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-sm btn-outline-warning d-flex align-items-center gap-2 px-3 py-2" @onclick="RefreshDataAsync">
+                <i class="bi bi-arrow-clockwise"></i>
+                <span>Refresh</span>
+            </button>
+            <button class="btn btn-sm btn-warning d-flex align-items-center gap-2 px-3 py-2 fw-semibold" @onclick="OpenAddTypeModal">
+                <i class="bi bi-plus-circle-fill"></i>
+                <span>Add New Credit Type</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Top KPI Cards -->
+    <div class="row g-3">
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="glass-panel p-3 d-flex align-items-center gap-3">
+                <div class="rounded-3 p-3 text-warning d-flex align-items-center justify-content-center" style="background: rgba(245, 158, 11, 0.15); font-size: 1.5rem; width: 56px; height: 56px;">
+                    <i class="bi bi-people-fill"></i>
+                </div>
+                <div>
+                    <div class="text-white-50 small">Specialists Enrolled</div>
+                    <div class="fs-4 fw-bold text-white">@AllDoctors.Count</div>
+                    <div class="small text-success"><i class="bi bi-check-circle me-1"></i>All Auto-Initialized at 00</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="glass-panel p-3 d-flex align-items-center gap-3">
+                <div class="rounded-3 p-3 text-info d-flex align-items-center justify-content-center" style="background: rgba(6, 182, 212, 0.15); font-size: 1.5rem; width: 56px; height: 56px;">
+                    <i class="bi bi-collection-fill"></i>
+                </div>
+                <div>
+                    <div class="text-white-50 small">Active Credit Types</div>
+                    <div class="fs-4 fw-bold text-white">@CreditTypes.Count(c => c.IsActive) <span class="fs-6 text-white-50">/ @CreditTypes.Count</span></div>
+                    <div class="small text-info"><i class="bi bi-sliders me-1"></i>Free &amp; Paid Services</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="glass-panel p-3 d-flex align-items-center gap-3">
+                <div class="rounded-3 p-3 text-success d-flex align-items-center justify-content-center" style="background: rgba(16, 185, 129, 0.15); font-size: 1.5rem; width: 56px; height: 56px;">
+                    <i class="bi bi-images"></i>
+                </div>
+                <div>
+                    <div class="text-white-50 small">Template Service</div>
+                    <div class="fs-4 fw-bold text-white">
+                        @{
+                            var tplType = CreditTypes.FirstOrDefault(c => c.Code == "TEMPLATE_PUBLISH");
+                            var isFree = tplType != null && !tplType.IsPaid;
+                        }
+                        @(isFree ? "Free Service" : "Paid Service")
+                    </div>
+                    <div class="small text-white-50">Code: TEMPLATE_PUBLISH</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="glass-panel p-3 d-flex align-items-center gap-3">
+                <div class="rounded-3 p-3 text-primary d-flex align-items-center justify-content-center" style="background: rgba(59, 130, 246, 0.15); font-size: 1.5rem; width: 56px; height: 56px;">
+                    <i class="bi bi-stars"></i>
+                </div>
+                <div>
+                    <div class="text-white-50 small">AI Banner Service</div>
+                    <div class="fs-4 fw-bold text-white">
+                        @{
+                            var aiType = CreditTypes.FirstOrDefault(c => c.Code == "AI_BANNER_PUBLISH");
+                            var aiPaid = aiType != null && aiType.IsPaid;
+                        }
+                        @(aiPaid ? "Paid Service" : "Free Service")
+                    </div>
+                    <div class="small text-white-50">Code: AI_BANNER_PUBLISH</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab navigation -->
+    <div class="scroll-pills-mobile border-bottom gap-2" style="border-color: rgba(255, 255, 255, 0.1) !important;">
+        <button class="btn btn-link text-decoration-none px-3 py-2 fw-semibold @(ActiveTab == "doctors" ? "text-warning border-bottom border-warning border-2" : "text-white-50")"
+                @onclick='() => ActiveTab = "doctors"'>
+            <i class="bi bi-person-lines-fill me-2"></i>Doctor Credit Balances &amp; Adjustments
+        </button>
+        <button class="btn btn-link text-decoration-none px-3 py-2 fw-semibold @(ActiveTab == "types" ? "text-warning border-bottom border-warning border-2" : "text-white-50")"
+                @onclick='() => ActiveTab = "types"'>
+            <i class="bi bi-gear-wide-connected me-2"></i>Credit Types Configuration (@CreditTypes.Count)
+        </button>
+        <button class="btn btn-link text-decoration-none px-3 py-2 fw-semibold @(ActiveTab == "ledger" ? "text-warning border-bottom border-warning border-2" : "text-white-50")"
+                @onclick='() => ActiveTab = "ledger"'>
+            <i class="bi bi-journal-text me-2"></i>Recent System Ledger
+        </button>
+    </div>
+
+    <!-- TAB 1: DOCTORS CREDITS -->
+    @if (ActiveTab == "doctors")
+    {
+        <div class="row g-4">
+            <!-- Left: Doctor Selection & Directory -->
+            <div class="col-12 col-lg-5">
+                <div class="glass-panel p-3 d-flex flex-column gap-3">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <h5 class="fw-bold text-white mb-0">
+                            <i class="bi bi-people me-2 text-warning"></i>Select Doctor
+                        </h5>
+                        <span class="badge bg-secondary">@FilteredDoctors.Count() Doctors</span>
+                    </div>
+
+                    <div class="input-group">
+                        <span class="input-group-text bg-transparent border-secondary text-white-50">
+                            <i class="bi bi-search"></i>
+                        </span>
+                        <input type="text" class="form-control bg-transparent border-secondary text-white" 
+                               placeholder="Search doctor by name, spec, email..."
+                               @bind="DoctorSearchQuery" @bind:event="oninput" />
+                    </div>
+
+                    <div class="d-flex flex-column gap-2" style="max-height: 520px; overflow-y: auto;">
+                        @if (!FilteredDoctors.Any())
+                        {
+                            <div class="p-4 text-center text-white-50">
+                                <i class="bi bi-search fs-2 mb-2"></i>
+                                <div>No doctors found matching query</div>
+                            </div>
+                        }
+                        else
+                        {
+                            @foreach (var doc in FilteredDoctors)
+                            {
+                                var isSelected = SelectedDoctor != null && SelectedDoctor.Id == doc.Id;
+                                <div class="p-3 rounded-3 d-flex align-items-center justify-content-between gap-3 cursor-pointer"
+                                     style="background: @(isSelected ? "rgba(245, 158, 11, 0.18)" : "rgba(255, 255, 255, 0.03)"); border: 1px solid @(isSelected ? "#f59e0b" : "rgba(255, 255, 255, 0.08)"); cursor: pointer; transition: all 0.2s ease;"
+                                     @onclick="() => SelectDoctorAsync(doc)">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold"
+                                             style="width: 44px; height: 44px; background: linear-gradient(135deg, #0ea5e9, #3b82f6);">
+                                            @(doc.FullName.Length > 0 ? doc.FullName[0].ToString().ToUpper() : "D")
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold text-white">@doc.FullName</div>
+                                            <div class="small text-white-50">@doc.Specialization • @doc.City</div>
+                                            <div class="small text-info">@doc.User?.Email</div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        @if (isSelected)
+                                        {
+                                            <span class="badge bg-warning text-dark"><i class="bi bi-check-lg"></i> Active</span>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-chevron-right text-white-50"></i>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Selected Doctor Credit Cards & Adjustment Controls -->
+            <div class="col-12 col-lg-7">
+                @if (SelectedDoctor == null)
+                {
+                    <div class="glass-panel p-5 text-center text-white-50">
+                        <i class="bi bi-arrow-left-circle fs-1 text-warning mb-3 d-block"></i>
+                        <h5>No Doctor Selected</h5>
+                        <p>Select a specialist from the left panel to inspect balances and grant or deduct credits.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="d-flex flex-column gap-3">
+                        <!-- Doctor Banner Card -->
+                        <div class="glass-panel p-4 d-flex flex-wrap align-items-center justify-content-between gap-3" style="border-left: 4px solid #00f2fe;">
+                            <div>
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <span class="badge bg-info bg-opacity-25 text-info">Doctor ID: #@SelectedDoctor.Id</span>
+                                    <span class="badge @(SelectedDoctor.User?.IsActive == true ? "bg-success" : "bg-warning text-dark")">
+                                        @(SelectedDoctor.User?.IsActive == true ? "Active Specialist" : "Pending Approval")
+                                    </span>
+                                </div>
+                                <h4 class="fw-bold text-white mb-0">@SelectedDoctor.FullName</h4>
+                                <div class="small text-white-50">@SelectedDoctor.Specialization • @SelectedDoctor.ClinicName</div>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-sm btn-outline-info" @onclick="() => InitializeDoctorCredits(SelectedDoctor.Id)">
+                                    <i class="bi bi-arrow-repeat me-1"></i> Sync/Reset Missing 00
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Doctor Credit Cards by Type -->
+                        <div class="row g-3">
+                            @if (!SelectedDoctorCredits.Any())
+                            {
+                                <div class="col-12">
+                                    <div class="glass-panel p-4 text-center text-white-50">
+                                        <div class="spinner-border spinner-border-sm text-warning me-2" role="status"></div>
+                                        <span>Loading doctor credit balances...</span>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                @foreach (var credit in SelectedDoctorCredits)
+                                {
+                                    <div class="col-12 col-md-6">
+                                        <div class="glass-panel p-3 d-flex flex-column justify-content-between h-100" style="border: 1px solid rgba(255, 255, 255, 0.1);">
+                                            <div>
+                                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                                    <span class="badge @(credit.IsPaid ? "bg-warning text-dark" : "bg-success")">
+                                                        <i class="bi @(credit.IsPaid ? "bi-cash-coin" : "bi-gift") me-1"></i>
+                                                        @(credit.IsPaid ? "PAID SERVICE" : "FREE SERVICE")
+                                                    </span>
+                                                    <span class="badge @(credit.IsActive ? "bg-success bg-opacity-25 text-success" : "bg-danger bg-opacity-25 text-danger")">
+                                                        @(credit.IsActive ? "Active" : "Inactive")
+                                                    </span>
+                                                </div>
+
+                                                <h5 class="fw-bold text-white mb-1">@credit.CreditTypeName</h5>
+                                                <div class="small text-white-50 font-monospace mb-3">@credit.CreditTypeCode</div>
+
+                                                <!-- Big Remaining Balance -->
+                                                <div class="p-3 rounded-3 text-center mb-3" style="background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.05);">
+                                                    <div class="small text-white-50">Available Remaining Balance</div>
+                                                    <div class="display-6 fw-bold text-warning">@credit.RemainingCredits</div>
+                                                    <div class="d-flex justify-content-around mt-2 pt-2 border-top border-secondary border-opacity-25 small text-white-50">
+                                                        <div>Total Granted: <strong class="text-white">@credit.TotalCredits</strong></div>
+                                                        <div>Used: <strong class="text-white">@credit.UsedCredits</strong></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Action Buttons -->
+                                            <div class="d-flex gap-2">
+                                                <button class="btn btn-sm btn-success flex-fill d-flex align-items-center justify-content-center gap-1"
+                                                        @onclick="() => OpenAdjustModal(credit, true)">
+                                                    <i class="bi bi-plus-lg"></i>
+                                                    <span>Add Credits</span>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger flex-fill d-flex align-items-center justify-content-center gap-1"
+                                                        @onclick="() => OpenAdjustModal(credit, false)">
+                                                    <i class="bi bi-dash-lg"></i>
+                                                    <span>Deduct</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                        </div>
+
+                        <!-- Doctor Specific Recent Transactions Ledger -->
+                        <div class="glass-panel p-3">
+                            <h6 class="fw-bold text-white mb-3">
+                                <i class="bi bi-clock-history text-warning me-2"></i>Audit History for @SelectedDoctor.FullName
+                            </h6>
+                            @if (!DoctorTransactions.Any())
+                            {
+                                <div class="text-center py-4 text-white-50 small">No transactions recorded for this doctor yet.</div>
+                            }
+                            else
+                            {
+                                <div class="table-responsive" style="max-height: 280px; overflow-y: auto;">
+                                    <table class="table table-dark table-hover table-sm align-middle mb-0" style="background: transparent;">
+                                        <thead>
+                                            <tr class="text-white-50 small">
+                                                <th>Time</th>
+                                                <th>Service</th>
+                                                <th>Action</th>
+                                                <th class="text-end">Changed</th>
+                                                <th class="text-end">Balance After</th>
+                                                <th>Note</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var tx in DoctorTransactions)
+                                            {
+                                                <tr>
+                                                    <td class="small text-white-50">@tx.CreatedAt.ToLocalTime().ToString("dd MMM yyyy, hh:mm tt")</td>
+                                                    <td><span class="badge bg-secondary">@tx.CreditTypeName</span></td>
+                                                    <td><span class="badge @tx.BadgeClass">@tx.TransactionLabel</span></td>
+                                                    <td class="text-end fw-bold @(tx.IsCredit ? "text-success" : "text-danger")">@tx.SignedAmount</td>
+                                                    <td class="text-end fw-bold text-warning">@tx.BalanceAfter</td>
+                                                    <td class="small text-white-50">@(string.IsNullOrEmpty(tx.Note) ? "-" : tx.Note)</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- TAB 2: CREDIT TYPES CONFIGURATION -->
+    @if (ActiveTab == "types")
+    {
+        <div class="glass-panel p-4">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+                <div>
+                    <h5 class="fw-bold text-white mb-1">
+                        <i class="bi bi-gear-wide-connected text-warning me-2"></i>System Credit Types Catalog
+                    </h5>
+                    <p class="small text-white-50 mb-0">
+                        Database-managed service catalog. Any new service added automatically creates 00 balance entry for all doctors.
+                    </p>
+                </div>
+                <button class="btn btn-warning btn-sm fw-semibold" @onclick="OpenAddTypeModal">
+                    <i class="bi bi-plus-lg me-1"></i> Add New Service Type
+                </button>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-dark table-hover align-middle mb-0" style="background: transparent;">
+                    <thead>
+                        <tr class="text-white-50 small border-secondary">
+                            <th># ID</th>
+                            <th>Service Name</th>
+                            <th>Unique Code</th>
+                            <th>Service Model</th>
+                            <th>Cost / Action</th>
+                            <th>Status</th>
+                            <th>Description</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var ct in CreditTypes)
+                        {
+                            <tr>
+                                <td class="font-monospace text-white-50">#@ct.Id</td>
+                                <td class="fw-bold text-white">@ct.Name</td>
+                                <td class="font-monospace text-info small">@ct.Code</td>
+                                <td>
+                                    <button class="btn btn-sm @(ct.IsPaid ? "btn-warning" : "btn-success") py-0 px-2 fw-semibold"
+                                            style="font-size: 0.75rem;"
+                                            @onclick="() => TogglePaidStatus(ct)">
+                                        <i class="bi @(ct.IsPaid ? "bi-cash-coin" : "bi-gift") me-1"></i>
+                                        @(ct.IsPaid ? "PAID (Click to Free)" : "FREE (Click to Paid)")
+                                    </button>
+                                </td>
+                                <td class="fw-bold text-warning">@ct.CreditCost Credit</td>
+                                <td>
+                                    <button class="btn btn-sm @(ct.IsActive ? "btn-outline-success" : "btn-outline-danger") py-0 px-2"
+                                            style="font-size: 0.75rem;"
+                                            @onclick="() => ToggleActiveStatus(ct)">
+                                        <i class="bi @(ct.IsActive ? "bi-check-circle-fill" : "bi-x-circle-fill") me-1"></i>
+                                        @(ct.IsActive ? "Active" : "Inactive")
+                                    </button>
+                                </td>
+                                <td class="small text-white-50" style="max-width: 250px;">@(ct.Description ?? "-")</td>
+                                <td class="text-end">
+                                    <button class="btn btn-sm btn-outline-warning" @onclick="() => EditCreditType(ct)">
+                                        <i class="bi bi-pencil-square"></i> Edit
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
+    <!-- TAB 3: SYSTEM AUDIT LEDGER -->
+    @if (ActiveTab == "ledger")
+    {
+        <div class="glass-panel p-4">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+                <h5 class="fw-bold text-white mb-0">
+                    <i class="bi bi-journal-text text-warning me-2"></i>Global Credit Audit Trail
+                </h5>
+                <span class="badge bg-secondary">Total Records: @AllLedgerTransactions.Count</span>
+            </div>
+
+            <div class="table-responsive" style="max-height: 560px; overflow-y: auto;">
+                <table class="table table-dark table-hover table-sm align-middle mb-0" style="background: transparent;">
+                    <thead>
+                        <tr class="text-white-50 small border-secondary">
+                            <th>Timestamp</th>
+                            <th>Doctor Name</th>
+                            <th>Credit Type</th>
+                            <th>Transaction Type</th>
+                            <th class="text-end">Change</th>
+                            <th class="text-end">Balance After</th>
+                            <th>Action By</th>
+                            <th>Note / Ref</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var tx in AllLedgerTransactions)
+                        {
+                            <tr>
+                                <td class="small text-white-50">@tx.CreatedAt.ToLocalTime().ToString("dd MMM yyyy, hh:mm tt")</td>
+                                <td class="fw-bold text-white">@tx.DoctorName</td>
+                                <td><span class="badge bg-secondary">@tx.CreditTypeName</span></td>
+                                <td><span class="badge @tx.BadgeClass">@tx.TransactionLabel</span></td>
+                                <td class="text-end fw-bold @(tx.IsCredit ? "text-success" : "text-danger")">@tx.SignedAmount</td>
+                                <td class="text-end fw-bold text-warning">@tx.BalanceAfter</td>
+                                <td class="small text-white-50">@(tx.ActionBy ?? "System")</td>
+                                <td class="small text-white-50">@(string.IsNullOrEmpty(tx.Note) ? (tx.ReferenceId ?? "-") : tx.Note)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- MODAL: ADJUST DOCTOR CREDITS -->
+@if (ShowAdjustModal && AdjustingCredit != null && SelectedDoctor != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(5px);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content text-white" style="background: #0f172a; border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 16px;">
+                <div class="modal-header border-secondary border-opacity-25">
+                    <h5 class="modal-title fw-bold">
+                        <i class="bi @(IsAddMode ? "bi-plus-circle-fill text-success" : "bi-dash-circle-fill text-danger") me-2"></i>
+                        @(IsAddMode ? "Add Credits" : "Deduct Credits") • @AdjustingCredit.CreditTypeName
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="() => ShowAdjustModal = false"></button>
+                </div>
+                <div class="modal-body d-flex flex-column gap-3">
+                    <div class="p-3 rounded-3" style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08);">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-white-50">Doctor:</span>
+                            <span class="fw-bold text-white">@SelectedDoctor.FullName</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-white-50">Credit Service:</span>
+                            <span class="text-info font-monospace">@AdjustingCredit.CreditTypeCode</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-white-50">Current Balance:</span>
+                            <span class="fw-bold text-warning fs-5">@AdjustingCredit.RemainingCredits Credits</span>
+                        </div>
+                    </div>
+
+                    <!-- Quick amount buttons -->
+                    <div>
+                        <label class="form-label text-white-50 small mb-2">Quick Presets</label>
+                        <div class="d-flex gap-2 flex-wrap">
+                            @foreach (var preset in new[] { 5, 10, 25, 50, 100 })
+                            {
+                                <button type="button" class="btn btn-sm btn-outline-warning" @onclick="() => AdjustAmount = preset">
+                                    +@preset
+                                </button>
+                            }
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="form-label text-white-50 small mb-1">Credits Amount to @(IsAddMode ? "Add" : "Deduct")</label>
+                        <input type="number" min="1" max="10000" class="form-control bg-dark border-secondary text-white fs-5 fw-bold"
+                               @bind="AdjustAmount" />
+                    </div>
+
+                    <div>
+                        <label class="form-label text-white-50 small mb-1">Reason / Note (Required for Audit)</label>
+                        <textarea class="form-control bg-dark border-secondary text-white" rows="2"
+                                  placeholder="e.g. Monthly promotional package bonus, payment received, correction..."
+                                  @bind="AdjustNote"></textarea>
+                    </div>
+
+                    <div class="p-2 rounded-2 small text-center" style="background: rgba(245, 158, 11, 0.1); border: 1px dashed rgba(245, 158, 11, 0.3); color: #fbbf24;">
+                        Balance after action: <strong>@(IsAddMode ? (AdjustingCredit.RemainingCredits + AdjustAmount) : Math.Max(0, AdjustingCredit.RemainingCredits - AdjustAmount))</strong> Credits
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary border-opacity-25">
+                    <button type="button" class="btn btn-outline-secondary" @onclick="() => ShowAdjustModal = false">Cancel</button>
+                    <button type="button" class="btn @(IsAddMode ? "btn-success" : "btn-danger") px-4 fw-semibold"
+                            disabled="@(AdjustAmount <= 0 || IsSubmitting)"
+                            @onclick="SubmitCreditAdjustmentAsync">
+                        @if (IsSubmitting)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                        }
+                        <span>Confirm @(IsAddMode ? "Credit Addition" : "Deduction")</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- MODAL: ADD / EDIT CREDIT TYPE -->
+@if (ShowTypeModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(5px);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content text-white" style="background: #0f172a; border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 16px;">
+                <div class="modal-header border-secondary border-opacity-25">
+                    <h5 class="modal-title fw-bold">
+                        <i class="bi bi-sliders text-warning me-2"></i>
+                        @(EditingType.Id > 0 ? "Edit Credit Service Type" : "Add New Credit Service Type")
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="() => ShowTypeModal = false"></button>
+                </div>
+                <div class="modal-body d-flex flex-column gap-3">
+                    <div>
+                        <label class="form-label text-white-50 small mb-1">Service Display Name *</label>
+                        <input type="text" class="form-control bg-dark border-secondary text-white"
+                               placeholder="e.g. Video Story Reel Creation"
+                               @bind="EditingType.Name" />
+                    </div>
+
+                    <div>
+                        <label class="form-label text-white-50 small mb-1">Unique Service Code (UPPERCASE_SNAKE) *</label>
+                        <input type="text" class="form-control bg-dark border-secondary text-white font-monospace"
+                               placeholder="e.g. REEL_VIDEO_PUBLISH"
+                               @bind="EditingType.Code"
+                               disabled="@(EditingType.Id > 0)" />
+                    </div>
+
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label text-white-50 small mb-1">Service Classification</label>
+                            <select class="form-select bg-dark border-secondary text-white" @bind="EditingType.IsPaid">
+                                <option value="false">Free Service</option>
+                                <option value="true">Paid Service</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label text-white-50 small mb-1">Credit Cost / Action</label>
+                            <input type="number" min="1" max="100" class="form-control bg-dark border-secondary text-white"
+                                   @bind="EditingType.CreditCost" />
+                        </div>
+                    </div>
+
+                    <div class="form-check form-switch mt-2">
+                        <input class="form-check-input" type="checkbox" id="typeActiveSwitch" @bind="EditingType.IsActive" />
+                        <label class="form-check-label text-white" for="typeActiveSwitch">Active Service (Available to Doctors)</label>
+                    </div>
+
+                    <div>
+                        <label class="form-label text-white-50 small mb-1">Description / Details</label>
+                        <textarea class="form-control bg-dark border-secondary text-white" rows="2"
+                                  placeholder="Describe what doctor gets when this credit is consumed..."
+                                  @bind="EditingType.Description"></textarea>
+                    </div>
+
+                    @if (EditingType.Id == 0)
+                    {
+                        <div class="p-2 rounded-2 small" style="background: rgba(14, 165, 233, 0.1); border: 1px dashed rgba(14, 165, 233, 0.4); color: #38bdf8;">
+                            <i class="bi bi-info-circle me-1"></i> Adding this service will automatically initialize <strong>00</strong> balance entries for all enrolled doctors in the database.
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer border-secondary border-opacity-25">
+                    <button type="button" class="btn btn-outline-secondary" @onclick="() => ShowTypeModal = false">Cancel</button>
+                    <button type="button" class="btn btn-warning px-4 fw-semibold"
+                            disabled="@(string.IsNullOrWhiteSpace(EditingType.Name) || string.IsNullOrWhiteSpace(EditingType.Code) || IsSubmitting)"
+                            @onclick="SaveCreditTypeAsync">
+                        @if (IsSubmitting)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                        }
+                        <span>Save Credit Type</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<ToastPopup Notification="activePopup" OnDismiss="DismissPopup" />
+
+@code {
+        private ToastNotificationDTO? activePopup;
+
+    private void ShowToast(string message, string type = "save")
+    {
+        activePopup = new ToastNotificationDTO
+        {
+            Title = type == "danger" ? "Notice" : (type == "info" ? "Information" : "Success"),
+            Message = message,
+            Type = type == "danger" ? "error" : (type == "info" ? "info" : "save")
+        };
+    }
+
+    private void DismissPopup()
+    {
+        activePopup = null;
+    }
+    private string ActiveTab = "doctors";
+
+    private List<DoctorProfile> AllDoctors = new();
+    private List<CreditTypeDTO> CreditTypes = new();
+    private List<DoctorCreditDTO> SelectedDoctorCredits = new();
+    private List<CreditTransactionDTO> DoctorTransactions = new();
+    private List<CreditTransactionDTO> AllLedgerTransactions = new();
+
+    private DoctorProfile? SelectedDoctor;
+    private string DoctorSearchQuery = string.Empty;
+
+    // Adjust modal
+    private bool ShowAdjustModal = false;
+    private DoctorCreditDTO? AdjustingCredit;
+    private bool IsAddMode = true;
+    private int AdjustAmount = 10;
+    private string AdjustNote = string.Empty;
+
+    // Type modal
+    private bool ShowTypeModal = false;
+    private CreditTypeDTO EditingType = new();
+    private bool IsSubmitting = false;
+
+    private IEnumerable<DoctorProfile> FilteredDoctors =>
+        string.IsNullOrWhiteSpace(DoctorSearchQuery)
+            ? AllDoctors
+            : AllDoctors.Where(d =>
+                d.FullName.Contains(DoctorSearchQuery, StringComparison.OrdinalIgnoreCase) ||
+                (d.Specialization?.Contains(DoctorSearchQuery, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (d.City?.Contains(DoctorSearchQuery, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (d.User?.Email?.Contains(DoctorSearchQuery, StringComparison.OrdinalIgnoreCase) ?? false));
+
+    protected override async Task OnInitializedAsync()
+    {
+        var currentUser = await AuthService.GetOrRestoreCurrentUserAsync();
+        if (currentUser == null)
+        {
+            NavigationManager.NavigateTo("login");
+            return;
+        }
+        if (currentUser.Role != "Admin")
+        {
+            NavigationManager.NavigateTo("doctor/dashboard");
+            return;
+        }
+
+        await RefreshDataAsync();
+
+        if (AllDoctors.Any())
+        {
+            await SelectDoctorAsync(AllDoctors.First());
+        }
+    }
+
+    private async Task RefreshDataAsync()
+    {
+        try
+        {
+            AllDoctors = await DoctorRepo.GetAllWithUsersAsync();
+            CreditTypes = await CreditRepo.GetAllCreditTypesAsync(onlyActive: false);
+            AllLedgerTransactions = await CreditRepo.GetTransactionsAsync();
+
+            if (SelectedDoctor != null)
+            {
+                await LoadDoctorCreditDetailsAsync(SelectedDoctor.Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowToast($"Error loading data: {ex.Message}", "danger");
+        }
+    }
+
+    private async Task SelectDoctorAsync(DoctorProfile doc)
+    {
+        SelectedDoctor = doc;
+        await LoadDoctorCreditDetailsAsync(doc.Id);
+    }
+
+    private async Task LoadDoctorCreditDetailsAsync(int doctorId)
+    {
+        SelectedDoctorCredits = await CreditRepo.GetDoctorCreditsAsync(doctorId);
+        DoctorTransactions = await CreditRepo.GetTransactionsAsync(doctorId: doctorId);
+    }
+
+    private async Task InitializeDoctorCredits(int doctorId)
+    {
+        var ok = await CreditRepo.InitializeDoctorCreditsAsync(doctorId);
+        if (ok)
+        {
+            await LoadDoctorCreditDetailsAsync(doctorId);
+            ShowToast("Doctor credit accounts synchronized with all active services at 00.", "success");
+        }
+    }
+
+    private void OpenAdjustModal(DoctorCreditDTO credit, bool isAdd)
+    {
+        AdjustingCredit = credit;
+        IsAddMode = isAdd;
+        AdjustAmount = isAdd ? 10 : 1;
+        AdjustNote = isAdd ? "Admin credit top-up" : "Manual admin credit deduction";
+        ShowAdjustModal = true;
+    }
+
+    private async Task SubmitCreditAdjustmentAsync()
+    {
+        if (AdjustingCredit == null || SelectedDoctor == null || AdjustAmount <= 0) return;
+
+        IsSubmitting = true;
+        try
+        {
+            var adminUser = AuthService.GetCurrentUser();
+            var dto = new AdminAdjustCreditDTO
+            {
+                DoctorId = SelectedDoctor.Id,
+                CreditTypeId = AdjustingCredit.CreditTypeId,
+                Amount = IsAddMode ? AdjustAmount : -AdjustAmount,
+                ActionBy = adminUser?.FullName ?? "Administrator",
+                Note = AdjustNote
+            };
+
+            var (success, msg, newBal) = await CreditRepo.AdjustDoctorCreditAsync(dto);
+            if (success)
+            {
+                ShowAdjustModal = false;
+                await LoadDoctorCreditDetailsAsync(SelectedDoctor.Id);
+                AllLedgerTransactions = await CreditRepo.GetTransactionsAsync();
+                ShowToast($"Success! {SelectedDoctor.FullName} new balance: {newBal} Credits.", "success");
+            }
+            else
+            {
+                ShowToast($"Failed: {msg}", "danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowToast($"Error: {ex.Message}", "danger");
+        }
+        finally
+        {
+            IsSubmitting = false;
+        }
+    }
+
+    private void OpenAddTypeModal()
+    {
+        EditingType = new CreditTypeDTO
+        {
+            IsActive = true,
+            IsPaid = false,
+            ServiceType = "Free",
+            CreditCost = 1
+        };
+        ShowTypeModal = true;
+    }
+
+    private void EditCreditType(CreditTypeDTO ct)
+    {
+        EditingType = new CreditTypeDTO
+        {
+            Id = ct.Id,
+            Name = ct.Name,
+            Code = ct.Code,
+            ServiceType = ct.ServiceType,
+            IsPaid = ct.IsPaid,
+            IsActive = ct.IsActive,
+            Description = ct.Description,
+            CreditCost = ct.CreditCost
+        };
+        ShowTypeModal = true;
+    }
+
+    private async Task SaveCreditTypeAsync()
+    {
+        if (string.IsNullOrWhiteSpace(EditingType.Name) || string.IsNullOrWhiteSpace(EditingType.Code)) return;
+
+        IsSubmitting = true;
+        try
+        {
+            EditingType.Code = EditingType.Code.Trim().ToUpper().Replace(" ", "_");
+            EditingType.ServiceType = EditingType.IsPaid ? "Paid" : "Free";
+
+            var id = await CreditRepo.SaveCreditTypeAsync(EditingType);
+            if (id > 0)
+            {
+                ShowTypeModal = false;
+                CreditTypes = await CreditRepo.GetAllCreditTypesAsync(onlyActive: false);
+                if (SelectedDoctor != null)
+                {
+                    await LoadDoctorCreditDetailsAsync(SelectedDoctor.Id);
+                }
+                ShowToast("Credit Type saved and propagated to all doctors at 00 balance.", "success");
+            }
+            else
+            {
+                ShowToast("Failed to save Credit Type. Check if code already exists.", "danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowToast($"Error: {ex.Message}", "danger");
+        }
+        finally
+        {
+            IsSubmitting = false;
+        }
+    }
+
+    private async Task TogglePaidStatus(CreditTypeDTO ct)
+    {
+        bool newPaid = !ct.IsPaid;
+        var ok = await CreditRepo.ToggleCreditTypePaidStatusAsync(ct.Id, newPaid);
+        if (ok)
+        {
+            ct.IsPaid = newPaid;
+            ct.ServiceType = newPaid ? "Paid" : "Free";
+            ShowToast($"{ct.Name} switched to {(newPaid ? "PAID" : "FREE")} service.", "info");
+        }
+    }
+
+    private async Task ToggleActiveStatus(CreditTypeDTO ct)
+    {
+        bool newActive = !ct.IsActive;
+        var ok = await CreditRepo.ToggleCreditTypeStatusAsync(ct.Id, newActive);
+        if (ok)
+        {
+            ct.IsActive = newActive;
+            ShowToast($"{ct.Name} status set to {(newActive ? "ACTIVE" : "INACTIVE")}.", "info");
+        }
+    }
+}

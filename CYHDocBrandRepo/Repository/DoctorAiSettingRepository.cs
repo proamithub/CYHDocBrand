@@ -15,7 +15,7 @@ public class DoctorAiSettingRepository : IDoctorAiSettingRepository
     public DoctorAiSettingRepository(IConfiguration configuration, ILogger<DoctorAiSettingRepository>? logger = null)
     {
         _conn = configuration.GetConnectionString("DefaultConnection")
-            ?? "Server=VRS-AMITPC\\SQLEXPRESS;Database=CYHDocBrandBD;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
+            ?? "Server=AMITLAP;Database=CYHDocBrandBD;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
         _logger = logger;
     }
 

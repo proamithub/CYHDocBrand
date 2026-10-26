@@ -41,7 +41,7 @@
             </button>
         </div>
 
-        <div class="position-relative" style="min-width: 260px;">
+        <div class="position-relative flex-grow-1" style="min-width: 200px; max-width: 380px;">
             <i class="bi bi-search position-absolute" style="left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.88rem;"></i>
             <input type="text" class="glass-input py-1" style="padding-left: 2.3rem; font-size: 0.88rem;" @bind="SearchQuery" @bind:event="oninput" placeholder="Search doctor or specialization..." />
         </div>
@@ -466,7 +466,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var currentUser = AuthService.GetCurrentUser();
+        var currentUser = await AuthService.GetOrRestoreCurrentUserAsync();
         if (currentUser == null)
         {
             NavigationManager.NavigateTo("login");

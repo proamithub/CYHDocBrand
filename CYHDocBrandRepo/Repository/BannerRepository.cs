@@ -16,8 +16,15 @@ public class BannerRepository : IBannerRepository
     public BannerRepository(IConfiguration configuration, ILogger<BannerRepository>? logger = null)
     {
         _conn = configuration.GetConnectionString("DefaultConnection")
-            ?? "Server=VRS-AMITPC\\SQLEXPRESS;Database=CYHDocBrandBD;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
+            ?? "Server=AMITLAP;Database=CYHDocBrandBD;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
         _logger = logger;
+    }
+
+    private static string? Truncate(string? value, int maxLength, string? fallback = null)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return fallback;
+        var trimmed = value.Trim();
+        return trimmed.Length <= maxLength ? trimmed : trimmed.Substring(0, maxLength);
     }
 
     // ── ManageBannerDesigns_CYH Stored Procedure ─────────────────────────────
@@ -46,6 +53,7 @@ public class BannerRepository : IBannerRepository
         catch (Exception ex)
         {
             _logger?.LogError(ex, "Error getting banner designs from database via ManageBannerDesigns_CYH");
+            throw;
         }
         return list;
     }
@@ -71,6 +79,7 @@ public class BannerRepository : IBannerRepository
         catch (Exception ex)
         {
             _logger?.LogError(ex, "Error getting banner design with ID {Id} via ManageBannerDesigns_CYH", id);
+            throw;
         }
         return null;
     }
@@ -89,16 +98,23 @@ public class BannerRepository : IBannerRepository
             cmd.Parameters.AddWithValue("@Flag", "SAVE_DRAFT");
             cmd.Parameters.AddWithValue("@Id", state.Id > 0 ? state.Id : (object)DBNull.Value);
             cmd.Parameters.AddWithValue("@UserId", (object?)userId ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@DoctorName", state.DoctorName ?? string.Empty);
-            cmd.Parameters.AddWithValue("@HospitalName", state.HospitalName ?? string.Empty);
-            cmd.Parameters.AddWithValue("@TemplateType", state.TemplateType ?? "Doctor");
-            cmd.Parameters.AddWithValue("@Heading", state.Heading ?? "Specialist Consultation");
-            cmd.Parameters.AddWithValue("@Subtitle", (object?)state.Subtitle ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@Status", string.IsNullOrEmpty(state.Status) ? "Draft" : state.Status);
-            cmd.Parameters.AddWithValue("@AspectRatio", state.AspectRatio ?? "1:1");
-            cmd.Parameters.AddWithValue("@PrimaryColor", state.PrimaryColor ?? "#00f2fe");
-            cmd.Parameters.AddWithValue("@BackgroundImageUrl", (object?)state.BackgroundImageUrl ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@ConfigJson", json);
+            cmd.Parameters.AddWithValue("@DoctorName", Truncate(state.DoctorName, 200, "Dr. Specialist, MD")!);
+            cmd.Parameters.AddWithValue("@HospitalName", (object?)Truncate(state.HospitalName, 200, null) ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@TemplateType", Truncate(state.TemplateType, 100, "Doctor")!);
+            cmd.Parameters.AddWithValue("@Heading", Truncate(state.Heading, 500, "Healthcare Consultation & Care")!);
+
+            var subParam = cmd.Parameters.Add("@Subtitle", SqlDbType.NVarChar, -1);
+            subParam.Value = (object?)state.Subtitle ?? DBNull.Value;
+
+            cmd.Parameters.AddWithValue("@Status", string.IsNullOrEmpty(state.Status) ? "Draft" : Truncate(state.Status, 50, "Draft")!);
+            cmd.Parameters.AddWithValue("@AspectRatio", Truncate(state.AspectRatio, 50, "1:1")!);
+            cmd.Parameters.AddWithValue("@PrimaryColor", Truncate(state.PrimaryColor, 50, "#00f2fe")!);
+
+            var bgParam = cmd.Parameters.Add("@BackgroundImageUrl", SqlDbType.NVarChar, -1);
+            bgParam.Value = (object?)state.BackgroundImageUrl ?? DBNull.Value;
+
+            var jsonParam = cmd.Parameters.Add("@ConfigJson", SqlDbType.NVarChar, -1);
+            jsonParam.Value = json;
 
             var result = await cmd.ExecuteScalarAsync();
             return result != null && result != DBNull.Value ? Convert.ToInt32(result) : 0;
@@ -106,7 +122,7 @@ public class BannerRepository : IBannerRepository
         catch (Exception ex)
         {
             _logger?.LogError(ex, "Error saving banner draft to database via ManageBannerDesigns_CYH");
-            return 0;
+            throw;
         }
     }
 
@@ -130,7 +146,7 @@ public class BannerRepository : IBannerRepository
         catch (Exception ex)
         {
             _logger?.LogError(ex, "Error publishing banner with ID {Id} via ManageBannerDesigns_CYH", id);
-            return false;
+            throw;
         }
     }
 
@@ -140,6 +156,20 @@ public class BannerRepository : IBannerRepository
         {
             await using var con = new SqlConnection(_conn);
             await con.OpenAsync();
+
+            // Published banner delete lock: Only Admin can delete published banners.
+            // If userId is provided (Doctor context), verify banner is not Published
+            if (!string.IsNullOrEmpty(userId))
+            {
+                await using var checkCmd = new SqlCommand("SELECT Status FROM [dbo].[BannerDesigns_CYH] WHERE Id = @Id", con);
+                checkCmd.Parameters.AddWithValue("@Id", id);
+                var statusObj = await checkCmd.ExecuteScalarAsync();
+                var status = statusObj?.ToString();
+                if (string.Equals(status, "Published", StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException("Published banner locked hai! Published banner ko sirf Administrator hi delete kar sakta hai.");
+                }
+            }
 
             await using var cmd = new SqlCommand("ManageBannerDesigns_CYH", con);
             cmd.CommandType = CommandType.StoredProcedure;
@@ -153,7 +183,7 @@ public class BannerRepository : IBannerRepository
         catch (Exception ex)
         {
             _logger?.LogError(ex, "Error deleting banner with ID {Id} via ManageBannerDesigns_CYH", id);
-            return false;
+            throw;
         }
     }
 
@@ -174,18 +204,18 @@ public class BannerRepository : IBannerRepository
         {
             Id = Convert.ToInt32(reader["Id"]),
             UserId = reader["UserId"] != DBNull.Value ? reader["UserId"].ToString() : null,
-            DoctorName = reader["DoctorName"].ToString() ?? string.Empty,
+            DoctorName = reader["DoctorName"] != DBNull.Value ? reader["DoctorName"].ToString() ?? string.Empty : string.Empty,
             HospitalName = reader["HospitalName"] != DBNull.Value ? reader["HospitalName"].ToString() ?? string.Empty : string.Empty,
-            TemplateType = reader["TemplateType"].ToString() ?? "Doctor",
-            Heading = reader["Heading"].ToString() ?? string.Empty,
+            TemplateType = reader["TemplateType"] != DBNull.Value ? reader["TemplateType"].ToString() ?? "Doctor" : "Doctor",
+            Heading = reader["Heading"] != DBNull.Value ? reader["Heading"].ToString() ?? string.Empty : string.Empty,
             Subtitle = reader["Subtitle"] != DBNull.Value ? reader["Subtitle"].ToString() : null,
-            Status = reader["Status"].ToString() ?? "Draft",
-            AspectRatio = reader["AspectRatio"].ToString() ?? "1:1",
-            PrimaryColor = reader["PrimaryColor"].ToString() ?? "#00f2fe",
+            Status = reader["Status"] != DBNull.Value ? reader["Status"].ToString() ?? "Draft" : "Draft",
+            AspectRatio = reader["AspectRatio"] != DBNull.Value ? reader["AspectRatio"].ToString() ?? "1:1" : "1:1",
+            PrimaryColor = reader["PrimaryColor"] != DBNull.Value ? reader["PrimaryColor"].ToString() ?? "#00f2fe" : "#00f2fe",
             BackgroundImageUrl = reader["BackgroundImageUrl"] != DBNull.Value ? reader["BackgroundImageUrl"].ToString() : null,
             ConfigJson = configJson,
-            CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
-            UpdatedAt = Convert.ToDateTime(reader["UpdatedAt"]),
+            CreatedAt = reader["CreatedAt"] != DBNull.Value ? Convert.ToDateTime(reader["CreatedAt"]) : DateTime.UtcNow,
+            UpdatedAt = reader["UpdatedAt"] != DBNull.Value ? Convert.ToDateTime(reader["UpdatedAt"]) : DateTime.UtcNow,
             PublishedAt = reader["PublishedAt"] != DBNull.Value ? Convert.ToDateTime(reader["PublishedAt"]) : null
         };
     }

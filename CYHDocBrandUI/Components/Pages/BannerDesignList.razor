@@ -4,10 +4,15 @@
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 
 @using CYHDocBrandModel.DTO
+@using CYHDocBrandData.Entities
 @using CYHDocBrandUI.Components.Common
+@using CYHDocBrandRepo.Utilities
 
 @inject IBannerRepository BannerRepo
+@inject ICreditRepository CreditRepo
+@inject IDoctorRepository DoctorRepo
 @inject IAuthService AuthService
+@inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
 
 <!-- Animated Floating Toast Popup -->
@@ -19,23 +24,33 @@
         <div>
             <div class="d-flex align-items-center gap-2">
                 <span class="badge px-3 py-2" style="background: rgba(0, 242, 254, 0.15); border: 1px solid rgba(0, 242, 254, 0.4); color: #00f2fe; border-radius: 8px; font-weight: 700;">
-                    <i class="bi bi-collection-play-fill me-1"></i> SQL DATABASE MANAGED
+                    <i class="bi bi-collection-play-fill me-1"></i>
+                    @(IsAdmin ? "ADMIN INSPECTION & AUDIT" : "CLINICAL BRANDING LIBRARY")
                 </span>
                 <span class="text-secondary" style="font-size: 0.85rem;">CYH Creative Studio</span>
             </div>
             <h2 class="mt-2 mb-1 fw-bold text-white" style="letter-spacing: -0.5px;">
-                Banner Designs <span style="background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Library</span>
+                @(IsAdmin ? "Specialist Banner Designs (Doctor-Wise)" : "My Banner Designs Library")
             </h2>
             <p class="text-secondary mb-0" style="font-size: 0.92rem;">
-                Apne saare Draft aur Published banners ko manage karein. Drafts ko edit karein, aur Published banners ko direct use karein.
+                @(IsAdmin
+                    ? "Admin Read-Only Portal: Inspect specialist banners doctor-wise. Banners are protected from modification. Deletion available."
+                    : "Manage your Draft and Published banners. Published banners are locked and finalized for patient brand safety.")
             </p>
         </div>
 
-        <div class="d-flex gap-2">
-            <NavLink href="@GetCreateUrl()" class="btn btn-info d-flex align-items-center gap-2 px-4 py-2 fw-bold" style="background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); border: none; border-radius: 10px; color: #070d1e;">
-                <i class="bi bi-plus-lg fs-6"></i>
-                <span>Create New Banner</span>
+        <div class="d-flex flex-wrap gap-2">
+            <NavLink href="@GetCreditHistoryUrl()" class="btn btn-outline-info d-flex align-items-center gap-2 px-3 py-2" style="border-radius: 10px;">
+                <i class="bi bi-clock-history"></i>
+                <span>Credit History</span>
             </NavLink>
+            @if (!IsAdmin)
+            {
+                <NavLink href="@GetCreateUrl()" class="btn btn-info d-flex align-items-center gap-2 px-4 py-2 fw-bold" style="background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); border: none; border-radius: 10px; color: #070d1e;">
+                    <i class="bi bi-plus-lg fs-6"></i>
+                    <span>Create New Banner</span>
+                </NavLink>
+            }
         </div>
     </div>
 
@@ -44,7 +59,7 @@
         <div class="col-md-4 col-12">
             <div class="glass-panel p-3 rounded-4 d-flex align-items-center justify-content-between" style="background: rgba(14, 25, 48, 0.65); border: 1px solid rgba(255, 255, 255, 0.08);">
                 <div>
-                    <div class="text-secondary" style="font-size: 0.8rem; font-weight: 600;">TOTAL CREATED</div>
+                    <div class="text-secondary" style="font-size: 0.8rem; font-weight: 600;">TOTAL BANNERS</div>
                     <h3 class="fw-bold text-white mb-0 mt-1">@banners.Count</h3>
                 </div>
                 <div class="stat-icon-circle bg-info bg-opacity-10 text-info">
@@ -56,7 +71,7 @@
         <div class="col-md-4 col-12">
             <div class="glass-panel p-3 rounded-4 d-flex align-items-center justify-content-between" style="background: rgba(14, 25, 48, 0.65); border: 1px solid rgba(255, 255, 255, 0.08);">
                 <div>
-                    <div class="text-warning" style="font-size: 0.8rem; font-weight: 600;">IN DRAFT (EDITABLE)</div>
+                    <div class="text-warning" style="font-size: 0.8rem; font-weight: 600;">IN DRAFT</div>
                     <h3 class="fw-bold text-warning mb-0 mt-1">@banners.Count(b => b.Status == "Draft")</h3>
                 </div>
                 <div class="stat-icon-circle bg-warning bg-opacity-10 text-warning">
@@ -68,7 +83,7 @@
         <div class="col-md-4 col-12">
             <div class="glass-panel p-3 rounded-4 d-flex align-items-center justify-content-between" style="background: rgba(14, 25, 48, 0.65); border: 1px solid rgba(255, 255, 255, 0.08);">
                 <div>
-                    <div class="text-success" style="font-size: 0.8rem; font-weight: 600;">FINAL PUBLISHED</div>
+                    <div class="text-success" style="font-size: 0.8rem; font-weight: 600;">FINAL PUBLISHED &amp; LOCKED</div>
                     <h3 class="fw-bold text-success mb-0 mt-1">@banners.Count(b => b.Status == "Published")</h3>
                 </div>
                 <div class="stat-icon-circle bg-success bg-opacity-10 text-success">
@@ -78,31 +93,49 @@
         </div>
     </div>
 
-    <!-- Filter Bar & Search -->
+    <!-- Filter Bar & Doctor-wise Dropdown (Admin) -->
     <div class="glass-panel p-3 rounded-4 mb-4" style="background: rgba(14, 25, 48, 0.65); border: 1px solid rgba(255, 255, 255, 0.08);">
         <div class="row g-3 align-items-center">
             <!-- Filter Pills -->
-            <div class="col-md-6 col-12">
-                <div class="d-flex gap-2">
+            <div class="col-12 @(IsAdmin ? "col-lg-4" : "col-md-6")">
+                <div class="d-flex gap-2 flex-wrap">
                     <button type="button" class="btn btn-sm px-3 py-2 rounded-3 @(currentStatusFilter == "All" ? "btn-info text-dark fw-bold" : "btn-outline-secondary text-white")" @onclick='() => SetFilter("All")'>
-                        All Banners (@banners.Count)
+                        All (@banners.Count)
                     </button>
                     <button type="button" class="btn btn-sm px-3 py-2 rounded-3 @(currentStatusFilter == "Draft" ? "btn-warning text-dark fw-bold" : "btn-outline-secondary text-white")" @onclick='() => SetFilter("Draft")'>
-                        <i class="bi bi-pencil-fill me-1"></i> Drafts (@banners.Count(b => b.Status == "Draft"))
+                        Drafts (@banners.Count(b => b.Status == "Draft"))
                     </button>
                     <button type="button" class="btn btn-sm px-3 py-2 rounded-3 @(currentStatusFilter == "Published" ? "btn-success text-white fw-bold" : "btn-outline-secondary text-white")" @onclick='() => SetFilter("Published")'>
-                        <i class="bi bi-check-circle-fill me-1"></i> Published (@banners.Count(b => b.Status == "Published"))
+                        Published (@banners.Count(b => b.Status == "Published"))
                     </button>
                 </div>
             </div>
 
+            @if (IsAdmin)
+            {
+                <!-- Doctor-Wise Filter Dropdown (ADMIN ONLY) -->
+                <div class="col-12 col-lg-4">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="text-warning small text-nowrap fw-bold"><i class="bi bi-person-badge me-1"></i>Doctor:</span>
+                        <select class="form-select bg-dark border-secondary text-white small"
+                                @bind="selectedDoctorNameFilter" @bind:after="ApplySearch">
+                            <option value="">All Specialists (@AvailableDoctorNames.Count)</option>
+                            @foreach (var docName in AvailableDoctorNames)
+                            {
+                                <option value="@docName">@docName</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+            }
+
             <!-- Search input -->
-            <div class="col-md-6 col-12">
+            <div class="col-12 @(IsAdmin ? "col-lg-4" : "col-md-6")">
                 <div class="input-group">
                     <span class="input-group-text bg-dark border-secondary text-secondary">
                         <i class="bi bi-search"></i>
                     </span>
-                    <input type="text" class="form-control bg-dark text-white border-secondary" placeholder="Search by heading, doctor name, or category..." @bind="searchQuery" @bind:event="oninput" @bind:after="ApplySearch" />
+                    <input type="text" class="form-control bg-dark text-white border-secondary" placeholder="Search by heading, doctor name..." @bind="searchQuery" @bind:event="oninput" @bind:after="ApplySearch" />
                     @if (!string.IsNullOrEmpty(searchQuery))
                     {
                         <button class="btn btn-outline-secondary" type="button" @onclick="ClearSearch">
@@ -128,11 +161,16 @@
             <i class="bi bi-images text-secondary" style="font-size: 3.5rem;"></i>
             <h4 class="text-white mt-3 fw-bold">No Banners Found</h4>
             <p class="text-secondary mb-3" style="max-width: 450px; margin: 0 auto; font-size: 0.9rem;">
-                @(string.IsNullOrEmpty(searchQuery) ? "Aapke paas abhi koi banner nahi hai. Naya AI banner banane ke liye neeche button par click karein." : "Search criteria se match karta hua koi banner nahi mila.")
+                @(string.IsNullOrEmpty(searchQuery) && string.IsNullOrEmpty(selectedDoctorNameFilter)
+                    ? "Abhi koi banner available nahi hai."
+                    : "Filter criteria se match karta hua koi banner nahi mila.")
             </p>
-            <NavLink href="@GetCreateUrl()" class="btn btn-info px-4 py-2 fw-semibold" style="background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); border: none; border-radius: 10px; color: #070d1e;">
-                <i class="bi bi-magic me-1"></i> Create First Banner
-            </NavLink>
+            @if (!IsAdmin)
+            {
+                <NavLink href="@GetCreateUrl()" class="btn btn-info px-4 py-2 fw-semibold" style="background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); border: none; border-radius: 10px; color: #070d1e;">
+                    <i class="bi bi-magic me-1"></i> Create First Banner
+                </NavLink>
+            }
         </div>
     }
     else
@@ -143,13 +181,15 @@
                 <div class="col-xl-4 col-md-6 col-12">
                     <div class="glass-panel rounded-4 h-100 d-flex flex-column banner-card overflow-hidden" style="background: rgba(14, 25, 48, 0.7); border: 1px solid rgba(255, 255, 255, 0.08);">
                         <!-- Thumbnail Header with badges -->
-                        <div class="banner-thumbnail-header p-3 position-relative" style="background: @(string.IsNullOrWhiteSpace(item.BackgroundImageUrl) ? "linear-gradient(135deg, rgba(7, 13, 30, 0.9) 0%, rgba(11, 22, 44, 0.95) 100%)" : $"linear-gradient(180deg, rgba(7, 13, 30, 0.7) 0%, rgba(11, 22, 44, 0.95) 100%), url('{item.BackgroundImageUrl}') center/cover no-repeat"); min-height: 140px; border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
+                        <div class="banner-thumbnail-header p-3 position-relative cursor-pointer"
+                             style="background: @(string.IsNullOrWhiteSpace(item.BackgroundImageUrl) ? "linear-gradient(135deg, rgba(7, 13, 30, 0.9) 0%, rgba(11, 22, 44, 0.95) 100%)" : $"linear-gradient(180deg, rgba(7, 13, 30, 0.7) 0%, rgba(11, 22, 44, 0.95) 100%), url('{item.BackgroundImageUrl}') center/cover no-repeat"); min-height: 150px; border-bottom: 1px solid rgba(255, 255, 255, 0.06); cursor: pointer;"
+                             @onclick="() => OpenPhotoModal(item)" title="Click to view full photo">
                             <div class="d-flex justify-content-between align-items-start">
                                 <!-- Status Badge -->
                                 @if (item.Status == "Published")
                                 {
                                     <span class="badge px-3 py-1 rounded-pill" style="background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.5); color: #10b981; font-weight: 700; font-size: 0.75rem;">
-                                        <i class="bi bi-check-circle-fill me-1"></i> PUBLISHED
+                                        <i class="bi bi-shield-lock-fill me-1"></i> PUBLISHED &amp; LOCKED
                                     </span>
                                 }
                                 else
@@ -167,8 +207,8 @@
 
                             <div class="mt-3">
                                 <h5 class="fw-bold text-white text-truncate mb-1" title="@item.Heading">@item.Heading</h5>
-                                <div class="text-secondary text-truncate" style="font-size: 0.82rem;">
-                                    <i class="bi bi-person-badge text-info me-1"></i> @item.DoctorName
+                                <div class="text-info text-truncate fw-semibold" style="font-size: 0.85rem;">
+                                    <i class="bi bi-person-fill me-1"></i> @item.DoctorName
                                 </div>
                             </div>
                         </div>
@@ -176,7 +216,7 @@
                         <!-- Card Body -->
                         <div class="p-3 flex-grow-1 d-flex flex-column justify-content-between">
                             <p class="text-secondary small mb-3 text-truncate-2" style="font-size: 0.82rem; min-height: 38px;">
-                                @(string.IsNullOrWhiteSpace(item.Subtitle) ? "No description provided." : item.Subtitle)
+                                @(string.IsNullOrWhiteSpace(item.Subtitle) ? "No subtitle provided." : item.Subtitle)
                             </p>
 
                             <div class="d-flex align-items-center justify-content-between text-secondary pt-2 border-top border-secondary border-opacity-25" style="font-size: 0.75rem;">
@@ -187,25 +227,59 @@
 
                         <!-- Card Footer Action Buttons -->
                         <div class="p-3 pt-0 d-flex gap-2">
-                            <!-- Edit Button (Always available) -->
-                            <button type="button" class="btn btn-outline-info flex-grow-1 d-flex align-items-center justify-content-center gap-1 py-2" @onclick="() => EditBanner(item.Id)" style="border-radius: 8px; font-size: 0.85rem; font-weight: 600;">
-                                <i class="bi bi-pencil-square"></i>
-                                <span>Edit & Customize</span>
-                            </button>
-
-                            <!-- Publish Quick Action (If Draft) -->
-                            @if (item.Status == "Draft")
+                            @if (IsAdmin)
                             {
-                                <button type="button" class="btn btn-outline-success d-flex align-items-center justify-content-center gap-1 px-3 py-2" @onclick="() => QuickPublish(item.Id)" title="Publish this banner" style="border-radius: 8px; font-size: 0.85rem;">
-                                    <i class="bi bi-send-check"></i>
-                                    <span>Publish</span>
+                                <!-- ADMIN CONTROLS: VIEW PHOTO + DELETE ONLY (NO EDIT / NO SAVE / NO PUBLISH) -->
+                                <button type="button" class="btn btn-outline-info flex-grow-1 d-flex align-items-center justify-content-center gap-1 py-2"
+                                        @onclick="() => OpenPhotoModal(item)" style="border-radius: 8px; font-size: 0.85rem; font-weight: 600;">
+                                    <i class="bi bi-eye-fill"></i>
+                                    <span>View Photo</span>
+                                </button>
+
+                                <button type="button" class="btn btn-outline-danger d-flex align-items-center justify-content-center px-3 py-2"
+                                        @onclick="() => ConfirmDeleteBanner(item.Id, item.Heading)" title="Delete this banner permanently (Admin privilege)" style="border-radius: 8px; font-size: 0.85rem;">
+                                    <i class="bi bi-trash"></i>
                                 </button>
                             }
+                            else
+                            {
+                                <!-- DOCTOR CONTROLS -->
+                                @if (item.Status == "Published")
+                                {
+                                    <!-- PUBLISHED BANNER IS LOCKED: Cannot be edited -->
+                                    <button type="button" class="btn btn-outline-success flex-grow-1 d-flex align-items-center justify-content-center gap-1 py-2"
+                                            @onclick="() => OpenPhotoModal(item)" style="border-radius: 8px; font-size: 0.85rem; font-weight: 600;">
+                                        <i class="bi bi-eye-fill"></i>
+                                        <span>View Photo &amp; Download</span>
+                                    </button>
 
-                            <!-- Delete Button -->
-                            <button type="button" class="btn btn-outline-danger d-flex align-items-center justify-content-center px-3 py-2" @onclick="() => ConfirmDeleteBanner(item.Id, item.Heading)" title="Delete banner" style="border-radius: 8px; font-size: 0.85rem;">
-                                <i class="bi bi-trash"></i>
-                            </button>
+                                    <!-- Delete is locked for Doctor on published banners -->
+                                    <button type="button" class="btn btn-outline-secondary d-flex align-items-center justify-content-center px-3 py-2 disabled"
+                                            disabled title="Published banner locked hai. Sirf Admin hi published banner delete kar sakta hai."
+                                            style="border-radius: 8px; font-size: 0.85rem; opacity: 0.5; cursor: not-allowed; border-color: rgba(255,255,255,0.2);">
+                                        <i class="bi bi-lock-fill text-warning"></i>
+                                    </button>
+                                }
+                                else
+                                {
+                                    <!-- DRAFT BANNER: Doctor can Edit & Quick Publish -->
+                                    <button type="button" class="btn btn-outline-info flex-grow-1 d-flex align-items-center justify-content-center gap-1 py-2"
+                                            @onclick="() => EditBanner(item.Id)" style="border-radius: 8px; font-size: 0.85rem; font-weight: 600;">
+                                        <i class="bi bi-pencil-square"></i>
+                                        <span>Edit &amp; Customize</span>
+                                    </button>
+
+                                    <button type="button" class="btn btn-outline-success d-flex align-items-center justify-content-center gap-1 px-3 py-2"
+                                            @onclick="() => QuickPublish(item.Id)" title="Publish this draft banner" style="border-radius: 8px; font-size: 0.85rem;">
+                                        <i class="bi bi-send-check"></i>
+                                    </button>
+
+                                    <button type="button" class="btn btn-outline-danger d-flex align-items-center justify-content-center px-3 py-2"
+                                            @onclick="() => ConfirmDeleteBanner(item.Id, item.Heading)" title="Delete draft banner" style="border-radius: 8px; font-size: 0.85rem;">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                }
+                            }
                         </div>
                     </div>
                 </div>
@@ -213,10 +287,90 @@
         </div>
     }
 
+    <!-- PHOTO VIEW MODAL (अगर फोटो खोलना हो तो - FULL BRANDED COMPOSITE PREVIEW & HD DOWNLOAD) -->
+    @if (viewingBanner != null)
+    {
+        <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.88); backdrop-filter: blur(10px); z-index: 1070;" @onclick="ClosePhotoModal">
+            <div class="modal-dialog modal-dialog-centered modal-lg" @onclick:stopPropagation>
+                <div class="modal-content text-white" style="background: #0b1426; border: 1px solid rgba(0, 242, 254, 0.35); border-radius: 18px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7); overflow: hidden;">
+                    <div class="modal-header border-secondary border-opacity-25 pb-3">
+                        <div>
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <span class="badge @(viewingBanner.Status == "Published" ? "bg-success" : "bg-warning text-dark")">
+                                    <i class="bi @(viewingBanner.Status == "Published" ? "bi-shield-lock-fill" : "bi-pencil-fill") me-1"></i>
+                                    @(viewingBanner.Status == "Published" ? "FINAL PUBLISHED & LOCKED" : "DRAFT")
+                                </span>
+                                <span class="badge bg-secondary">@viewingBanner.AspectRatio • 1080p HD</span>
+                                <span class="badge bg-secondary">@viewingBanner.TemplateType</span>
+                            </div>
+                            <h5 class="modal-title fw-bold text-white mb-0">@viewingBanner.Heading</h5>
+                            <div class="small text-info mt-1"><i class="bi bi-person-badge me-1"></i>Specialist: <strong>@viewingBanner.DoctorName</strong></div>
+                        </div>
+                        <button type="button" class="btn-close btn-close-white" @onclick="ClosePhotoModal"></button>
+                    </div>
+
+                    <div class="modal-body p-4 text-center">
+                        <!-- High-Res Composite Banner Canvas Preview -->
+                        <div class="p-2 rounded-3 mx-auto shadow-lg position-relative overflow-hidden mb-3 d-flex align-items-center justify-content-center"
+                             style="max-width: 540px; background: #050a17; border: 2px solid rgba(0, 242, 254, 0.25); min-height: 380px;">
+                            
+                            @if (isRenderingModalCanvas)
+                            {
+                                <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center" style="background: rgba(7, 13, 30, 0.75); z-index: 5;">
+                                    <div class="spinner-border text-info mb-2" role="status"></div>
+                                    <small class="text-secondary">Rendering High-Resolution Composite Banner...</small>
+                                </div>
+                            }
+
+                            <canvas id="viewModalCanvas" class="shadow-lg rounded-2" style="max-width: 100%; max-height: 520px; width: auto; height: auto; object-fit: contain;"></canvas>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(viewingBanner.Subtitle))
+                        {
+                            <div class="p-3 rounded-2 text-start small mb-2" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);">
+                                <span class="text-white-50 d-block mb-1 fw-bold">Subtitle / Description:</span>
+                                <span class="text-light">@viewingBanner.Subtitle</span>
+                            </div>
+                        }
+
+                        <div class="d-flex justify-content-between small text-white-50 pt-2 border-top border-secondary border-opacity-25">
+                            <span>Banner ID: #@viewingBanner.Id</span>
+                            <span>Updated: @viewingBanner.UpdatedAt.ToLocalTime().ToString("dd MMM yyyy, hh:mm tt")</span>
+                            @if (viewingBanner.PublishedAt.HasValue)
+                            {
+                                <span class="text-success"><i class="bi bi-shield-check me-1"></i>Published: @viewingBanner.PublishedAt.Value.ToLocalTime().ToString("dd MMM yyyy")</span>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="modal-footer border-secondary border-opacity-25 justify-content-between">
+                        <div>
+                            @if (IsAdmin)
+                            {
+                                <button type="button" class="btn btn-outline-danger btn-sm"
+                                        @onclick="() => { ClosePhotoModal(); ConfirmDeleteBanner(viewingBanner.Id, viewingBanner.Heading); }">
+                                    <i class="bi bi-trash-fill me-1"></i> Delete Banner
+                                </button>
+                            }
+                        </div>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button type="button" class="btn btn-warning btn-sm fw-semibold" @onclick="DownloadModalBannerPng">
+                                <i class="bi bi-download me-1"></i> Download HD PNG
+                            </button>
+                            <button type="button" class="btn btn-outline-success btn-sm fw-semibold" @onclick="ShareModalBanner">
+                                <i class="bi bi-share-fill me-1"></i> Share
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="ClosePhotoModal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
     <!-- Delete Confirmation Modal -->
     @if (pendingDeleteId.HasValue)
     {
-        <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(5px); z-index: 1060;">
+        <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(5px); z-index: 1080;">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content glass-panel" style="background: rgba(14, 25, 48, 0.95); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 16px;">
                     <div class="modal-header border-secondary border-opacity-25 pb-2">
@@ -245,37 +399,23 @@
 
 <style>
     .banner-list-container {
-        padding: 0.5rem 0.5rem 3rem 0.5rem;
+        padding: 0.5rem 0;
     }
-
-    .fade-in {
-        animation: fadeIn 0.25s ease-in-out;
-    }
-
-    @@keyframes fadeIn {
-        from { opacity: 0; transform: translateY(6px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    .banner-card {
-        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .banner-card:hover {
-        transform: translateY(-3px);
-        border-color: rgba(0, 242, 254, 0.4) !important;
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
-    }
-
     .stat-icon-circle {
         width: 48px;
         height: 48px;
-        border-radius: 50%;
+        border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
     }
-
+    .banner-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .banner-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+    }
     .text-truncate-2 {
         display: -webkit-box;
         -webkit-line-clamp: 2;
@@ -285,77 +425,32 @@
 </style>
 
 @code {
+    private CurrentUserDTO? currentUser;
+    private bool IsAdmin => currentUser?.Role == "Admin";
+
     private List<BannerDesignRecordDTO> banners = new();
     private List<BannerDesignRecordDTO> filteredBanners = new();
-    private bool isLoading = true;
+    private List<string> AvailableDoctorNames = new();
+
     private string currentStatusFilter = "All";
     private string searchQuery = string.Empty;
+    private string selectedDoctorNameFilter = string.Empty;
+
+    private bool isLoading = true;
     private string? feedbackMessage;
-
-    // Toast Popup Notification State
     private ToastNotificationDTO? activePopup;
-    private CancellationTokenSource? popupCts;
 
-    private void ShowPopup(string title, string message, string type = "save")
-    {
-        popupCts?.Cancel();
-        popupCts = new CancellationTokenSource();
-        var token = popupCts.Token;
-
-        activePopup = new ToastNotificationDTO
-        {
-            Title = title,
-            Message = message,
-            Type = type
-        };
-        StateHasChanged();
-
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                await Task.Delay(4000, token);
-                if (!token.IsCancellationRequested)
-                {
-                    await InvokeAsync(() =>
-                    {
-                        activePopup = null;
-                        StateHasChanged();
-                    });
-                }
-            }
-            catch { }
-        });
-    }
-
-    private void DismissPopup()
-    {
-        popupCts?.Cancel();
-        activePopup = null;
-        StateHasChanged();
-    }
-    private CurrentUserDTO? currentUser;
     private int? pendingDeleteId;
     private string pendingDeleteTitle = string.Empty;
+
+
 
     protected override async Task OnInitializedAsync()
     {
         currentUser = await AuthService.GetOrRestoreCurrentUserAsync();
-        if (currentUser != null && !currentUser.IsActive && currentUser.Role == "Doctor")
+        if (currentUser == null)
         {
-            NavigationManager.NavigateTo("doctor/profile");
-            return;
-        }
-
-        var relPath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri).ToLowerInvariant();
-        if (currentUser?.Role == "Doctor" && !relPath.StartsWith("doctor"))
-        {
-            NavigationManager.NavigateTo("doctor/banner-designs");
-            return;
-        }
-        if (currentUser?.Role == "Admin" && !relPath.StartsWith("admin"))
-        {
-            NavigationManager.NavigateTo("admin/banner-designs");
+            NavigationManager.NavigateTo("login");
             return;
         }
 
@@ -367,12 +462,23 @@
         isLoading = true;
         try
         {
-            banners = await BannerRepo.GetAllBannersAsync(currentUser?.UserId);
+            var filterUserId = IsAdmin ? null : currentUser?.UserId;
+            banners = await BannerRepo.GetAllBannersAsync(filterUserId);
+
+            // Populate distinct doctor names for Admin dropdown
+            AvailableDoctorNames = banners
+                .Select(b => b.DoctorName)
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .Distinct()
+                .OrderBy(n => n)
+                .ToList();
+
             ApplyFilters();
         }
         catch (Exception ex)
         {
             feedbackMessage = $"Error loading banners: {ex.Message}";
+            ShowPopup("Error Loading Banners", ex.Message, "error");
         }
         finally
         {
@@ -406,6 +512,11 @@
             result = result.Where(b => b.Status.Equals(currentStatusFilter, StringComparison.OrdinalIgnoreCase));
         }
 
+        if (!string.IsNullOrWhiteSpace(selectedDoctorNameFilter))
+        {
+            result = result.Where(b => string.Equals(b.DoctorName, selectedDoctorNameFilter, StringComparison.OrdinalIgnoreCase));
+        }
+
         if (!string.IsNullOrWhiteSpace(searchQuery))
         {
             var q = searchQuery.Trim().ToLower();
@@ -424,15 +535,118 @@
     {
         var relPath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri).ToLowerInvariant();
         var prefix = (currentUser?.Role == "Doctor" || relPath.StartsWith("doctor")) ? "doctor/" : 
-                     ((currentUser?.Role == "Admin" || relPath.StartsWith("admin")) ? "admin/" : "");
-        NavigationManager.NavigateTo($"{prefix}banner-design?id={id}");
+                     (IsAdmin ? "admin/" : "");
+        var encId = UrlEncryptionHelper.EncryptId(id);
+        NavigationManager.NavigateTo($"{prefix}banner-design?id={encId}");
+    }
+
+    private BannerDesignRecordDTO? viewingBanner;
+    private BannerCustomizationState? viewingBannerState;
+    private bool isRenderingModalCanvas = false;
+
+    private async Task OpenPhotoModal(BannerDesignRecordDTO item)
+    {
+        viewingBanner = item;
+        viewingBannerState = item.GetConfigState();
+        isRenderingModalCanvas = true;
+        StateHasChanged();
+    }
+
+    private void ClosePhotoModal()
+    {
+        viewingBanner = null;
+        viewingBannerState = null;
+        isRenderingModalCanvas = false;
+    }
+
+    private async Task<bool> EnsureBannerStudioLoadedAsync()
+    {
+        try
+        {
+            return await JSRuntime.InvokeAsync<bool>("eval", @"
+                new Promise((resolve) => {
+                    if (typeof window.bannerStudio !== 'undefined' && typeof window.bannerStudio.renderBanner === 'function') {
+                        return resolve(true);
+                    }
+                    const existing = document.getElementById('banner-studio-dynamic-script');
+                    if (existing) existing.remove();
+                    const s = document.createElement('script');
+                    s.id = 'banner-studio-dynamic-script';
+                    s.src = 'js/bannerStudio.js?v=' + Date.now();
+                    s.onload = () => resolve(typeof window.bannerStudio !== 'undefined' && typeof window.bannerStudio.renderBanner === 'function');
+                    s.onerror = () => resolve(false);
+                    document.head.appendChild(s);
+                })
+            ");
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (viewingBannerState != null && isRenderingModalCanvas)
+        {
+            isRenderingModalCanvas = false;
+            try
+            {
+                var ready = await EnsureBannerStudioLoadedAsync();
+                if (ready)
+                {
+                    await JSRuntime.InvokeVoidAsync("bannerStudio.renderBanner", "viewModalCanvas", viewingBannerState);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error rendering viewModalCanvas: {ex.Message}");
+            }
+        }
+    }
+
+    private async Task DownloadModalBannerPng()
+    {
+        if (viewingBanner == null || viewingBannerState == null) return;
+        try
+        {
+            await EnsureBannerStudioLoadedAsync();
+            var fileName = $"CYH_Banner_{viewingBanner.Id}_{DateTime.UtcNow:yyyyMMdd_HHmmss}.png";
+            await JSRuntime.InvokeVoidAsync("bannerStudio.downloadBanner", "viewModalCanvas", fileName);
+            ShowPopup("Download Started", "HD composite banner PNG download ho raha hai!", "save");
+        }
+        catch (Exception ex)
+        {
+            ShowPopup("Download Error", ex.Message, "error");
+        }
+    }
+
+    private async Task ShareModalBanner()
+    {
+        if (viewingBanner == null || viewingBannerState == null) return;
+        try
+        {
+            await EnsureBannerStudioLoadedAsync();
+            var shareTitle = $"{viewingBannerState.Heading} — {viewingBannerState.HospitalName}";
+            var shareText = $"{viewingBannerState.Heading}\n{viewingBannerState.Subtitle}\nConsult {viewingBannerState.DoctorName} at {viewingBannerState.HospitalName}.\nHelpline: {viewingBannerState.ContactPhone}";
+            await JSRuntime.InvokeAsync<object>("bannerStudio.shareBanner", "viewModalCanvas", shareTitle, shareText);
+        }
+        catch { }
+    }
+
+    private string GetCreditHistoryUrl()
+    {
+        var relPath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri).ToLowerInvariant();
+        if (currentUser?.Role == "Doctor" || relPath.StartsWith("doctor")) return "doctor/credit-history";
+        if (IsAdmin || relPath.StartsWith("admin")) return "admin/credit-history";
+        return "credit-history";
     }
 
     private string GetCreateUrl()
     {
         var relPath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri).ToLowerInvariant();
         if (currentUser?.Role == "Doctor" || relPath.StartsWith("doctor")) return "doctor/banner-design";
-        if (currentUser?.Role == "Admin" || relPath.StartsWith("admin")) return "admin/banner-design";
+        if (IsAdmin || relPath.StartsWith("admin")) return "admin/banner-design";
         return "banner-design";
     }
 
@@ -440,7 +654,43 @@
     {
         try
         {
-            var success = await BannerRepo.PublishBannerAsync(id, currentUser?.UserId);
+            var filterUserId = IsAdmin ? null : currentUser?.UserId;
+
+            // Credit Check for Doctor
+            if (currentUser?.Role == "Doctor")
+            {
+                int doctorProfileId = 0;
+                if (currentUser.DoctorProfileId.HasValue && currentUser.DoctorProfileId.Value > 0)
+                {
+                    doctorProfileId = currentUser.DoctorProfileId.Value;
+                }
+                else if (!string.IsNullOrEmpty(currentUser.UserId))
+                {
+                    var docProf = await DoctorRepo.GetByUserIdAsync(currentUser.UserId);
+                    if (docProf != null) doctorProfileId = docProf.Id;
+                }
+
+                if (doctorProfileId > 0)
+                {
+                    var targetBanner = banners.FirstOrDefault(b => b.Id == id);
+                    string creditCode = (targetBanner?.TemplateType == "Template") ? "TEMPLATE_PUBLISH" : "AI_BANNER_PUBLISH";
+
+                    var (credOk, credMsg, remaining) = await CreditRepo.DeductCreditOnPublishAsync(
+                        doctorProfileId, 
+                        creditCode, 
+                        id.ToString(), 
+                        $"Quick Published banner #{id}: {targetBanner?.Heading}");
+
+                    if (!credOk)
+                    {
+                        feedbackMessage = credMsg;
+                        ShowPopup("Insufficient Credits", credMsg, "warning");
+                        return;
+                    }
+                }
+            }
+
+            var success = await BannerRepo.PublishBannerAsync(id, filterUserId);
             if (success)
             {
                 feedbackMessage = $"Banner #{id} published successfully! Ab ye download aur share ke liye ready hai.";
@@ -462,6 +712,13 @@
 
     private void ConfirmDeleteBanner(int id, string title)
     {
+        var target = banners.FirstOrDefault(b => b.Id == id);
+        if (target != null && target.Status == "Published" && !IsAdmin)
+        {
+            ShowPopup("Delete Locked", "Published banners ko sirf Admin delete kar sakta hai. Doctors ke liye ye locked hai.", "error");
+            return;
+        }
+
         pendingDeleteId = id;
         pendingDeleteTitle = title;
     }
@@ -482,9 +739,17 @@
 
     private async Task DeleteBanner(int id)
     {
+        var target = banners.FirstOrDefault(b => b.Id == id);
+        if (target != null && target.Status == "Published" && !IsAdmin)
+        {
+            ShowPopup("Permission Denied", "Published banners ko sirf Admin delete kar sakta hai.", "error");
+            return;
+        }
+
         try
         {
-            var success = await BannerRepo.DeleteBannerAsync(id, currentUser?.UserId);
+            var filterUserId = IsAdmin ? null : currentUser?.UserId;
+            var success = await BannerRepo.DeleteBannerAsync(id, filterUserId);
             if (success)
             {
                 feedbackMessage = $"Banner #{id} deleted successfully from database.";
@@ -502,5 +767,20 @@
             feedbackMessage = $"Error: {ex.Message}";
             ShowPopup("Delete Error", ex.Message, "error");
         }
+    }
+
+    private void ShowPopup(string title, string message, string type = "save")
+    {
+        activePopup = new ToastNotificationDTO
+        {
+            Title = title,
+            Message = message,
+            Type = type
+        };
+    }
+
+    private void DismissPopup()
+    {
+        activePopup = null;
     }
 }

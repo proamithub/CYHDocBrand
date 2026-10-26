@@ -1,5 +1,6 @@
 /* ==========================================================================
    CYH DoctorHub — Premium Dark (Navy + Glassmorphism) Design System
+   Mobile-First & Ultra-Responsive Edition
    ========================================================================== */
 
 :root {
@@ -29,7 +30,11 @@
   --cyh-shadow-glow: 0 0 25px rgba(0, 242, 254, 0.25);
 }
 
-body {
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
   margin: 0;
   padding: 0;
   background-color: var(--cyh-bg-main);
@@ -42,6 +47,9 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* ================= Glass Containers & Cards ================= */
@@ -105,6 +113,7 @@ body {
   background: rgba(0, 242, 254, 0.12);
   color: var(--cyh-accent-cyan);
   border: 1px solid rgba(0, 242, 254, 0.25);
+  flex-shrink: 0;
 }
 
 .stat-icon-emerald {
@@ -126,14 +135,15 @@ body {
 }
 
 .stat-value {
-  font-size: 1.85rem;
+  font-size: clamp(1.4rem, 3.5vw, 1.85rem);
   font-weight: 700;
   color: #ffffff;
   letter-spacing: -0.5px;
+  line-height: 1.2;
 }
 
 .stat-label {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: var(--cyh-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -153,8 +163,10 @@ body {
   transition: all 0.2s ease;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
   text-decoration: none;
+  min-height: 40px;
 }
 
 .glass-btn-primary:hover {
@@ -175,7 +187,9 @@ body {
   text-decoration: none;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
+  min-height: 40px;
 }
 
 .glass-btn-secondary:hover {
@@ -188,12 +202,14 @@ body {
   padding: 0.35rem 0.75rem;
   font-size: 0.8rem;
   border-radius: 8px;
+  min-height: 34px;
 }
 
 .glass-btn-danger {
   background: rgba(244, 63, 94, 0.15);
   color: #fda4af;
   border: 1px solid rgba(244, 63, 94, 0.3);
+  min-height: 40px;
 }
 
 .glass-btn-danger:hover {
@@ -212,6 +228,7 @@ body {
   font-weight: 500;
   outline: none;
   width: 100%;
+  min-height: 42px;
   transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
 }
 
@@ -243,6 +260,7 @@ body {
   letter-spacing: 0.6px;
   padding: 0.85rem 1rem;
   border-bottom: 1px solid var(--cyh-border-glass);
+  white-space: nowrap;
 }
 
 .glass-table th:first-child {
@@ -266,6 +284,20 @@ body {
 
 .glass-table tbody tr:hover {
   background: rgba(0, 242, 254, 0.04);
+}
+
+.table-responsive {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.table-responsive::-webkit-scrollbar {
+  height: 6px;
+}
+.table-responsive::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
 }
 
 /* ================= Badges ================= */
@@ -315,15 +347,43 @@ body {
   50% { opacity: 0.7; }
 }
 
-/* ================= Sidebar & Layout ================= */
+/* ================= Sidebar & Layout Architecture ================= */
 .cyh-app-container {
   display: flex;
   min-height: 100vh;
+  min-height: 100dvh;
+  position: relative;
+  overflow-x: hidden;
+  width: 100%;
 }
 
+/* Mobile Sidebar Backdrop / Overlay */
+.cyh-sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  background: rgba(3, 7, 18, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 1040;
+  opacity: 0;
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+.cyh-sidebar-backdrop.show {
+  display: block;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Sidebar */
 .cyh-sidebar {
   width: 260px;
-  background: rgba(9, 18, 36, 0.75);
+  background: rgba(9, 18, 36, 0.88);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-right: 1px solid var(--cyh-border-glass);
@@ -332,11 +392,13 @@ body {
   position: sticky;
   top: 0;
   height: 100vh;
+  height: 100dvh;
   z-index: 100;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
 }
 
 .cyh-brand {
-  padding: 1.5rem 1.25rem;
+  padding: 1.25rem 1.25rem;
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -355,20 +417,71 @@ body {
   color: #070d1e;
   font-size: 1.2rem;
   box-shadow: 0 0 15px rgba(0, 242, 254, 0.4);
+  flex-shrink: 0;
 }
 
 .cyh-brand-title {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 700;
   letter-spacing: -0.2px;
   color: #ffffff;
+  white-space: nowrap;
 }
 
 .cyh-brand-subtitle {
   font-size: 0.7rem;
   color: var(--cyh-accent-cyan);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.8px;
+  white-space: nowrap;
+}
+
+/* Mobile Close Button inside Sidebar */
+.cyh-sidebar-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--cyh-text-secondary);
+  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.cyh-sidebar-close-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Mobile Toggle Hamburger Button on Topbar */
+.cyh-mobile-toggle {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--cyh-border-glass);
+  color: var(--cyh-text-primary);
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.cyh-mobile-toggle:hover,
+.cyh-mobile-toggle:focus {
+  background: rgba(0, 242, 254, 0.15);
+  color: #00f2fe;
+  border-color: rgba(0, 242, 254, 0.4);
 }
 
 .cyh-nav {
@@ -378,6 +491,15 @@ body {
   flex-direction: column;
   gap: 0.35rem;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.cyh-nav::-webkit-scrollbar {
+  width: 5px;
+}
+.cyh-nav::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
 }
 
 .cyh-nav-item {
@@ -427,37 +549,41 @@ body {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  width: 100%;
 }
 
 .cyh-topbar {
-  height: 70px;
-  background: rgba(9, 18, 36, 0.65);
+  height: 68px;
+  background: rgba(9, 18, 36, 0.75);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--cyh-border-glass);
-  padding: 0 2rem;
+  padding: 0 1.75rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
   position: sticky;
   top: 0;
   z-index: 90;
+  transition: height 0.2s ease, padding 0.2s ease;
 }
 
 .cyh-body {
-  padding: 2rem;
+  padding: 1.75rem;
   flex: 1;
+  width: 100%;
 }
 
-/* User pill */
+/* User Profile Pill */
 .user-profile-pill {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.4rem 0.85rem;
+  gap: 0.65rem;
+  padding: 0.35rem 0.75rem;
   border-radius: 30px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--cyh-border-glass);
+  max-width: 100%;
 }
 
 .user-avatar {
@@ -471,6 +597,7 @@ body {
   font-weight: bold;
   color: #070d1e;
   font-size: 0.85rem;
+  flex-shrink: 0;
 }
 
 /* Quick Switcher bar */
@@ -514,6 +641,7 @@ body {
   justify-content: center;
   gap: 0.45rem;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  min-height: 42px;
 }
 
 .auth-role-tab:hover:not(.active-doctor):not(.active-admin) {
@@ -540,6 +668,167 @@ body {
   border: 1px solid #f59e0b !important;
   box-shadow: 0 4px 18px rgba(245, 158, 11, 0.45) !important;
   text-shadow: none !important;
+}
+
+/* ================= Horizontal Swipe Pills & Chips ================= */
+.scroll-pills-mobile {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  gap: 0.5rem;
+  padding-bottom: 4px;
+}
+
+.scroll-pills-mobile::-webkit-scrollbar {
+  display: none;
+}
+
+.scroll-pills-mobile > * {
+  flex-shrink: 0;
+}
+
+/* ================= Floating Toast Positioning on Mobile ================= */
+.toast-popup-wrapper {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 99999;
+  min-width: 320px;
+  max-width: 460px;
+  animation: popupSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ================= Mobile-First Responsive Breakpoints ================= */
+
+/* Tablet & Mobile Screens (<= 991.98px) */
+@media (max-width: 991.98px) {
+  .cyh-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 280px;
+    max-width: 85vw;
+    height: 100vh;
+    height: 100dvh;
+    z-index: 1050;
+    transform: translateX(-100%);
+    box-shadow: none;
+  }
+
+  .cyh-sidebar.mobile-open {
+    transform: translateX(0);
+    box-shadow: 10px 0 40px rgba(0, 0, 0, 0.85), 0 0 25px rgba(0, 242, 254, 0.2);
+  }
+
+  .cyh-topbar {
+    height: 60px;
+    padding: 0 1rem;
+    gap: 0.5rem;
+  }
+
+  .cyh-body {
+    padding: 1.15rem 0.85rem;
+  }
+
+  /* Make studio tabs swipe horizontally */
+  .banner-studio-container .nav-pills {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 0.35rem;
+    padding: 4px;
+  }
+  .banner-studio-container .nav-pills::-webkit-scrollbar {
+    display: none;
+  }
+  .banner-studio-container .nav-pills .nav-item {
+    flex: 0 0 auto;
+  }
+  .banner-studio-container .nav-pills .nav-link {
+    white-space: nowrap;
+    padding: 0.45rem 0.85rem;
+    font-size: 0.82rem;
+  }
+
+  /* Canvas viewport responsive min-height */
+  .canvas-viewport {
+    min-height: 320px !important;
+    padding: 0.5rem !important;
+  }
+
+  .banner-interactive-canvas {
+    max-height: 420px !important;
+  }
+}
+
+/* Small Smartphone Screens (<= 575.98px) */
+@media (max-width: 575.98px) {
+  .cyh-topbar {
+    height: 56px;
+    padding: 0 0.65rem;
+    gap: 0.4rem;
+  }
+
+  .cyh-body {
+    padding: 0.85rem 0.5rem;
+  }
+
+  .glass-panel {
+    border-radius: 14px;
+    padding: 1rem !important;
+  }
+
+  .glass-card {
+    border-radius: 12px;
+    padding: 0.85rem !important;
+  }
+
+  /* Toast notification on mobile stays centered & inside viewport */
+  .toast-popup-wrapper {
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    min-width: auto;
+    max-width: 100%;
+    width: auto;
+  }
+
+  /* Modal responsive behavior */
+  .modal-dialog {
+    margin: 0.5rem auto;
+    max-width: calc(100vw - 1rem);
+  }
+  .modal-content {
+    border-radius: 14px !important;
+  }
+  .modal-header, .modal-body, .modal-footer {
+    padding: 1rem !important;
+  }
+
+  /* Canvas viewport on small phones */
+  .canvas-viewport {
+    min-height: 260px !important;
+    max-height: 360px !important;
+  }
+
+  .banner-interactive-canvas {
+    max-height: 340px !important;
+  }
+
+  /* User profile pill responsive compactness */
+  .user-profile-pill {
+    padding: 0.25rem 0.5rem;
+  }
+  .user-profile-pill .user-avatar {
+    width: 30px;
+    height: 30px;
+    font-size: 0.78rem;
+  }
 }
 
 #blazor-error-ui {
@@ -571,4 +860,3 @@ body {
   top: 0.5rem;
   color: #cbd5e1 !important;
 }
-

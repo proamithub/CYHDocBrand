@@ -1,0 +1,836 @@
+@page "/templates"
+@page "/template-gallery"
+@page "/doctor/template-gallery"
+@page "/admin/template-gallery"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+@using CYHDocBrandModel.DTO
+@using CYHDocBrandData.Entities
+@using CYHDocBrandRepo.IRepository
+@using CYHDocBrandRepo.Utilities
+@using CYHDocBrandUI.Components.Common
+
+@inject IBannerTemplateRepository TemplateRepo
+@inject ICreditRepository CreditRepo
+@inject IDoctorRepository DoctorRepo
+@inject IAuthService AuthService
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+
+<!-- Animated Floating Toast Popup -->
+<ToastPopup Notification="activePopup" OnDismiss="DismissPopup" />
+
+<div class="template-gallery-container fade-in">
+    <!-- Header -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge px-3 py-2" style="background: rgba(0, 242, 254, 0.15); border: 1px solid rgba(0, 242, 254, 0.4); color: #00f2fe; border-radius: 8px; font-weight: 700; letter-spacing: 0.5px;">
+                    <i class="bi bi-grid-1x2-fill me-1"></i> SQL DATABASE DRIVEN
+                </span>
+                <span class="badge px-3 py-2" style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #10b981; border-radius: 8px; font-weight: 700;">
+                    <i class="bi bi-stars me-1"></i> 50+ STYLES READY
+                </span>
+                <span class="text-secondary" style="font-size: 0.85rem;">CYH Creative Studio</span>
+            </div>
+            <h2 class="mt-2 mb-1 fw-bold text-white" style="letter-spacing: -0.5px;">
+                Healthcare <span style="background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Template Gallery</span>
+            </h2>
+            <p class="text-secondary mb-0" style="font-size: 0.92rem;">
+                Doctor &amp; Hospital branding ke liye 50+ pre-designed banners. <strong>Customize</strong> karke mouse se drag karein, ya direct <strong>Download &amp; Share</strong> karein!
+            </p>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2">
+            <NavLink href="@GetMyBannersUrl()" class="btn btn-outline-secondary d-flex align-items-center gap-2 px-3 py-2" style="border-radius: 10px;">
+                <i class="bi bi-collection-fill text-info"></i>
+                <span>My Banners Library</span>
+            </NavLink>
+            <NavLink href="@GetStudioUrl()" class="btn btn-info d-flex align-items-center gap-2 px-4 py-2 fw-bold" style="background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); border: none; border-radius: 10px; color: #070d1e;">
+                <i class="bi bi-palette-fill fs-6"></i>
+                <span>Open Blank Studio</span>
+            </NavLink>
+        </div>
+    </div>
+
+    <!-- Dynamic Category Filter Pills (From SQL Database) -->
+    <div class="category-pills-bar mb-3 p-3 rounded-4 glass-panel">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+            <div class="text-secondary fw-semibold text-uppercase" style="font-size: 0.78rem; letter-spacing: 0.5px;">
+                <i class="bi bi-funnel-fill me-1 text-info"></i> Browse By Dynamic Categories (SQL)
+            </div>
+            <div class="text-secondary" style="font-size: 0.82rem;">
+                Total <strong>@allTemplates.Count</strong> Templates in Database
+            </div>
+        </div>
+
+        <div class="scroll-pills-mobile gap-2">
+            <!-- All Pill -->
+            <button type="button" class="btn btn-sm category-pill @(selectedCategoryId == 0 ? "active" : "")" @onclick="() => SelectCategory(0)">
+                <i class="bi bi-grid-fill me-1"></i>
+                <span>All Templates</span>
+                <span class="badge ms-1 bg-dark bg-opacity-50">@allTemplates.Count</span>
+            </button>
+
+            <!-- Dynamic Category Pills from SQL -->
+            @foreach (var cat in categories)
+            {
+                <button type="button" class="btn btn-sm category-pill @(selectedCategoryId == cat.Id ? "active" : "")" @onclick="() => SelectCategory(cat.Id)">
+                    <i class="bi @cat.IconClass me-1" style="color: @cat.BadgeColor;"></i>
+                    <span>@cat.CategoryName</span>
+                    <span class="badge ms-1 bg-dark bg-opacity-50">@cat.TemplateCount</span>
+                </button>
+            }
+        </div>
+    </div>
+
+    <!-- Search & Style Secondary Filter Bar -->
+    <div class="row g-3 align-items-center mb-4">
+        <div class="col-lg-6 col-12">
+            <div class="input-group">
+                <span class="input-group-text bg-dark border-secondary text-info">
+                    <i class="bi bi-search"></i>
+                </span>
+                <input type="text" class="form-control bg-dark text-white border-secondary" placeholder="Search by title, disease, camp, festival, slogan..." @bind="searchQuery" @bind:event="oninput" @bind:after="ApplyFilters" style="border-radius: 0 10px 10px 0;" />
+                @if (!string.IsNullOrWhiteSpace(searchQuery))
+                {
+                    <button class="btn btn-outline-secondary" type="button" @onclick="ClearSearch">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                }
+            </div>
+        </div>
+
+        <div class="col-lg-6 col-12 d-flex flex-wrap gap-2 justify-content-lg-end">
+            <!-- Language Filter Pills -->
+            <div class="d-flex align-items-center gap-2">
+                <label class="text-secondary small mb-0 fw-semibold">Language:</label>
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn @(selectedLanguage == "All" ? "btn-info text-dark fw-bold" : "btn-outline-secondary text-white")" @onclick='() => SetLanguageFilter("All")'>All</button>
+                    <button type="button" class="btn @(selectedLanguage == "hi" ? "btn-info text-dark fw-bold" : "btn-outline-secondary text-white")" @onclick='() => SetLanguageFilter("hi")'>🇮🇳 हिन्दी</button>
+                    <button type="button" class="btn @(selectedLanguage == "en" ? "btn-info text-dark fw-bold" : "btn-outline-secondary text-white")" @onclick='() => SetLanguageFilter("en")'>🇬🇧 English</button>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center gap-2">
+                <label class="text-secondary small mb-0 fw-semibold">Style:</label>
+                <select class="form-select form-select-sm bg-dark text-white border-secondary" style="width: auto; border-radius: 8px;" @bind="selectedStyle" @bind:after="ApplyFilters">
+                    <option value="All">All Styles (@allTemplates.Count)</option>
+                    @foreach (var style in availableStyles)
+                    {
+                        <option value="@style">@style</option>
+                    }
+                </select>
+            </div>
+
+            <div class="d-flex align-items-center gap-2">
+                <label class="text-secondary small mb-0 fw-semibold">Format:</label>
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn @(selectedAspectRatio == "All" ? "btn-info text-dark fw-bold" : "btn-outline-secondary text-white")" @onclick='() => SetAspectRatio("All")'>All</button>
+                    <button type="button" class="btn @(selectedAspectRatio == "1:1" ? "btn-info text-dark fw-bold" : "btn-outline-secondary text-white")" @onclick='() => SetAspectRatio("1:1")'>1:1 Square</button>
+                    <button type="button" class="btn @(selectedAspectRatio == "9:16" ? "btn-info text-dark fw-bold" : "btn-outline-secondary text-white")" @onclick='() => SetAspectRatio("9:16")'>9:16 Story</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Doctor Branding Info Banner -->
+    @if (doctorProfile != null)
+    {
+        <div class="p-3 mb-4 rounded-4 d-flex flex-wrap align-items-center justify-content-between gap-3" style="background: rgba(0, 242, 254, 0.06); border: 1px solid rgba(0, 242, 254, 0.25);">
+            <div class="d-flex align-items-center gap-3">
+                @if (!string.IsNullOrWhiteSpace(doctorProfile.ProfilePic))
+                {
+                    <img src="@doctorProfile.ProfilePic" alt="Doctor" class="rounded-circle border border-info" style="width: 48px; height: 48px; object-fit: cover;" />
+                }
+                else
+                {
+                    <div class="rounded-circle bg-info bg-opacity-20 d-flex align-items-center justify-content-center text-info" style="width: 48px; height: 48px;">
+                        <i class="bi bi-person-fill fs-4"></i>
+                    </div>
+                }
+                <div>
+                    <div class="text-white fw-bold mb-0" style="font-size: 0.98rem;">
+                        @(string.IsNullOrWhiteSpace(doctorProfile.DisplayName) ? doctorProfile.FullName : doctorProfile.DisplayName)
+                        @if (!string.IsNullOrWhiteSpace(doctorProfile.Qualifications))
+                        {
+                            <span class="text-secondary fw-normal ms-1" style="font-size: 0.85rem;">(@doctorProfile.Qualifications)</span>
+                        }
+                    </div>
+                    <div class="text-secondary small">
+                        @(string.IsNullOrWhiteSpace(doctorProfile.ClinicName) ? "CYH Super Specialty Clinic" : doctorProfile.ClinicName)
+                        @if (!string.IsNullOrWhiteSpace(doctorProfile.MobileNo))
+                        {
+                            <span class="ms-2"><i class="bi bi-telephone-fill text-info me-1"></i>@doctorProfile.MobileNo</span>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="badge px-3 py-2 rounded-pill bg-success bg-opacity-20 text-success border border-success">
+                <i class="bi bi-shield-check me-1"></i> Auto-Branding Active: In sabhi templates me aapki doctor profile details auto-inject hongi!
+            </div>
+        </div>
+    }
+
+    <!-- Templates Grid -->
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-info" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">Loading templates...</span>
+            </div>
+            <p class="text-secondary mt-3">SQL Database se 50 Templates load ho rahe hain...</p>
+        </div>
+    }
+    else if (!filteredTemplates.Any())
+    {
+        <div class="text-center py-5 glass-panel rounded-4">
+            <i class="bi bi-search text-secondary display-3"></i>
+            <h4 class="text-white mt-3">Koi Template Nahi Mila</h4>
+            <p class="text-secondary">Aapne jo filter ya search text lagaya hai usme koi template match nahi hua.</p>
+            <button type="button" class="btn btn-outline-info px-4 py-2 mt-2" @onclick="ResetAllFilters">
+                Reset All Filters
+            </button>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var tpl in filteredTemplates)
+            {
+                <div class="col-xl-4 col-md-6 col-12">
+                    <div class="template-card glass-panel h-100 d-flex flex-column">
+                        <!-- Preview Image Area -->
+                        <div class="template-img-wrapper position-relative" @onclick="() => OpenPreviewModal(tpl)" style="cursor: pointer;">
+                            <img src="@tpl.BackgroundImageUrl" alt="@tpl.Title" class="template-img" loading="lazy" />
+
+                            <!-- Category Badge -->
+                            <div class="position-absolute top-0 start-0 m-3 d-flex flex-column gap-1">
+                                <span class="badge px-2 py-1" style="background: rgba(7, 13, 30, 0.85); border: 1px solid @tpl.PrimaryColor; color: @tpl.PrimaryColor; border-radius: 6px; font-size: 0.75rem; backdrop-filter: blur(8px);">
+                                    <i class="bi @tpl.CategoryIcon me-1"></i> @tpl.CategoryName
+                                </span>
+                                <div class="d-flex gap-1">
+                                    <span class="badge px-2 py-1 bg-dark bg-opacity-75 text-white" style="border-radius: 6px; font-size: 0.72rem;">
+                                        @tpl.StyleTheme
+                                    </span>
+                                    <span class="badge px-2 py-1 @(tpl.Language == "hi" ? "bg-warning text-dark fw-bold" : "bg-dark bg-opacity-75 text-info")" style="border-radius: 6px; font-size: 0.7rem;">
+                                        @(tpl.Language == "hi" ? "🇮🇳 हिन्दी" : "🇬🇧 EN")
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Template ID & Aspect -->
+                            <div class="position-absolute top-0 end-0 m-3">
+                                <span class="badge bg-black bg-opacity-75 text-secondary border border-secondary" style="border-radius: 6px; font-size: 0.72rem;">
+                                    #@tpl.Id • @tpl.AspectRatio
+                                </span>
+                            </div>
+
+                            <!-- Hover Overlay with Doctor Branding Preview -->
+                            <div class="template-hover-overlay d-flex flex-column justify-content-between p-3">
+                                <div class="text-end">
+                                    <span class="btn btn-sm btn-light rounded-circle shadow" title="Quick Zoom Preview">
+                                        <i class="bi bi-arrows-fullscreen"></i>
+                                    </span>
+                                </div>
+                                <div class="doctor-badge-preview p-2 rounded-3" style="background: rgba(3, 8, 20, 0.92); border-left: 3px solid @tpl.PrimaryColor;">
+                                    <div class="fw-bold text-white small text-truncate">
+                                        @(doctorProfile != null ? (!string.IsNullOrWhiteSpace(doctorProfile.DisplayName) ? doctorProfile.DisplayName : doctorProfile.FullName) : "Dr. Specialist, MD")
+                                    </div>
+                                    <div class="text-secondary" style="font-size: 0.74rem;">
+                                        @(doctorProfile != null && !string.IsNullOrWhiteSpace(doctorProfile.ClinicName) ? doctorProfile.ClinicName : "CYH Super Specialty Hospital")
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card Content -->
+                        <div class="p-3 d-flex flex-column flex-grow-1">
+                            <div class="d-flex align-items-start justify-content-between gap-2 mb-1">
+                                <h5 class="text-white fw-bold mb-0 text-truncate" title="@tpl.Title" style="font-size: 1rem;">
+                                    @tpl.Title
+                                </h5>
+                            </div>
+
+                            <p class="text-info fw-semibold mb-1" style="font-size: 0.85rem;">
+                                "@tpl.DefaultHeading"
+                            </p>
+
+                            <p class="text-secondary small mb-3 flex-grow-1" style="font-size: 0.82rem; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                                @tpl.DefaultSubtitle
+                            </p>
+
+                            <!-- Actions Row -->
+                            <div class="d-flex flex-column gap-2 mt-auto">
+                                <!-- Main Button: Customize in Studio -->
+                                <button type="button" class="btn btn-info w-100 d-flex align-items-center justify-content-center gap-2 py-2 fw-bold" style="background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); border: none; border-radius: 10px; color: #070d1e;" @onclick="() => CustomizeInStudio(tpl.Id)">
+                                    <i class="bi bi-pencil-square"></i>
+                                    <span>Customize in Studio</span>
+                                </button>
+
+                                <!-- Secondary Actions: Quick Preview, Download, Share -->
+                                <div class="btn-group w-100" role="group">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm text-white py-1" @onclick="() => OpenPreviewModal(tpl)" title="Full Screen Preview">
+                                        <i class="bi bi-eye-fill me-1 text-info"></i> Preview
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm text-white py-1" @onclick="() => QuickDownloadTemplate(tpl)" title="1-Click PNG Download">
+                                        <i class="bi bi-download me-1 text-warning"></i> Download
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm text-white py-1" @onclick="() => QuickShareTemplate(tpl)" title="Share on WhatsApp & Social">
+                                        <i class="bi bi-share-fill me-1 text-success"></i> Share
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<!-- Quick High-Res Preview Modal -->
+@if (previewTemplate != null)
+{
+    <div class="modal-backdrop fade show" style="background: rgba(3, 8, 20, 0.88); backdrop-filter: blur(10px); z-index: 1050;"></div>
+    <div class="modal fade show d-block" tabindex="-1" style="z-index: 1055;" @onclick="ClosePreviewModal">
+        <div class="modal-dialog modal-dialog-centered modal-lg" @onclick:stopPropagation>
+            <div class="modal-content glass-panel" style="background: rgba(14, 25, 48, 0.95); border: 1px solid rgba(0, 242, 254, 0.35); border-radius: 20px; overflow: hidden; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);">
+                <!-- Modal Header -->
+                <div class="modal-header border-0 px-4 pt-4 pb-2 d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <span class="badge" style="background: rgba(0, 242, 254, 0.15); color: #00f2fe; border: 1px solid #00f2fe; border-radius: 6px;">
+                                <i class="bi @previewTemplate.CategoryIcon me-1"></i> @previewTemplate.CategoryName
+                            </span>
+                            <span class="badge bg-dark text-secondary">
+                                Template #@previewTemplate.Id • @previewTemplate.StyleTheme
+                            </span>
+                        </div>
+                        <h4 class="modal-title fw-bold text-white mb-0">@previewTemplate.Title</h4>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" @onclick="ClosePreviewModal"></button>
+                </div>
+
+                <!-- Modal Body: High Res Visual Preview -->
+                <div class="modal-body p-4 text-center">
+                    <div class="preview-canvas-container position-relative mx-auto rounded-4 overflow-hidden shadow-lg" style="max-width: 520px; aspect-ratio: 1/1; border: 2px solid @previewTemplate.PrimaryColor;">
+                        <img src="@previewTemplate.BackgroundImageUrl" alt="@previewTemplate.Title" style="width: 100%; height: 100%; object-fit: cover;" />
+
+                        <!-- Live Doctor Branding Overlay in Preview -->
+                        <div class="position-absolute bottom-0 start-0 end-0 p-3 text-start" style="background: linear-gradient(0deg, rgba(3,8,20,0.95) 0%, rgba(3,8,20,0.8) 70%, transparent 100%);">
+                            <div class="badge px-2 py-1 mb-2" style="background: @previewTemplate.PrimaryColor; color: #070d1e; font-weight: 700; border-radius: 6px; font-size: 0.72rem;">
+                                @(previewTemplate.BadgeText ?? "HEALTH MATTERS")
+                            </div>
+                            <h5 class="text-white fw-bold mb-1" style="font-size: 1.1rem;">
+                                @previewTemplate.DefaultHeading
+                            </h5>
+                            <p class="text-secondary small mb-2" style="font-size: 0.8rem; line-height: 1.3;">
+                                @previewTemplate.DefaultSubtitle
+                            </p>
+
+                            <div class="d-flex align-items-center justify-content-between pt-2 border-top border-secondary border-opacity-25">
+                                <div>
+                                    <div class="text-info fw-bold small">
+                                        @(doctorProfile != null ? (!string.IsNullOrWhiteSpace(doctorProfile.DisplayName) ? doctorProfile.DisplayName : doctorProfile.FullName) : "Dr. Specialist, MD")
+                                    </div>
+                                    <div class="text-secondary" style="font-size: 0.72rem;">
+                                        @(doctorProfile != null && !string.IsNullOrWhiteSpace(doctorProfile.ClinicName) ? doctorProfile.ClinicName : "CYH Super Specialty Hospital")
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <div class="text-white small fw-semibold">
+                                        <i class="bi bi-telephone-fill text-warning me-1"></i>
+                                        @(doctorProfile != null && !string.IsNullOrWhiteSpace(doctorProfile.MobileNo) ? doctorProfile.MobileNo : "+91 98765 43210")
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="modal-footer border-0 px-4 pb-4 pt-0 d-flex flex-wrap gap-2 justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary px-3 py-2" @onclick="ClosePreviewModal" style="border-radius: 10px;">
+                        Close
+                    </button>
+
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="button" class="btn btn-outline-warning d-flex align-items-center gap-1 px-3 py-2 fw-semibold" style="border-radius: 10px;" @onclick="() => QuickDownloadTemplate(previewTemplate)">
+                            <i class="bi bi-download"></i>
+                            <span>Download PNG</span>
+                        </button>
+                        <button type="button" class="btn btn-outline-success d-flex align-items-center gap-1 px-3 py-2 fw-semibold" style="border-radius: 10px;" @onclick="() => QuickShareTemplate(previewTemplate)">
+                            <i class="bi bi-whatsapp"></i>
+                            <span>Share</span>
+                        </button>
+                        <button type="button" class="btn btn-info d-flex align-items-center gap-2 px-4 py-2 fw-bold" style="background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); border: none; border-radius: 10px; color: #070d1e;" @onclick="() => CustomizeInStudio(previewTemplate.Id)">
+                            <i class="bi bi-pencil-square"></i>
+                            <span>Open in Studio &amp; Edit</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Hidden Canvas for 1-Click Quick PNG Download & Share Generation -->
+<canvas id="quickExportCanvas" style="display: none;"></canvas>
+
+<style>
+    .template-gallery-container {
+        padding: 0.5rem 0.25rem;
+    }
+
+    .glass-panel {
+        background: rgba(14, 25, 48, 0.7);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .category-pills-bar {
+        background: rgba(14, 25, 48, 0.85);
+        border: 1px solid rgba(0, 242, 254, 0.2);
+    }
+
+    .category-pill {
+        background: rgba(15, 23, 42, 0.6);
+        color: #cbd5e1;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 0.4rem 0.85rem;
+        font-size: 0.82rem;
+        font-weight: 600;
+        transition: all 0.2s ease;
+    }
+
+    .category-pill:hover {
+        background: rgba(0, 242, 254, 0.15);
+        border-color: rgba(0, 242, 254, 0.4);
+        color: #00f2fe;
+    }
+
+    .category-pill.active {
+        background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+        color: #070d1e;
+        border-color: #00f2fe;
+        font-weight: 700;
+        box-shadow: 0 4px 15px rgba(0, 242, 254, 0.35);
+    }
+
+    .template-card {
+        border-radius: 16px;
+        overflow: hidden;
+        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    }
+
+    .template-card:hover {
+        transform: translateY(-5px);
+        border-color: rgba(0, 242, 254, 0.45);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 242, 254, 0.2);
+    }
+
+    .template-img-wrapper {
+        aspect-ratio: 1/1;
+        overflow: hidden;
+        background: #030814;
+    }
+
+    .template-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.4s ease;
+    }
+
+    .template-card:hover .template-img {
+        transform: scale(1.04);
+    }
+
+    .template-hover-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(3, 8, 20, 0.4);
+        opacity: 0;
+        transition: opacity 0.25s ease;
+    }
+
+    .template-card:hover .template-hover-overlay {
+        opacity: 1;
+    }
+</style>
+
+@code {
+    private List<BannerCategoryDTO> categories = new();
+    private List<BannerTemplateDTO> allTemplates = new();
+    private List<BannerTemplateDTO> filteredTemplates = new();
+    private List<string> availableStyles = new();
+
+    private int selectedCategoryId = 0;
+    private string selectedStyle = "All";
+    private string selectedAspectRatio = "All";
+    private string searchQuery = string.Empty;
+    private bool isLoading = true;
+
+    private CurrentUserDTO? currentUser;
+    private DoctorProfile? doctorProfile;
+    private BannerTemplateDTO? previewTemplate;
+
+    // Toast Popup Notification State
+    private ToastNotificationDTO? activePopup;
+    private CancellationTokenSource? popupCts;
+
+    private void ShowPopup(string title, string message, string type = "save")
+    {
+        popupCts?.Cancel();
+        popupCts = new CancellationTokenSource();
+        var token = popupCts.Token;
+
+        activePopup = new ToastNotificationDTO
+        {
+            Title = title,
+            Message = message,
+            Type = type
+        };
+        StateHasChanged();
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(4000, token);
+                if (!token.IsCancellationRequested)
+                {
+                    await InvokeAsync(() =>
+                    {
+                        activePopup = null;
+                        StateHasChanged();
+                    });
+                }
+            }
+            catch { }
+        });
+    }
+
+    private void DismissPopup()
+    {
+        popupCts?.Cancel();
+        activePopup = null;
+        StateHasChanged();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        currentUser = await AuthService.GetOrRestoreCurrentUserAsync();
+        if (currentUser != null && !currentUser.IsActive && currentUser.Role == "Doctor")
+        {
+            NavigationManager.NavigateTo("doctor/profile");
+            return;
+        }
+
+        // Fetch Doctor Profile for branding preview
+        if (currentUser != null)
+        {
+            try
+            {
+                if (currentUser.DoctorProfileId.HasValue)
+                {
+                    doctorProfile = await DoctorRepo.GetByIdAsync(currentUser.DoctorProfileId.Value);
+                }
+                if (doctorProfile == null && !string.IsNullOrEmpty(currentUser.UserId))
+                {
+                    doctorProfile = await DoctorRepo.GetByUserIdAsync(currentUser.UserId);
+                }
+            }
+            catch { }
+        }
+
+        await LoadDataFromSqlAsync();
+    }
+
+    private async Task LoadDataFromSqlAsync()
+    {
+        isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            // 1. Fetch Dynamic Categories from SQL (with template counts)
+            categories = await TemplateRepo.GetCategoriesAsync(onlyActive: true);
+
+            // 2. Fetch all 50 Templates from SQL
+            allTemplates = await TemplateRepo.GetAllTemplatesAsync();
+
+            // Extract distinct styles for filter dropdown
+            availableStyles = allTemplates
+                .Select(t => t.StyleTheme)
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .Distinct()
+                .OrderBy(s => s)
+                .ToList();
+
+            ApplyFilters();
+        }
+        catch (Exception ex)
+        {
+            ShowPopup("Error Loading Templates", ex.Message, "error");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void SelectCategory(int categoryId)
+    {
+        selectedCategoryId = categoryId;
+        ApplyFilters();
+    }
+
+    private void SetAspectRatio(string ratio)
+    {
+        selectedAspectRatio = ratio;
+        ApplyFilters();
+    }
+
+    private string selectedLanguage = "All"; // "All", "hi", "en"
+
+    private void SetLanguageFilter(string lang)
+    {
+        selectedLanguage = lang;
+        ApplyFilters();
+    }
+
+    private void ClearSearch()
+    {
+        searchQuery = string.Empty;
+        ApplyFilters();
+    }
+
+    private void ResetAllFilters()
+    {
+        selectedCategoryId = 0;
+        selectedStyle = "All";
+        selectedAspectRatio = "All";
+        selectedLanguage = "All";
+        searchQuery = string.Empty;
+        ApplyFilters();
+    }
+
+    private void ApplyFilters()
+    {
+        var q = allTemplates.AsEnumerable();
+
+        if (selectedCategoryId > 0)
+        {
+            q = q.Where(t => t.CategoryId == selectedCategoryId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(selectedLanguage) && selectedLanguage != "All")
+        {
+            if (selectedLanguage == "hi")
+            {
+                q = q.Where(t => t.Language == "hi" ||
+                    System.Text.RegularExpressions.Regex.IsMatch((t.DefaultHeading ?? "") + " " + (t.DefaultSubtitle ?? "") + " " + t.Title, @"[\u0900-\u097F]"));
+            }
+            else if (selectedLanguage == "en")
+            {
+                q = q.Where(t => t.Language == "en" &&
+                    !System.Text.RegularExpressions.Regex.IsMatch((t.DefaultHeading ?? "") + " " + (t.DefaultSubtitle ?? "") + " " + t.Title, @"[\u0900-\u097F]"));
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(selectedStyle) && selectedStyle != "All")
+        {
+            q = q.Where(t => string.Equals(t.StyleTheme, selectedStyle, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (!string.IsNullOrWhiteSpace(selectedAspectRatio) && selectedAspectRatio != "All")
+        {
+            q = q.Where(t => string.Equals(t.AspectRatio, selectedAspectRatio, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (!string.IsNullOrWhiteSpace(searchQuery))
+        {
+            var s = searchQuery.Trim().ToLowerInvariant();
+            q = q.Where(t => 
+                (t.Title?.ToLowerInvariant().Contains(s) ?? false) ||
+                (t.DefaultHeading?.ToLowerInvariant().Contains(s) ?? false) ||
+                (t.DefaultSubtitle?.ToLowerInvariant().Contains(s) ?? false) ||
+                (t.CategoryName?.ToLowerInvariant().Contains(s) ?? false) ||
+                (t.BadgeText?.ToLowerInvariant().Contains(s) ?? false) ||
+                (t.StyleTheme?.ToLowerInvariant().Contains(s) ?? false)
+            );
+        }
+
+        filteredTemplates = q.ToList();
+        StateHasChanged();
+    }
+
+    private void CustomizeInStudio(int templateId)
+    {
+        var relPath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri).ToLowerInvariant();
+        var encId = UrlEncryptionHelper.EncryptId(templateId);
+
+        var prefix = (currentUser?.Role == "Doctor" || relPath.StartsWith("doctor")) ? "doctor/" : 
+                     ((currentUser?.Role == "Admin" || relPath.StartsWith("admin")) ? "admin/" : "");
+
+        NavigationManager.NavigateTo($"{prefix}banner-design?templateId={encId}");
+    }
+
+    private void OpenPreviewModal(BannerTemplateDTO tpl)
+    {
+        previewTemplate = tpl;
+    }
+
+    private void ClosePreviewModal()
+    {
+        previewTemplate = null;
+    }
+
+    private async Task<bool> EnsureBannerStudioLoadedAsync()
+    {
+        try
+        {
+            var isReady = await JSRuntime.InvokeAsync<bool>("eval", @"
+                new Promise((resolve) => {
+                    if (typeof window.bannerStudio !== 'undefined' && typeof window.bannerStudio.renderBanner === 'function') {
+                        return resolve(true);
+                    }
+                    const existing = document.getElementById('banner-studio-dynamic-script');
+                    if (existing) existing.remove();
+                    const s = document.createElement('script');
+                    s.id = 'banner-studio-dynamic-script';
+                    s.src = 'js/bannerStudio.js?v=' + Date.now();
+                    s.onload = () => resolve(typeof window.bannerStudio !== 'undefined' && typeof window.bannerStudio.renderBanner === 'function');
+                    s.onerror = () => resolve(false);
+                    document.head.appendChild(s);
+                })
+            ");
+            return isReady;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private async Task QuickDownloadTemplate(BannerTemplateDTO tpl)
+    {
+        try
+        {
+            // Credit check for Doctor on template export
+            if (currentUser?.Role == "Doctor" && doctorProfile != null && doctorProfile.Id > 0)
+            {
+                var (ok, msg, remaining) = await CreditRepo.DeductCreditOnPublishAsync(
+                    doctorProfile.Id,
+                    "TEMPLATE_PUBLISH",
+                    tpl.Id.ToString(),
+                    $"Template Branded Export #{tpl.Id}: {tpl.Title}");
+
+                if (!ok)
+                {
+                    ShowPopup("Insufficient Credits", msg, "warning");
+                    return;
+                }
+            }
+            await EnsureBannerStudioLoadedAsync();
+
+            var config = tpl.GetConfigState();
+            config.Heading = tpl.DefaultHeading;
+            config.Subtitle = tpl.DefaultSubtitle ?? config.Subtitle;
+            config.BadgeText = tpl.BadgeText ?? config.BadgeText;
+            config.BackgroundImageUrl = tpl.BackgroundImageUrl;
+            config.PrimaryColor = tpl.PrimaryColor;
+            config.SecondaryColor = tpl.SecondaryColor;
+
+            // Apply Doctor Branding
+            if (doctorProfile != null)
+            {
+                config.DoctorName = !string.IsNullOrWhiteSpace(doctorProfile.DisplayName) ? doctorProfile.DisplayName : doctorProfile.FullName;
+                if (!string.IsNullOrWhiteSpace(doctorProfile.Qualifications) && !config.DoctorName.Contains(doctorProfile.Qualifications))
+                {
+                    config.DoctorName += $", {doctorProfile.Qualifications}";
+                }
+                if (!string.IsNullOrWhiteSpace(doctorProfile.ClinicName)) config.HospitalName = doctorProfile.ClinicName;
+                if (!string.IsNullOrWhiteSpace(doctorProfile.MobileNo)) config.ContactPhone = doctorProfile.MobileNo;
+                if (!string.IsNullOrWhiteSpace(doctorProfile.ClinicAddress)) config.Address = doctorProfile.ClinicAddress;
+                if (!string.IsNullOrWhiteSpace(doctorProfile.Specialization)) config.Specialization = doctorProfile.Specialization;
+            }
+
+            var filename = $"CYH_Template_{tpl.Id}_{DateTime.Now:yyyyMMdd_HHmm}.png";
+
+            // Render to quickExportCanvas and trigger download via bannerStudio JS
+            await JSRuntime.InvokeVoidAsync("bannerStudio.renderBanner", "quickExportCanvas", config);
+            await Task.Delay(300); // Allow image paint
+            await JSRuntime.InvokeVoidAsync("bannerStudio.downloadBanner", "quickExportCanvas", filename);
+
+            ShowPopup("PNG Downloaded", $"Template #{tpl.Id} '{tpl.Title}' branded PNG download ho gaya hai!", "save");
+        }
+        catch (Exception ex)
+        {
+            ShowPopup("Download Error", ex.Message, "error");
+        }
+    }
+
+    private async Task QuickShareTemplate(BannerTemplateDTO tpl)
+    {
+        try
+        {
+            await EnsureBannerStudioLoadedAsync();
+
+            var docName = doctorProfile != null ? (!string.IsNullOrWhiteSpace(doctorProfile.DisplayName) ? doctorProfile.DisplayName : doctorProfile.FullName) : "Our Doctor";
+            var clinicName = doctorProfile != null && !string.IsNullOrWhiteSpace(doctorProfile.ClinicName) ? doctorProfile.ClinicName : "CYH Hospital";
+            var phone = doctorProfile != null && !string.IsNullOrWhiteSpace(doctorProfile.MobileNo) ? doctorProfile.MobileNo : "";
+
+            var shareTitle = $"{tpl.DefaultHeading} — {clinicName}";
+            var shareText = $"🏥 *{clinicName}*\n🩺 *{docName}*\n\n✨ *{tpl.DefaultHeading}*\n{tpl.DefaultSubtitle}\n\n📞 Helpline: {phone}\n🌐 Book Appointment: https://www.clickyourhospital.com";
+
+            // Use Web Share API or WhatsApp direct
+            var config = tpl.GetConfigState();
+            config.BackgroundImageUrl = tpl.BackgroundImageUrl;
+            await JSRuntime.InvokeVoidAsync("bannerStudio.renderBanner", "quickExportCanvas", config);
+            await Task.Delay(300);
+
+            var res = await JSRuntime.InvokeAsync<ShareResult>("bannerStudio.shareBanner", "quickExportCanvas", shareTitle, shareText);
+            if (res.Success)
+            {
+                ShowPopup("Shared Successfully", res.Message, "save");
+            }
+            else
+            {
+                ShowPopup("Share Info", res.Message, "warning");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowPopup("Share Error", ex.Message, "error");
+        }
+    }
+
+    private string GetStudioUrl()
+    {
+        var relPath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri).ToLowerInvariant();
+        if (currentUser?.Role == "Doctor" || relPath.StartsWith("doctor")) return "doctor/banner-design";
+        if (currentUser?.Role == "Admin" || relPath.StartsWith("admin")) return "admin/banner-design";
+        return "banner-design";
+    }
+
+    private string GetMyBannersUrl()
+    {
+        var relPath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri).ToLowerInvariant();
+        if (currentUser?.Role == "Doctor" || relPath.StartsWith("doctor")) return "doctor/banner-designs";
+        if (currentUser?.Role == "Admin" || relPath.StartsWith("admin")) return "admin/banner-designs";
+        return "banner-designs";
+    }
+
+    private class ShareResult
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public string Method { get; set; } = string.Empty;
+    }
+}

@@ -6,19 +6,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
     <title>CYH Doctor — Portal</title>
+    <!-- Google Fonts for High Quality English & Hindi (Devanagari) Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hind:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@400;600;700;800&family=Mukta:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;0,900;1,600&family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600&family=Rozha+One&family=Yatra+One&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="css/glass-theme.css" />
     <link rel="stylesheet" href="app.css" />
     <link rel="stylesheet" href="CYHDocBrandUI.styles.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
-    <script src="js/bannerStudio.js?v=3.2"></script>
     <HeadOutlet @rendermode="new InteractiveServerRenderMode(prerender: false)" />
 </head>
 
 <body>
     <Routes @rendermode="new InteractiveServerRenderMode(prerender: false)" />
     <ReconnectModal />
+    <script src="js/bannerStudio.js?v=4.2"></script>
     <script src="_framework/blazor.web.js"></script>
 </body>
 

@@ -1,41 +1,51 @@
 @inherits LayoutComponentBase
+@implements IDisposable
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthStateProvider
 
 <div class="cyh-app-container">
-    <!-- Left Glass Sidebar -->
-    <aside class="cyh-sidebar">
-        <NavMenu />
+    <!-- Mobile Sidebar Dark Backdrop -->
+    <div class="cyh-sidebar-backdrop @(isMobileNavOpen ? "show" : "")" @onclick="CloseMobileNav"></div>
+
+    <!-- Left Glass Sidebar (Desktop Fixed + Mobile Off-Canvas Drawer) -->
+    <aside class="cyh-sidebar @(isMobileNavOpen ? "mobile-open" : "")">
+        <NavMenu OnCloseMenu="CloseMobileNav" />
     </aside>
 
     <!-- Main Content Area -->
     <div class="cyh-main-content">
         <!-- Top Glass Navigation Bar -->
         <header class="cyh-topbar">
-            <div class="d-flex align-items-center gap-3">
-                <span class="badge" style="@(IsAdmin ? "background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35);" : "background: rgba(0, 242, 254, 0.15); color: #38bdf8; border: 1px solid rgba(0, 242, 254, 0.35);") padding: 0.45rem 0.85rem; font-size: 0.82rem; font-weight: 700;">
+            <div class="d-flex align-items-center gap-2">
+                <!-- Hamburger Menu Button (Mobile & Tablet) -->
+                <button class="cyh-mobile-toggle d-lg-none" type="button" @onclick="ToggleMobileNav" aria-label="Toggle navigation">
+                    <i class="bi bi-list"></i>
+                </button>
+
+                <span class="badge" style="@(IsAdmin ? "background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35);" : "background: rgba(0, 242, 254, 0.15); color: #38bdf8; border: 1px solid rgba(0, 242, 254, 0.35);") padding: 0.45rem 0.75rem; font-size: 0.82rem; font-weight: 700;">
                     <i class="bi @(IsAdmin ? "bi-shield-lock-fill" : "bi-heart-pulse-fill") me-1"></i>
-                    @(IsAdmin ? "Hospital Administration Console" : "Doctor Clinical Workspace")
+                    <span class="d-none d-sm-inline">@(IsAdmin ? "Hospital Administration Console" : "Doctor Clinical Workspace")</span>
+                    <span class="d-inline d-sm-none">@(IsAdmin ? "Admin Console" : "Doctor Workspace")</span>
                 </span>
             </div>
 
-            <div class="d-flex align-items-center gap-3">
+            <div class="d-flex align-items-center gap-2">
                 <!-- User Profile Pill -->
                 <div class="user-profile-pill" style="border-color: @(IsAdmin ? "rgba(245, 158, 11, 0.35)" : "rgba(0, 242, 254, 0.35)");">
                     <div class="user-avatar" style="@(IsAdmin ? "background: linear-gradient(135deg, #f59e0b, #fbbf24); color: #070d1e;" : "")">
                         @(CurrentUser?.FullName.Length > 0 ? CurrentUser.FullName[0] : 'U')
                     </div>
-                    <div>
-                        <div style="font-size: 0.85rem; font-weight: 600; line-height: 1.1; color: #ffffff;">
+                    <div class="d-none d-sm-block">
+                        <div style="font-size: 0.85rem; font-weight: 600; line-height: 1.1; color: #ffffff; max-width: 140px;" class="text-truncate">
                             @(CurrentUser?.FullName ?? "Staff Member")
                         </div>
-                        <div style="font-size: 0.72rem; color: @(IsAdmin ? "#fbbf24" : "var(--cyh-accent-cyan)"); font-weight: 600;">
+                        <div class="d-none d-md-block text-truncate" style="font-size: 0.72rem; color: @(IsAdmin ? "#fbbf24" : "var(--cyh-accent-cyan)"); font-weight: 600; max-width: 140px;">
                             @(IsAdmin ? "Hospital Administrator" : (CurrentUser?.Department ?? "Cardiologist"))
                         </div>
                     </div>
-                    <button class="btn btn-link text-muted p-0 ms-2" @onclick="Logout" title="Logout">
-                        <i class="bi bi-box-arrow-right text-danger"></i>
+                    <button class="btn btn-link text-muted p-0 ms-1" @onclick="Logout" title="Logout" style="width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center;">
+                        <i class="bi bi-box-arrow-right text-danger fs-6"></i>
                     </button>
                 </div>
             </div>
@@ -48,9 +58,9 @@
     </div>
 </div>
 
-
 @code {
     private CurrentUserDTO? CurrentUser;
+    private bool isMobileNavOpen = false;
 
     private bool IsDoctor => CurrentUser?.Role == "Doctor";
     private bool IsAdmin => CurrentUser?.Role == "Admin";
@@ -63,6 +73,8 @@
             await InvokeAsync(StateHasChanged);
         };
 
+        NavigationManager.LocationChanged += OnLocationChanged;
+
         await LoadCurrentUserAsync();
 
         if (CurrentUser == null)
@@ -72,14 +84,38 @@
         }
     }
 
+    private void ToggleMobileNav()
+    {
+        isMobileNavOpen = !isMobileNavOpen;
+    }
+
+    private void CloseMobileNav()
+    {
+        isMobileNavOpen = false;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        if (isMobileNavOpen)
+        {
+            isMobileNavOpen = false;
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
     private async Task LoadCurrentUserAsync()
     {
-        CurrentUser = AuthService.GetCurrentUser();
+        CurrentUser = await AuthService.GetOrRestoreCurrentUserAsync();
     }
 
     private async Task Logout()
     {
         await AuthService.LogoutAsync();
         NavigationManager.NavigateTo("login");
+    }
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
     }
 }

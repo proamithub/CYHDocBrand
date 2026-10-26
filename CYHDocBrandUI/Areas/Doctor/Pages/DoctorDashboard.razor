@@ -1,239 +1,428 @@
+@using CYHDocBrandRepo.Utilities
 @page "/doctor/dashboard"
 @layout DoctorLayout
 @inject IDoctorRepository DoctorRepo
 @inject IAnalyticsService AnalyticsService
+@inject ICreditRepository CreditRepo
+@inject IBannerRepository BannerRepo
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthStateProvider
 
-<div class="d-flex flex-column gap-4">
-    <!-- Header with Doctor Greeting & Duty Toggle -->
-    <div class="glass-panel p-4 d-flex flex-wrap align-items-center justify-content-between gap-3" style="border-left: 4px solid #00f2fe;">
-        <div class="d-flex align-items-center gap-3">
-            <div class="stat-icon-wrapper" style="width: 58px; height: 58px; font-size: 1.6rem; border-radius: 16px; background: rgba(0, 242, 254, 0.15); color: #00f2fe; border-color: rgba(0, 242, 254, 0.4);">
-                <i class="bi bi-person-fill-check"></i>
-            </div>
-            <div>
-                <div class="d-flex align-items-center gap-2">
-                    <h3 class="mb-0 fw-bold text-white">@(CurrentDoctor?.FullName ?? "Dr.")</h3>
-                    <span class="badge @(CurrentDoctor?.IsAvailableToday == true ? "bg-success" : "bg-secondary") rounded-pill px-2 py-1" style="font-size: 0.72rem;">
-                        @(CurrentDoctor?.IsAvailableToday == true ? "● On Duty" : "○ Off Duty")
-                    </span>
-                </div>
-                <div class="small mt-1" style="color: #cbd5e1;">
-                    <span class="text-info fw-semibold">@(CurrentDoctor?.Specialization ?? "Chief Cardiologist")</span>
-                    <span class="mx-2">•</span>
-                    <span>License: @(CurrentDoctor?.LicenseNumber ?? "MED-DEL-98421")</span>
-                    <span class="mx-2">•</span>
-                    <span>Room 304 (Coronary Wing)</span>
-                </div>
-            </div>
-        </div>
+<PageTitle>Clinical Dashboard • CYH DoctorHub</PageTitle>
 
-        <div class="d-flex align-items-center gap-2">
-            <button class="glass-btn-secondary @(CurrentDoctor?.IsAvailableToday == true ? "text-success border-success" : "")" @onclick="ToggleAvailability">
-                <i class="bi bi-power"></i>
-                <span>@(CurrentDoctor?.IsAvailableToday == true ? "Set as Away" : "Set as Available")</span>
-            </button>
-            <a href="doctor/schedule" class="glass-btn-primary">
-                <i class="bi bi-calendar3-week"></i>
-                <span>My OPD Schedule</span>
-            </a>
+<div class="d-flex flex-column gap-4 fade-in">
+    <!-- 1. Hero Doctor Header with Live Duty Toggle & Branding Summary -->
+    <div class="glass-panel p-4 position-relative overflow-hidden" style="border-left: 4px solid #00f2fe; background: linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(10, 25, 47, 0.95) 100%);">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 position-relative" style="z-index: 2;">
+            <div class="d-flex align-items-center gap-3 flex-grow-1 min-w-0">
+                @if (!string.IsNullOrEmpty(CurrentDoctor?.ProfilePic))
+                {
+                    <img src="@CurrentDoctor.ProfilePic" alt="@CurrentDoctor.FullName" class="rounded-circle shadow-lg flex-shrink-0"
+                         style="width: 64px; height: 64px; object-fit: cover; border: 3px solid #00f2fe;" />
+                }
+                else
+                {
+                    <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-lg flex-shrink-0"
+                         style="width: 64px; height: 64px; font-size: 1.6rem; background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); color: #070d1e;">
+                        @(CurrentDoctor?.FullName.Length > 0 ? CurrentDoctor.FullName[0].ToString().ToUpper() : "D")
+                    </div>
+                }
+                <div class="min-w-0">
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <h3 class="mb-0 fw-bold text-white text-truncate">@(CurrentDoctor?.FullName ?? "Dr. Specialist")</h3>
+                        <span class="badge @(CurrentDoctor?.IsAvailableToday == true ? "bg-success" : "bg-secondary") rounded-pill px-2 py-1" style="font-size: 0.72rem;">
+                            @(CurrentDoctor?.IsAvailableToday == true ? "● On Duty" : "○ Off Duty")
+                        </span>
+                        <span class="badge" style="background: rgba(0, 242, 254, 0.15); color: #00f2fe; border: 1px solid rgba(0, 242, 254, 0.3); font-size: 0.72rem;">
+                            @(CurrentDoctor?.Qualifications ?? "MBBS, MD")
+                        </span>
+                    </div>
+                    <div class="small mt-1 text-white-50 d-flex flex-wrap align-items-center gap-1">
+                        <span class="text-info fw-semibold">@(CurrentDoctor?.Specialization ?? "General Medicine")</span>
+                        <span>•</span>
+                        <span><i class="bi bi-hospital me-1"></i>@(CurrentDoctor?.ClinicName ?? "CYH Hospital & Care")</span>
+                        <span>•</span>
+                        <span><i class="bi bi-geo-alt me-1"></i>@(CurrentDoctor?.City ?? "New Delhi")</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <button class="btn btn-sm @(CurrentDoctor?.IsAvailableToday == true ? "btn-outline-success" : "btn-outline-secondary") d-flex align-items-center gap-2 px-3 py-2" @onclick="ToggleAvailability">
+                    <i class="bi bi-power"></i>
+                    <span>@(CurrentDoctor?.IsAvailableToday == true ? "Duty: Available" : "Duty: Away")</span>
+                </button>
+                <a href="doctor/profile" class="btn btn-sm btn-outline-info d-flex align-items-center gap-2 px-3 py-2">
+                    <i class="bi bi-person-gear"></i>
+                    <span>Edit Profile &amp; Branding</span>
+                </a>
+            </div>
         </div>
     </div>
 
-    <!-- 4 Doctor KPI Cards -->
+    <!-- 2. Core Service Credits Showcase Row (Database Driven) -->
     <div class="row g-3">
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="glass-card stat-card">
+        <!-- Template Photo Credits Card -->
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="glass-card stat-card h-100 p-3 position-relative overflow-hidden" style="border: 1px solid rgba(16, 185, 129, 0.3);">
                 <div class="d-flex align-items-center justify-content-between mb-2">
-                    <span class="stat-label">Specialization</span>
-                    <div class="stat-icon-wrapper">
-                        <i class="bi bi-heart-pulse-fill"></i>
-                    </div>
+                    <span class="stat-label text-success"><i class="bi bi-images me-1"></i>Template Photo Credits</span>
+                    <span class="badge bg-success bg-opacity-25 text-success border border-success" style="font-size: 0.68rem;">
+                        @(TemplateCredit?.IsPaid == true ? "PAID" : "FREE SERVICE")
+                    </span>
                 </div>
-                <div class="stat-value text-info" style="font-size: 1.25rem;">@(DoctorStats?.Specialization ?? "Cardiology")</div>
-                <small style="color: #94a3b8; font-size: 0.75rem;">Clinical Department</small>
+                <div class="d-flex align-items-baseline gap-2">
+                    <span class="display-6 fw-bold @((TemplateCredit?.RemainingCredits ?? 0) > 0 ? "text-success" : "text-danger")">
+                        @(TemplateCredit?.RemainingCredits ?? 0)
+                    </span>
+                    <span class="text-white-50 small">/ @(TemplateCredit?.TotalCredits ?? 0) Total</span>
+                </div>
+                <div class="small text-white-50 mt-1 mb-3">
+                    Used: <strong class="text-white">@(TemplateCredit?.UsedCredits ?? 0)</strong> • Deducts 1 on Publish
+                </div>
+                <a href="doctor/template-gallery" class="btn btn-sm btn-outline-success w-100 d-flex align-items-center justify-content-center gap-1 py-1">
+                    <i class="bi bi-grid-3x3-gap-fill"></i>
+                    <span>Browse 50+ Templates</span>
+                </a>
             </div>
         </div>
 
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="glass-card stat-card">
+        <!-- AI Banner Credits Card -->
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="glass-card stat-card h-100 p-3 position-relative overflow-hidden" style="border: 1px solid rgba(245, 158, 11, 0.3);">
                 <div class="d-flex align-items-center justify-content-between mb-2">
-                    <span class="stat-label">Experience</span>
-                    <div class="stat-icon-wrapper stat-icon-amber">
-                        <i class="bi bi-award-fill"></i>
-                    </div>
+                    <span class="stat-label text-warning"><i class="bi bi-stars me-1"></i>AI Banner Credits</span>
+                    <span class="badge bg-warning bg-opacity-25 text-warning border border-warning" style="font-size: 0.68rem;">
+                        @(AiCredit?.IsPaid == true ? "PAID SERVICE" : "FREE")
+                    </span>
                 </div>
-                <div class="stat-value text-warning">@(DoctorStats?.ExperienceYears ?? 14) <span style="font-size: 1rem;">Years</span></div>
-                <small style="color: #94a3b8; font-size: 0.75rem;">Medical practice</small>
+                <div class="d-flex align-items-baseline gap-2">
+                    <span class="display-6 fw-bold @((AiCredit?.RemainingCredits ?? 0) > 0 ? "text-warning" : "text-danger")">
+                        @(AiCredit?.RemainingCredits ?? 0)
+                    </span>
+                    <span class="text-white-50 small">/ @(AiCredit?.TotalCredits ?? 0) Total</span>
+                </div>
+                <div class="small text-white-50 mt-1 mb-3">
+                    Used: <strong class="text-white">@(AiCredit?.UsedCredits ?? 0)</strong> • Deducts 1 on Publish
+                </div>
+                <a href="doctor/banner-design" class="btn btn-sm btn-warning w-100 d-flex align-items-center justify-content-center gap-1 py-1 fw-semibold text-dark">
+                    <i class="bi bi-palette-fill"></i>
+                    <span>Launch AI Studio</span>
+                </a>
             </div>
         </div>
 
+        <!-- Total Banners Created KPI -->
         <div class="col-12 col-sm-6 col-xl-3">
-            <div class="glass-card stat-card">
+            <div class="glass-card stat-card h-100 p-3" style="border: 1px solid rgba(0, 242, 254, 0.25);">
                 <div class="d-flex align-items-center justify-content-between mb-2">
-                    <span class="stat-label">Consultation Fee</span>
-                    <div class="stat-icon-wrapper stat-icon-emerald">
-                        <i class="bi bi-currency-dollar"></i>
+                    <span class="stat-label text-info"><i class="bi bi-collection-play-fill me-1"></i>My Banner Designs</span>
+                    <div class="stat-icon-wrapper" style="width: 36px; height: 36px; background: rgba(0, 242, 254, 0.15); color: #00f2fe; border-radius: 8px; font-size: 1rem;">
+                        <i class="bi bi-layers-fill"></i>
                     </div>
                 </div>
-                <div class="stat-value text-success">$@(DoctorStats?.ConsultationFee.ToString("N2") ?? "85.00")</div>
-                <small style="color: #94a3b8; font-size: 0.75rem;">Per consultation</small>
+                <div class="display-6 fw-bold text-info">@MyBanners.Count</div>
+                <div class="d-flex justify-content-between small text-white-50 mt-2 pt-2 border-top border-secondary border-opacity-25">
+                    <span>Published: <strong class="text-success">@MyBanners.Count(b => b.Status == "Published")</strong></span>
+                    <span>Drafts: <strong class="text-warning">@MyBanners.Count(b => b.Status != "Published")</strong></span>
+                </div>
+                <a href="doctor/banner-designs" class="btn btn-sm btn-outline-info w-100 mt-2 py-1">
+                    <span>View Designs List</span>
+                </a>
             </div>
         </div>
 
+        <!-- Consultation & Clinic Stats Card -->
         <div class="col-12 col-sm-6 col-xl-3">
-            <div class="glass-card stat-card">
+            <div class="glass-card stat-card h-100 p-3" style="border: 1px solid rgba(139, 92, 246, 0.25);">
                 <div class="d-flex align-items-center justify-content-between mb-2">
-                    <span class="stat-label">Duty Status</span>
-                    <div class="stat-icon-wrapper stat-icon-purple">
-                        <i class="bi bi-activity"></i>
+                    <span class="stat-label" style="color: #c084fc;"><i class="bi bi-credit-card me-1"></i>Clinic Practice</span>
+                    <div class="stat-icon-wrapper" style="width: 36px; height: 36px; background: rgba(139, 92, 246, 0.15); color: #a855f7; border-radius: 8px; font-size: 1rem;">
+                        <i class="bi bi-calendar-check"></i>
                     </div>
                 </div>
-                <div class="stat-value @(DoctorStats?.IsAvailableToday == true ? "text-success" : "text-muted")" style="font-size: 1.25rem;">
-                    @(DoctorStats?.IsAvailableToday == true ? "Available Today" : "Away / Off Duty")
-                </div>
-                <small style="color: #94a3b8; font-size: 0.75rem;">Live clinic presence</small>
+                <div class="fs-4 fw-bold text-white">₹@(CurrentDoctor?.ConsultationFee.ToString("N0") ?? "500")</div>
+                <div class="small text-white-50 mt-1">Experience: <strong class="text-white">@(CurrentDoctor?.ExperienceYears ?? 5) Years</strong></div>
+                <div class="small text-white-50 mt-1">Schedule: <strong class="text-white">@(CurrentDoctor?.AvailableDays ?? "Mon - Sat")</strong></div>
+                <a href="doctor/credit-history" class="btn btn-sm btn-outline-light w-100 mt-2 py-1 text-white-50">
+                    <i class="bi bi-clock-history me-1"></i><span>Full Credit History</span>
+                </a>
             </div>
         </div>
     </div>
 
-    <!-- Doctor Clinical Credentials & Information Panel -->
-    <div class="row g-4">
-        <div class="col-12 col-lg-7">
-            <div class="glass-panel p-4 h-100">
-                <h5 class="fw-bold mb-3 text-white">
-                    <i class="bi bi-card-text text-info me-2"></i>Professional Bio & Clinical Scope
-                </h5>
-                <p class="mb-4" style="line-height: 1.7; color: #cbd5e1;">
-                    @(string.IsNullOrWhiteSpace(CurrentDoctor?.Bio) 
-                        ? "Specializing in comprehensive diagnostic and therapeutic cardiovascular medicine, interventional consultations, and evidence-based clinical care."
-                        : CurrentDoctor.Bio)
-                </p>
+    <!-- 3. Quick Action Launchpad -->
+    <div class="glass-panel p-4">
+        <h5 class="fw-bold text-white mb-3">
+            <i class="bi bi-rocket-takeoff-fill text-warning me-2"></i>Doctor Creative Launchpad
+        </h5>
+        <div class="row g-3">
+            <div class="col-12 col-md-4">
+                <a href="doctor/banner-design" class="glass-card p-3 d-flex align-items-center gap-3 text-decoration-none h-100 studio-action-card" style="border: 1px solid rgba(245, 158, 11, 0.35);">
+                    <div class="rounded-3 p-3 text-warning d-flex align-items-center justify-content-center" style="background: rgba(245, 158, 11, 0.2); font-size: 1.6rem; width: 56px; height: 56px;">
+                        <i class="bi bi-magic"></i>
+                    </div>
+                    <div>
+                        <div class="fw-bold text-white">1-Click AI Hospital Banner</div>
+                        <div class="small text-white-50">Generate prompt-driven medical banners in Hindi/English with your clinic branding.</div>
+                        <div class="badge bg-warning text-dark mt-2" style="font-size: 0.68rem;">Cost: 1 AI Credit</div>
+                    </div>
+                </a>
+            </div>
 
-                <h6 class="fw-bold text-white mb-2 small text-uppercase" style="letter-spacing: 0.5px;">Schedule & Clinic Timings</h6>
-                <div class="d-flex flex-wrap gap-2 mb-4">
-                    <span class="badge bg-dark border border-secondary text-info px-3 py-2">
-                        <i class="bi bi-calendar3 me-1"></i> Available Days: @(CurrentDoctor?.AvailableDays ?? "Mon - Sat")
-                    </span>
-                    <span class="badge bg-dark border border-secondary text-info px-3 py-2">
-                        <i class="bi bi-clock me-1"></i> Consultation Hours: @(CurrentDoctor?.AvailableHours ?? "09:00 AM - 04:00 PM")
-                    </span>
-                    <span class="badge bg-dark border border-secondary text-info px-3 py-2">
-                        <i class="bi bi-card-heading me-1"></i> License: @(CurrentDoctor?.LicenseNumber ?? "MED-DEL-98421")
-                    </span>
+            <div class="col-12 col-md-4">
+                <a href="doctor/template-gallery" class="glass-card p-3 d-flex align-items-center gap-3 text-decoration-none h-100 studio-action-card" style="border: 1px solid rgba(0, 242, 254, 0.35);">
+                    <div class="rounded-3 p-3 text-info d-flex align-items-center justify-content-center" style="background: rgba(0, 242, 254, 0.2); font-size: 1.6rem; width: 56px; height: 56px;">
+                        <i class="bi bi-grid-3x3-gap-fill"></i>
+                    </div>
+                    <div>
+                        <div class="fw-bold text-white">50+ Healthcare Templates</div>
+                        <div class="small text-white-50">Cardiology, Dental, Eye care, Orthopedics, Festival greetings, and Announcements.</div>
+                        <div class="badge bg-success mt-2" style="font-size: 0.68rem;">Cost: 1 Template Credit</div>
+                    </div>
+                </a>
+            </div>
+
+            <div class="col-12 col-md-4">
+                <a href="doctor/profile" class="glass-card p-3 d-flex align-items-center gap-3 text-decoration-none h-100 studio-action-card" style="border: 1px solid rgba(139, 92, 246, 0.35);">
+                    <div class="rounded-3 p-3 text-purple d-flex align-items-center justify-content-center" style="background: rgba(139, 92, 246, 0.2); color: #c084fc; font-size: 1.6rem; width: 56px; height: 56px;">
+                        <i class="bi bi-palette2"></i>
+                    </div>
+                    <div>
+                        <div class="fw-bold text-white">Custom Brand Colors &amp; Photo</div>
+                        <div class="small text-white-50">Update doctor photo, phone number, clinic address, and signature brand colors.</div>
+                        <div class="badge bg-info bg-opacity-25 text-info mt-2" style="font-size: 0.68rem;">Instant Brand Sync</div>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Lower Two-Column Section: Recent Banners & Recent Credit Activity -->
+    <div class="row g-4">
+        <!-- Left: Recent Banner Designs -->
+        <div class="col-12 col-lg-7">
+            <div class="glass-panel p-4 h-100 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <h5 class="fw-bold text-white mb-0">
+                            <i class="bi bi-collection-play text-info me-2"></i>My Recent Banners
+                        </h5>
+                        <a href="doctor/banner-designs" class="small text-info text-decoration-none">
+                            View All (@MyBanners.Count) <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
+
+                    @if (!MyBanners.Any())
+                    {
+                        <div class="p-4 text-center text-white-50 rounded-3" style="background: rgba(255, 255, 255, 0.02); border: 1px dashed rgba(255, 255, 255, 0.1);">
+                            <i class="bi bi-image fs-1 text-white-50 mb-2 d-block"></i>
+                            <h6>No Banners Created Yet</h6>
+                            <p class="small mb-3">Create your first personalized clinic banner with AI or select a pre-designed healthcare template.</p>
+                            <a href="doctor/template-gallery" class="btn btn-sm btn-info px-3">Start with a Template</a>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="d-flex flex-column gap-2">
+                            @foreach (var b in MyBanners.Take(4))
+                            {
+                                <div class="p-3 rounded-3 d-flex align-items-center justify-content-between gap-3"
+                                     style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.07);">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="rounded-2 d-flex align-items-center justify-content-center text-white"
+                                             style="width: 44px; height: 44px; background: rgba(0, 242, 254, 0.15); border: 1px solid rgba(0, 242, 254, 0.3);">
+                                            <i class="bi bi-card-image fs-5 text-info"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold text-white" style="font-size: 0.92rem;">@b.Heading</div>
+                                            <div class="small text-white-50">
+                                                <span>@b.TemplateType</span>
+                                                <span class="mx-1">•</span>
+                                                <span>@b.AspectRatio</span>
+                                                <span class="mx-1">•</span>
+                                                <span>@b.UpdatedAt.ToLocalTime().ToString("dd MMM yyyy")</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge @(b.Status == "Published" ? "bg-success" : "bg-warning text-dark")">
+                                            @b.Status
+                                        </span>
+                                        <a href="doctor/banner-design?id=@UrlEncryptionHelper.EncryptId(b.Id)" class="btn btn-sm btn-outline-info py-1 px-2" title="Edit in Studio">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+
+                <div class="pt-3 mt-3 border-top border-secondary border-opacity-25 d-flex justify-content-between align-items-center small text-white-50">
+                    <span>Published graphics are protected &amp; locked for patient brand safety.</span>
+                    <a href="doctor/banner-design" class="btn btn-sm btn-info text-dark fw-semibold px-3">
+                        <i class="bi bi-plus-lg me-1"></i>Create New Banner
+                    </a>
                 </div>
             </div>
         </div>
 
+        <!-- Right: Live Credit Audit Activity -->
         <div class="col-12 col-lg-5">
             <div class="glass-panel p-4 h-100 d-flex flex-column justify-content-between">
                 <div>
-                    <h5 class="fw-bold mb-3 text-white">
-                        <i class="bi bi-sliders text-info me-2"></i>Duty Controls
-                    </h5>
-                    <p class="small mb-4" style="color: #94a3b8;">
-                        Toggle your hospital availability in real-time. Changes are instantly saved via SQL Server Stored Procedures.
-                    </p>
-
-                    <div class="glass-card p-3 mb-3 d-flex align-items-center justify-content-between">
-                        <div>
-                            <div class="fw-bold text-white small">Hospital Shift Availability</div>
-                            <small style="color: #94a3b8;">Broadcast active status to Hospital Command</small>
-                        </div>
-                        <button class="glass-btn-secondary glass-btn-sm @(CurrentDoctor?.IsAvailableToday == true ? "text-success border-success" : "")" @onclick="ToggleAvailability">
-                            <i class="bi bi-power"></i> @(CurrentDoctor?.IsAvailableToday == true ? "Active" : "Offline")
-                        </button>
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <h5 class="fw-bold text-white mb-0">
+                            <i class="bi bi-clock-history text-warning me-2"></i>Recent Credit Ledger
+                        </h5>
+                        <a href="doctor/credit-history" class="small text-warning text-decoration-none">
+                            Full Ledger <i class="bi bi-arrow-right"></i>
+                        </a>
                     </div>
+
+                    @if (!RecentTransactions.Any())
+                    {
+                        <div class="p-4 text-center text-white-50 rounded-3" style="background: rgba(255, 255, 255, 0.02); border: 1px dashed rgba(255, 255, 255, 0.1);">
+                            <i class="bi bi-receipt fs-1 text-white-50 mb-2 d-block"></i>
+                            <h6>No Activity Logged</h6>
+                            <p class="small mb-0">Credit deductions on publish and admin additions will appear here in real-time.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="d-flex flex-column gap-2">
+                            @foreach (var tx in RecentTransactions.Take(5))
+                            {
+                                <div class="p-2 px-3 rounded-3 d-flex align-items-center justify-content-between gap-2"
+                                     style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06);">
+                                    <div>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="badge @tx.BadgeClass" style="font-size: 0.68rem;">@tx.TransactionLabel</span>
+                                            <span class="text-white small fw-semibold">@tx.CreditTypeName</span>
+                                        </div>
+                                        <div class="small text-white-50" style="font-size: 0.72rem;">
+                                            @tx.CreatedAt.ToLocalTime().ToString("dd MMM, hh:mm tt") • @(tx.ActionBy ?? "System")
+                                        </div>
+                                    </div>
+                                    <div class="text-end">
+                                        <div class="fw-bold @(tx.IsCredit ? "text-success" : "text-danger")" style="font-size: 0.92rem;">
+                                            @tx.SignedAmount
+                                        </div>
+                                        <div class="small text-white-50" style="font-size: 0.72rem;">Bal: @tx.BalanceAfter</div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
                 </div>
 
-                <div class="d-flex align-items-center justify-content-between pt-3 border-top" style="border-color: rgba(255,255,255,0.08) !important;">
-                    <span class="small" style="color: #cbd5e1;">Hospital System</span>
-                    <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50">SQL Active</span>
+                <!-- Live Clinic Branding Preview Card -->
+                <div class="p-3 rounded-3 mt-3" style="background: rgba(0, 242, 254, 0.06); border: 1px solid rgba(0, 242, 254, 0.2);">
+                    <div class="d-flex align-items-center gap-2 text-info small fw-bold mb-1">
+                        <i class="bi bi-shield-check"></i>
+                        <span>Active Patient Banner Signature</span>
+                    </div>
+                    <div class="small text-white fw-semibold">@(CurrentDoctor?.DisplayName ?? CurrentDoctor?.FullName)</div>
+                    <div class="small text-white-50">@(CurrentDoctor?.ClinicName) • @(CurrentDoctor?.MobileNo ?? "+91 98765 43210")</div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
+<style>
+    .studio-action-card {
+        transition: all 0.25s ease;
+    }
+    .studio-action-card:hover {
+        transform: translateY(-3px);
+        background: rgba(255, 255, 255, 0.08) !important;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+    }
+</style>
+
 @code {
     private DoctorProfile? CurrentDoctor;
     private DoctorDashboardDTO? DoctorStats;
 
+    private List<DoctorCreditDTO> DoctorCredits = new();
+    private DoctorCreditDTO? TemplateCredit;
+    private DoctorCreditDTO? AiCredit;
+
+    private List<BannerDesignRecordDTO> MyBanners = new();
+    private List<CreditTransactionDTO> RecentTransactions = new();
+
     protected override async Task OnInitializedAsync()
     {
-        try
+        var currentUser = await AuthService.GetOrRestoreCurrentUserAsync();
+        if (currentUser == null)
         {
-            var currentUser = await AuthService.GetOrRestoreCurrentUserAsync();
-            if (currentUser == null)
-            {
-                NavigationManager.NavigateTo("login");
-                return;
-            }
-
-            if (currentUser.Role != "Doctor")
-            {
-                NavigationManager.NavigateTo("admin/dashboard");
-                return;
-            }
-
-            if (!currentUser.IsActive)
-            {
-                NavigationManager.NavigateTo("doctor/profile");
-                return;
-            }
-
-            await LoadDashboardDataAsync();
+            NavigationManager.NavigateTo("login");
+            return;
         }
-        catch
+
+        if (currentUser.Role == "Admin")
         {
-            // Fail gracefully on reload
+            NavigationManager.NavigateTo("admin/dashboard");
+            return;
         }
+
+        await LoadDashboardDataAsync(currentUser);
     }
 
-    private async Task LoadDashboardDataAsync()
+    private async Task LoadDashboardDataAsync(CurrentUserDTO currentUser)
     {
         try
         {
-            var currentUser = await AuthService.GetOrRestoreCurrentUserAsync();
-            if (currentUser == null) return;
-
-            DoctorProfile? doc = null;
-            if (currentUser.DoctorProfileId.HasValue)
+            if (currentUser.DoctorProfileId.HasValue && currentUser.DoctorProfileId.Value > 0)
             {
-                doc = await DoctorRepo.GetByIdAsync(currentUser.DoctorProfileId.Value);
+                CurrentDoctor = await DoctorRepo.GetByIdAsync(currentUser.DoctorProfileId.Value);
             }
 
-            if (doc == null && !string.IsNullOrEmpty(currentUser.UserId))
+            if (CurrentDoctor == null && !string.IsNullOrEmpty(currentUser.UserId))
             {
-                doc = await DoctorRepo.GetByUserIdAsync(currentUser.UserId);
+                CurrentDoctor = await DoctorRepo.GetByUserIdAsync(currentUser.UserId);
             }
-
-            CurrentDoctor = doc;
 
             if (CurrentDoctor != null)
             {
+                // 1. Stats from Analytics service
                 DoctorStats = await AnalyticsService.GetDoctorStatsAsync(CurrentDoctor.Id);
+
+                // 2. Real Doctor Credits from database
+                DoctorCredits = await CreditRepo.GetDoctorCreditsAsync(CurrentDoctor.Id);
+                TemplateCredit = DoctorCredits.FirstOrDefault(c => c.CreditTypeCode == "TEMPLATE_PUBLISH");
+                AiCredit = DoctorCredits.FirstOrDefault(c => c.CreditTypeCode == "AI_BANNER_PUBLISH");
+
+                // 3. Doctor's created banner designs
+                MyBanners = await BannerRepo.GetAllBannersAsync(userId: currentUser.UserId);
+
+                // 4. Doctor's recent credit transactions
+                RecentTransactions = await CreditRepo.GetTransactionsAsync(doctorId: CurrentDoctor.Id);
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Fail gracefully
+            Console.WriteLine($"Error loading doctor dashboard: {ex.Message}");
         }
     }
 
     private async Task ToggleAvailability()
     {
-        try
+        if (CurrentDoctor != null)
         {
-            if (CurrentDoctor == null) return;
-            await DoctorRepo.ToggleAvailabilityAsync(CurrentDoctor.Id);
-            await LoadDashboardDataAsync();
-        }
-        catch
-        {
-            // Fail gracefully
+            var success = await DoctorRepo.ToggleAvailabilityAsync(CurrentDoctor.Id);
+            if (success)
+            {
+                CurrentDoctor.IsAvailableToday = !CurrentDoctor.IsAvailableToday;
+                if (DoctorStats != null)
+                {
+                    DoctorStats.IsAvailableToday = CurrentDoctor.IsAvailableToday;
+                }
+                StateHasChanged();
+            }
         }
     }
 }
