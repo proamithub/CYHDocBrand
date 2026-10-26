@@ -88,18 +88,9 @@
                             <span>Change Password</span>
                         </button>
 
-                        <!-- 2. Change History Option (Direct link that scrolls to history list) -->
-                        <button type="button" 
-                                class="dropdown-item d-flex align-items-center gap-2 rounded-2 py-2 px-3 text-white border-0 w-100 text-start" 
-                                @onclick="OpenAndScrollToHistory" 
-                                style="font-size: 0.86rem; transition: all 0.15s; background: transparent;">
-                            <i class="bi bi-clock-history text-info fs-6"></i>
-                            <span>Change History</span>
-                        </button>
-
                         <div class="dropdown-divider my-2" style="border-color: rgba(255, 255, 255, 0.1);"></div>
 
-                        <!-- 3. Logout Option -->
+                        <!-- 2. Logout Option -->
                         <button type="button" 
                                 class="dropdown-item d-flex align-items-center gap-2 rounded-2 py-2 px-3 text-danger border-0 w-100 text-start" 
                                 @onclick="Logout" 
@@ -180,66 +171,59 @@
                         </div>
                     </div>
 
-                    <!-- Security Audit Note with quick scroll button -->
-                    <div class="p-2 rounded-2 mb-3 d-flex align-items-center justify-content-between gap-2" style="background: rgba(0, 242, 254, 0.08); border: 1px solid rgba(0, 242, 254, 0.2); font-size: 0.74rem; color: #a5f3fc;">
-                        <div class="d-flex align-items-center gap-2">
-                            <i class="bi bi-shield-check text-info fs-6"></i>
-                            <span>IP Address &amp; Geolocation database audit history mein save hoga.</span>
-                        </div>
-                        <button type="button" class="btn btn-sm btn-link text-info p-0 text-decoration-none text-nowrap fw-bold" @onclick="ScrollToHistorySection">
-                            <i class="bi bi-arrow-down-circle me-1"></i>History
-                        </button>
+                    <!-- Security Audit Note -->
+                    <div class="p-2 rounded-2 mb-3 d-flex align-items-center gap-2" style="background: rgba(0, 242, 254, 0.08); border: 1px solid rgba(0, 242, 254, 0.2); font-size: 0.74rem; color: #a5f3fc;">
+                        <i class="bi bi-shield-check text-info fs-6"></i>
+                        <span>IP Address &amp; Geolocation database audit history mein automatically save hoga.</span>
                     </div>
 
-                    <!-- Password Change History Section (Anchor for smooth scroll) -->
-                    <div class="pt-3 border-top" id="passwordHistorySection" style="border-color: rgba(255, 255, 255, 0.1) !important;">
+                    <!-- Last Password Change Section (Single Last Record) -->
+                    <div class="pt-3 border-top" style="border-color: rgba(255, 255, 255, 0.1) !important;">
                         <div class="d-flex align-items-center justify-content-between mb-2">
                             <span class="small fw-bold text-white d-flex align-items-center gap-1" style="font-size: 0.82rem;">
-                                <i class="bi bi-clock-history text-warning"></i> Password Change History
+                                <i class="bi bi-clock-history text-warning"></i> Last Password Change
                             </span>
                             <button type="button" class="btn btn-link btn-sm p-0 text-info text-decoration-none" style="font-size: 0.72rem;" @onclick="LoadPasswordHistoryAsync">
-                                <i class="bi bi-arrow-clockwise"></i> Refresh Log
+                                <i class="bi bi-arrow-clockwise"></i> Refresh
                             </button>
                         </div>
 
                         @if (isLoadingHistory)
                         {
                             <div class="text-center py-2 text-secondary small">
-                                <span class="spinner-border spinner-border-sm me-1"></span> Loading audit history...
+                                <span class="spinner-border spinner-border-sm me-1"></span> Loading last record...
                             </div>
                         }
                         else if (passwordHistory.Count == 0)
                         {
                             <div class="p-2 rounded-2 text-center text-secondary small" style="background: rgba(0, 0, 0, 0.25); font-size: 0.74rem;">
-                                Abhi tak koi password change log recorded nahi hai.
+                                Abhi tak koi password change record nahi hai.
                             </div>
                         }
                         else
                         {
-                            <div class="d-flex flex-column gap-2" id="historyItemsList" style="max-height: 200px; overflow-y: auto; scroll-behavior: smooth;">
-                                @foreach (var h in passwordHistory)
-                                {
-                                    <div class="p-2 rounded-2 d-flex align-items-start justify-content-between gap-2" style="background: rgba(3, 8, 20, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); font-size: 0.74rem;">
-                                        <div>
-                                            <div class="text-white fw-semibold d-flex align-items-center gap-1">
-                                                <i class="bi bi-geo-alt-fill text-danger" style="font-size: 0.72rem;"></i>
-                                                <span>@(string.IsNullOrWhiteSpace(h.LocationSummary) ? "Location Logged" : h.LocationSummary)</span>
-                                            </div>
-                                            <div class="text-secondary mt-1">
-                                                <span class="text-info font-monospace">IP: @h.IpAddress</span>
-                                                @if (h.Latitude.HasValue && h.Longitude.HasValue)
-                                                {
-                                                    <span class="ms-1 text-white-50">(@h.Latitude.Value.ToString("0.00"), @h.Longitude.Value.ToString("0.00"))</span>
-                                                }
-                                            </div>
+                            var last = passwordHistory.First();
+                            <div class="p-2 rounded-2" style="background: rgba(3, 8, 20, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); font-size: 0.74rem;">
+                                <div class="d-flex align-items-start justify-content-between gap-2">
+                                    <div>
+                                        <div class="text-white fw-semibold d-flex align-items-center gap-1">
+                                            <i class="bi bi-geo-alt-fill text-danger" style="font-size: 0.72rem;"></i>
+                                            <span>@(string.IsNullOrWhiteSpace(last.LocationSummary) ? "Location Logged" : last.LocationSummary)</span>
                                         </div>
-                                        <div class="text-end text-nowrap">
-                                            <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); font-size: 0.65rem;">
-                                                @h.ChangedAt.ToLocalTime().ToString("dd MMM yyyy, hh:mm tt")
-                                            </span>
+                                        <div class="text-secondary mt-1">
+                                            <span class="text-info font-monospace">IP: @last.IpAddress</span>
+                                            @if (last.Latitude.HasValue && last.Longitude.HasValue)
+                                            {
+                                                <span class="ms-1 text-white-50">(@last.Latitude.Value.ToString("0.0000"), @last.Longitude.Value.ToString("0.0000"))</span>
+                                            }
                                         </div>
                                     </div>
-                                }
+                                    <div class="text-end text-nowrap">
+                                        <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); font-size: 0.65rem;">
+                                            @last.ChangedAt.ToLocalTime().ToString("dd MMM yyyy, hh:mm tt")
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                         }
                     </div>
@@ -300,8 +284,8 @@
         public string? City { get; set; }
         public string? Region { get; set; }
         public string? Country { get; set; }
-        public decimal? Latitude { get; set; }
-        public decimal? Longitude { get; set; }
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
         public string? LocationSummary { get; set; }
         public string? UserAgent { get; set; }
     }
@@ -311,8 +295,8 @@
         public int Id { get; set; }
         public string? IpAddress { get; set; }
         public string? LocationSummary { get; set; }
-        public decimal? Latitude { get; set; }
-        public decimal? Longitude { get; set; }
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
         public string? Remarks { get; set; }
         public DateTime ChangedAt { get; set; }
     }
@@ -389,30 +373,17 @@
         showNewPwd = false;
         showConfirmPwd = false;
 
-        await LoadPasswordHistoryAsync();
-    }
-
-    private async Task OpenAndScrollToHistory()
-    {
-        isUserDropdownOpen = false;
-        isChangePasswordOpen = true;
-        pwdErrorMessage = null;
-        newPasswordInput = "";
-        confirmPasswordInput = "";
-        showNewPwd = false;
-        showConfirmPwd = false;
-
-        await LoadPasswordHistoryAsync();
-        await ScrollToHistorySection();
-    }
-
-    private async Task ScrollToHistorySection()
-    {
-        try
+        // Prefetch client security info in background
+        _ = Task.Run(async () =>
         {
-            await JSRuntime.InvokeVoidAsync("bannerStudio.scrollToElement", "passwordHistorySection");
-        }
-        catch { }
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("bannerStudio.prefetchClientSecurityInfo");
+            }
+            catch { }
+        });
+
+        await LoadPasswordHistoryAsync();
     }
 
     private void CloseChangePasswordModal()
@@ -439,7 +410,7 @@
             await conn.OpenAsync();
 
             await using var cmd = new SqlCommand(@"
-                SELECT TOP 15 Id, IpAddress, LocationSummary, Latitude, Longitude, Remarks, ChangedAt
+                SELECT TOP 1 Id, IpAddress, LocationSummary, Latitude, Longitude, Remarks, ChangedAt
                 FROM dbo.PasswordChangeHistory_CYH
                 WHERE UserId = @Val OR UserEmail = @Val
                 ORDER BY ChangedAt DESC", conn);
@@ -453,8 +424,8 @@
                     Id = reader.GetInt32(0),
                     IpAddress = reader.IsDBNull(1) ? "Unknown" : reader.GetString(1),
                     LocationSummary = reader.IsDBNull(2) ? "N/A" : reader.GetString(2),
-                    Latitude = reader.IsDBNull(3) ? null : reader.GetDecimal(3),
-                    Longitude = reader.IsDBNull(4) ? null : reader.GetDecimal(4),
+                    Latitude = reader.IsDBNull(3) ? null : Convert.ToDouble(reader.GetDecimal(3)),
+                    Longitude = reader.IsDBNull(4) ? null : Convert.ToDouble(reader.GetDecimal(4)),
                     Remarks = reader.IsDBNull(5) ? "Password Changed" : reader.GetString(5),
                     ChangedAt = reader.GetDateTime(6)
                 };
@@ -524,13 +495,45 @@
                 Console.WriteLine($"Could not fetch client security info via JS: {jsEx.Message}");
             }
 
+            // 2b. Server-side fallback for IP/Geolocation if client info is missing
+            if (secInfo == null || (string.IsNullOrWhiteSpace(secInfo.City) && !secInfo.Latitude.HasValue))
+            {
+                try
+                {
+                    using var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(3) };
+                    var json = await httpClient.GetStringAsync("https://ipwho.is/");
+                    using var doc = System.Text.Json.JsonDocument.Parse(json);
+                    var root = doc.RootElement;
+                    if (root.TryGetProperty("success", out var s) && s.GetBoolean())
+                    {
+                        secInfo ??= new ClientSecurityDTO();
+                        if (string.IsNullOrWhiteSpace(secInfo.IpAddress) && root.TryGetProperty("ip", out var ipProp))
+                            secInfo.IpAddress = ipProp.GetString();
+                        if (string.IsNullOrWhiteSpace(secInfo.City) && root.TryGetProperty("city", out var cProp))
+                            secInfo.City = cProp.GetString();
+                        if (string.IsNullOrWhiteSpace(secInfo.Region) && root.TryGetProperty("region", out var rProp))
+                            secInfo.Region = rProp.GetString();
+                        if (string.IsNullOrWhiteSpace(secInfo.Country) && root.TryGetProperty("country", out var cntryProp))
+                            secInfo.Country = cntryProp.GetString();
+                        if (!secInfo.Latitude.HasValue && root.TryGetProperty("latitude", out var latProp))
+                            secInfo.Latitude = latProp.GetDouble();
+                        if (!secInfo.Longitude.HasValue && root.TryGetProperty("longitude", out var lonProp))
+                            secInfo.Longitude = lonProp.GetDouble();
+                    }
+                }
+                catch (Exception srvEx)
+                {
+                    Console.WriteLine($"Server fallback geo lookup: {srvEx.Message}");
+                }
+            }
+
             var ip = !string.IsNullOrWhiteSpace(secInfo?.IpAddress) ? secInfo.IpAddress : "127.0.0.1";
             var city = secInfo?.City ?? "";
             var region = secInfo?.Region ?? "";
             var country = secInfo?.Country ?? "";
             var locSummary = !string.IsNullOrWhiteSpace(secInfo?.LocationSummary) 
                 ? secInfo.LocationSummary 
-                : (!string.IsNullOrWhiteSpace(city) ? $"{city}, {country}".Trim(',', ' ') : "Private Network / Localhost");
+                : (!string.IsNullOrWhiteSpace(city) ? $"{city}, {region}, {country}".Trim(',', ' ', '-') : "Location Logged");
             var userAgent = secInfo?.UserAgent ?? "";
             var remarks = "Password Changed via Admin Console";
 
@@ -548,8 +551,8 @@
                 histCmd.Parameters.AddWithValue("@City", (object?)city ?? DBNull.Value);
                 histCmd.Parameters.AddWithValue("@Region", (object?)region ?? DBNull.Value);
                 histCmd.Parameters.AddWithValue("@Country", (object?)country ?? DBNull.Value);
-                histCmd.Parameters.AddWithValue("@Latitude", (object?)secInfo?.Latitude ?? DBNull.Value);
-                histCmd.Parameters.AddWithValue("@Longitude", (object?)secInfo?.Longitude ?? DBNull.Value);
+                histCmd.Parameters.AddWithValue("@Latitude", secInfo?.Latitude.HasValue == true ? (object)Convert.ToDecimal(secInfo.Latitude.Value) : DBNull.Value);
+                histCmd.Parameters.AddWithValue("@Longitude", secInfo?.Longitude.HasValue == true ? (object)Convert.ToDecimal(secInfo.Longitude.Value) : DBNull.Value);
                 histCmd.Parameters.AddWithValue("@LocationSummary", (object?)locSummary ?? DBNull.Value);
                 histCmd.Parameters.AddWithValue("@UserAgent", (object?)userAgent ?? DBNull.Value);
                 histCmd.Parameters.AddWithValue("@Remarks", remarks);
@@ -564,7 +567,7 @@
             newPasswordInput = "";
             confirmPasswordInput = "";
 
-            ShowToast("Password Changed", $"Admin password successfully update ho gaya aur IP ({ip}) aur Geolocation audit log database mein save ho gayi!", "save");
+            ShowToast("Password Changed", $"Admin password successfully update ho gaya aur Geolocation ({locSummary}) log database mein save ho gayi!", "save");
         }
         catch (Exception ex)
         {

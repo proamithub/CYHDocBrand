@@ -1080,8 +1080,21 @@ window.bannerStudio = window.bannerStudio || {
         }, 120);
     },
 
+    _cachedSecurityInfo: null,
+    _securityFetchPromise: null,
+
+    prefetchClientSecurityInfo: function () {
+        if (!this._cachedSecurityInfo && !this._securityFetchPromise) {
+            this._securityFetchPromise = this.getClientSecurityInfo();
+        }
+    },
+
     // Client Geolocation and IP Detector for Security Audit Logs
     getClientSecurityInfo: async function () {
+        if (this._cachedSecurityInfo && this._cachedSecurityInfo.city) {
+            return this._cachedSecurityInfo;
+        }
+
         const result = {
             ipAddress: "",
             city: "",
@@ -1093,63 +1106,132 @@ window.bannerStudio = window.bannerStudio || {
             userAgent: navigator.userAgent || ""
         };
 
-        // 1. Try public IP & Geolocation API (free, fast, no API key needed)
+        const parseCoord = (val) => {
+            if (val === null || val === undefined || val === "") return null;
+            const n = parseFloat(val);
+            return isNaN(n) ? null : Number(n.toFixed(6));
+        };
+
+        // Provider 1: ipwho.is (Free, CORS enabled, instant high-accuracy IP Geolocation)
         try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 2500); // 2.5s strict timeout
-
-            const resp = await fetch("https://ipapi.co/json/", { signal: controller.signal });
-            clearTimeout(timeoutId);
+            const tid = setTimeout(() => controller.abort(), 3000);
+            const resp = await fetch("https://ipwho.is/", { signal: controller.signal });
+            clearTimeout(tid);
             if (resp.ok) {
                 const data = await resp.json();
-                result.ipAddress = data.ip || "";
-                result.city = data.city || "";
-                result.region = data.region || "";
-                result.country = data.country_name || "";
-                result.latitude = typeof data.latitude === 'number' ? data.latitude : null;
-                result.longitude = typeof data.longitude === 'number' ? data.longitude : null;
-                
-                const parts = [data.city, data.region, data.country_name].filter(Boolean);
+                if (data && data.success !== false) {
+                    result.ipAddress = data.ip || "";
+                    result.city = data.city || "";
+                    result.region = data.region || "";
+                    result.country = data.country || "";
+                    result.latitude = parseCoord(data.latitude);
+                    result.longitude = parseCoord(data.longitude);
+
+                    const parts = [result.city, result.region, result.country].filter(Boolean);
+                    result.locationSummary = parts.join(", ");
+                }
+            }
+        } catch (e1) {
+            console.warn("ipwho.is lookup failed, checking secondary provider...", e1);
+        }
+
+        // Provider 2: freeipapi.com (Fallback if ipwho was blocked or failed)
+        if (!result.city && !result.latitude) {
+            try {
+                const controller = new AbortController();
+                const tid = setTimeout(() => controller.abort(), 3000);
+                const resp = await fetch("https://freeipapi.com/api/json", { signal: controller.signal });
+                clearTimeout(tid);
+                if (resp.ok) {
+                    const data = await resp.json();
+                    result.ipAddress = result.ipAddress || data.ipAddress || "";
+                    result.city = data.cityName || "";
+                    result.region = data.regionName || "";
+                    result.country = data.countryName || "";
+                    result.latitude = parseCoord(data.latitude);
+                    result.longitude = parseCoord(data.longitude);
+
+                    const parts = [result.city, result.region, result.country].filter(Boolean);
+                    result.locationSummary = parts.join(", ");
+                }
+            } catch (e2) {
+                console.warn("freeipapi lookup failed, checking geojs...", e2);
+            }
+        }
+
+        // Provider 3: get.geojs.io (Fallback 3)
+        if (!result.city && !result.latitude) {
+            try {
+                const controller = new AbortController();
+                const tid = setTimeout(() => controller.abort(), 3000);
+                const resp = await fetch("https://get.geojs.io/v1/ip/geo.json", { signal: controller.signal });
+                clearTimeout(tid);
+                if (resp.ok) {
+                    const data = await resp.json();
+                    result.ipAddress = result.ipAddress || data.ip || "";
+                    result.city = data.city || "";
+                    result.region = data.region || "";
+                    result.country = data.country || "";
+                    result.latitude = parseCoord(data.latitude);
+                    result.longitude = parseCoord(data.longitude);
+
+                    const parts = [result.city, result.region, result.country].filter(Boolean);
+                    result.locationSummary = parts.join(", ");
+                }
+            } catch (e3) {
+                console.warn("geojs lookup failed:", e3);
+            }
+        }
+
+        // Fallback 4: ipify.org (at least get IP if all geo providers failed)
+        if (!result.ipAddress) {
+            try {
+                const resp4 = await fetch("https://api.ipify.org?format=json");
+                if (resp4.ok) {
+                    const data4 = await resp4.json();
+                    result.ipAddress = data4.ip || "";
+                }
+            } catch (e4) { }
+        }
+
+        // Check if browser has GPS permission already granted
+        if (navigator.geolocation && navigator.permissions) {
+            try {
+                const perm = await navigator.permissions.query({ name: 'geolocation' });
+                if (perm && perm.state === 'granted') {
+                    await new Promise((resolve) => {
+                        navigator.geolocation.getCurrentPosition(
+                            (pos) => {
+                                if (pos && pos.coords) {
+                                    result.latitude = parseCoord(pos.coords.latitude);
+                                    result.longitude = parseCoord(pos.coords.longitude);
+                                }
+                                resolve();
+                            },
+                            () => resolve(),
+                            { timeout: 1500, maximumAge: 60000 }
+                        );
+                    });
+                }
+            } catch (pErr) { }
+        }
+
+        // Build clean LocationSummary
+        if (!result.locationSummary) {
+            const parts = [result.city, result.region, result.country].filter(Boolean);
+            if (parts.length > 0) {
                 result.locationSummary = parts.join(", ");
-                if (result.ipAddress) {
-                    result.locationSummary += (result.locationSummary ? ` (IP: ${result.ipAddress})` : result.ipAddress);
-                }
-            }
-        } catch (ipErr) {
-            // Fallback to lightweight ipify if ipapi failed or adblocked
-            try {
-                const resp2 = await fetch("https://api.ipify.org?format=json");
-                if (resp2.ok) {
-                    const data2 = await resp2.json();
-                    result.ipAddress = data2.ip || "";
-                    result.locationSummary = `IP: ${result.ipAddress}`;
-                }
-            } catch (ipifyErr) {
-                // Fallback will be handled on server
+            } else if (result.latitude && result.longitude) {
+                result.locationSummary = `Location (${result.latitude}, ${result.longitude})`;
+            } else if (result.ipAddress) {
+                result.locationSummary = `IP: ${result.ipAddress}`;
+            } else {
+                result.locationSummary = "Local Network / Offline";
             }
         }
 
-        // 2. Try HTML5 Browser GPS Geolocation if available
-        if (navigator.geolocation) {
-            try {
-                await new Promise((resolve) => {
-                    navigator.geolocation.getCurrentPosition(
-                        (pos) => {
-                            if (pos && pos.coords) {
-                                result.latitude = pos.coords.latitude;
-                                result.longitude = pos.coords.longitude;
-                            }
-                            resolve();
-                        },
-                        () => resolve(),
-                        { timeout: 2000, maximumAge: 60000 }
-                    );
-                });
-            } catch (geoErr) {
-                // Ignore GPS permission decline
-            }
-        }
-
+        this._cachedSecurityInfo = result;
         return result;
     }
 };
