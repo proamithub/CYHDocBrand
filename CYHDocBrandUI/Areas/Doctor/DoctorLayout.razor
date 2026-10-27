@@ -418,13 +418,20 @@
 
         try
         {
-            var allSchedules = await ScheduleRepo.GetByDoctorAsync(CurrentUser.DoctorProfileId, CurrentUser.UserId);
+            var rawSchedules = await ScheduleRepo.GetByDoctorAsync(CurrentUser.DoctorProfileId, CurrentUser.UserId);
 
-            if (allSchedules == null || allSchedules.Count == 0)
+            if (rawSchedules == null || rawSchedules.Count == 0)
             {
                 dueSchedules = new List<BannerScheduleDTO>();
                 return;
             }
+
+            // DOCTOR-WISE ISOLATION: Sirf wahi schedules alert karenge jo is doctor ne banaye hain ya iske hain
+            var allSchedules = rawSchedules.Where(s =>
+                (CurrentUser.DoctorProfileId.HasValue && CurrentUser.DoctorProfileId.Value > 0 && s.DoctorId == CurrentUser.DoctorProfileId.Value) ||
+                (!string.IsNullOrEmpty(CurrentUser.UserId) && s.UserId == CurrentUser.UserId) ||
+                (!string.IsNullOrEmpty(CurrentUser.FullName) && (s.CreatedBy == CurrentUser.FullName || s.DoctorName == CurrentUser.FullName))
+            ).ToList();
 
             var newlyDue = allSchedules
                 .Where(s => (s.Status == "Pending" || s.Status == "ReadyToShare" || s.Status == "Processing") &&

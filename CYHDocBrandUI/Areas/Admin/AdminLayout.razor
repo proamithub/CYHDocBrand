@@ -977,7 +977,15 @@
                 return;
             }
 
-            var newlyDue = allSchedules
+            // DOCTOR-WISE ISOLATION: Admin console me sabhi doctors ke alerts broadcast nahi honge.
+            // Sirf wahi schedules alert karenge jise is user/admin ne banaya hai.
+            var mySchedules = allSchedules.Where(s =>
+                (!string.IsNullOrEmpty(CurrentUser.UserId) && s.UserId == CurrentUser.UserId) ||
+                (!string.IsNullOrEmpty(CurrentUser.FullName) && s.CreatedBy == CurrentUser.FullName) ||
+                (!string.IsNullOrEmpty(CurrentUser.Email) && s.CreatedBy == CurrentUser.Email)
+            ).ToList();
+
+            var newlyDue = mySchedules
                 .Where(s => (s.Status == "Pending" || s.Status == "ReadyToShare" || s.Status == "Processing") &&
                             (s.Status == "ReadyToShare" || s.ScheduledAt <= IndianTimeHelper.Now))
                 .OrderBy(s => s.ScheduledAt)

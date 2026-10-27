@@ -194,6 +194,11 @@ public class BannerScheduleRepository : IBannerScheduleRepository
     public async Task<List<BannerScheduleDTO>> GetByDoctorAsync(int? doctorId, string? userId)
     {
         var schedules = new List<BannerScheduleDTO>();
+        if ((!doctorId.HasValue || doctorId.Value <= 0) && string.IsNullOrWhiteSpace(userId))
+        {
+            return schedules;
+        }
+
         try
         {
             await using var con = new SqlConnection(_conn);
@@ -206,7 +211,6 @@ public class BannerScheduleRepository : IBannerScheduleRepository
                 FROM [dbo].[BannerSchedules_CYH] s
                 WHERE (@DoctorId IS NOT NULL AND s.DoctorId = @DoctorId)
                    OR (@UserId IS NOT NULL AND s.UserId = @UserId)
-                   OR (@DoctorId IS NULL AND @UserId IS NULL)
                 ORDER BY s.ScheduledAt DESC, s.Id DESC;
 
                 SELECT d.Id, d.BannerScheduleId, d.Platform, d.TargetAccountName, d.TargetPageId,
@@ -215,7 +219,6 @@ public class BannerScheduleRepository : IBannerScheduleRepository
                 INNER JOIN [dbo].[BannerSchedules_CYH] s ON d.BannerScheduleId = s.Id
                 WHERE (@DoctorId IS NOT NULL AND s.DoctorId = @DoctorId)
                    OR (@UserId IS NOT NULL AND s.UserId = @UserId)
-                   OR (@DoctorId IS NULL AND @UserId IS NULL)
                 ORDER BY d.Id ASC;";
 
             await using var cmd = new SqlCommand(sql, con);

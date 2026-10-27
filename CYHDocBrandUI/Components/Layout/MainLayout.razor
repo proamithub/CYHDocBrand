@@ -417,11 +417,27 @@
 
         try
         {
-            var allSchedules = IsAdmin
-                ? (await ScheduleRepo.GetAllAdminAsync()).Schedules
-                : await ScheduleRepo.GetByDoctorAsync(CurrentUser.DoctorProfileId, CurrentUser.UserId);
+            List<BannerScheduleDTO> allSchedules;
+            if (IsAdmin)
+            {
+                var adminRes = await ScheduleRepo.GetAllAdminAsync();
+                allSchedules = (adminRes?.Schedules ?? new List<BannerScheduleDTO>())
+                    .Where(s => (!string.IsNullOrEmpty(CurrentUser.UserId) && s.UserId == CurrentUser.UserId) ||
+                                (!string.IsNullOrEmpty(CurrentUser.FullName) && s.CreatedBy == CurrentUser.FullName) ||
+                                (!string.IsNullOrEmpty(CurrentUser.Email) && s.CreatedBy == CurrentUser.Email))
+                    .ToList();
+            }
+            else
+            {
+                var rawSchedules = await ScheduleRepo.GetByDoctorAsync(CurrentUser.DoctorProfileId, CurrentUser.UserId);
+                allSchedules = (rawSchedules ?? new List<BannerScheduleDTO>())
+                    .Where(s => (CurrentUser.DoctorProfileId.HasValue && CurrentUser.DoctorProfileId.Value > 0 && s.DoctorId == CurrentUser.DoctorProfileId.Value) ||
+                                (!string.IsNullOrEmpty(CurrentUser.UserId) && s.UserId == CurrentUser.UserId) ||
+                                (!string.IsNullOrEmpty(CurrentUser.FullName) && (s.CreatedBy == CurrentUser.FullName || s.DoctorName == CurrentUser.FullName)))
+                    .ToList();
+            }
 
-            if (allSchedules == null || allSchedules.Count == 0)
+            if (allSchedules.Count == 0)
             {
                 dueSchedules = new List<BannerScheduleDTO>();
                 return;
