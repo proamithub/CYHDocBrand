@@ -87,10 +87,30 @@ public class BannerScheduleRepository : IBannerScheduleRepository
             await using var con = new SqlConnection(_conn);
             await con.OpenAsync();
 
-            await using var cmd = new SqlCommand("ManageBannerSchedules_CYH", con);
-            cmd.CommandType = CommandType.StoredProcedure;
-            cmd.Parameters.AddWithValue("@Flag", "GET_DUE_SCHEDULES");
+            // Direct SQL query ensures immediate execution and picks up schedules whether saved in UTC or Local time
+            const string sql = @"
+                DECLARE @DueList TABLE (Id INT);
 
+                UPDATE TOP (10) [dbo].[BannerSchedules_CYH]
+                SET Status = 'Processing',
+                    LastExecutedAt = SYSUTCDATETIME(),
+                    ExecutionAttempts = ExecutionAttempts + 1
+                OUTPUT inserted.Id INTO @DueList
+                WHERE Status = 'Pending' 
+                  AND (ScheduledAt <= SYSUTCDATETIME() OR ScheduledAt <= GETDATE() OR ScheduledAt <= GETUTCDATE());
+
+                SELECT s.Id, s.BannerDesignId, s.DoctorId, s.UserId, s.DoctorName, s.HospitalName,
+                       s.BannerHeading, s.ImageUrl, s.Caption, s.Platforms, s.ScheduledAt,
+                       s.Status, s.ExecutionAttempts, s.LastExecutedAt, s.ErrorMessage, s.CreatedAt, s.CreatedBy
+                FROM [dbo].[BannerSchedules_CYH] s
+                INNER JOIN @DueList d ON s.Id = d.Id;
+
+                SELECT d.Id, d.BannerScheduleId, d.Platform, d.TargetAccountName, d.TargetPageId,
+                       d.Status, d.PlatformPostId, d.PostUrl, d.ErrorMessage, d.PublishedAt
+                FROM [dbo].[BannerScheduleDetails_CYH] d
+                INNER JOIN @DueList dl ON d.BannerScheduleId = dl.Id;";
+
+            await using var cmd = new SqlCommand(sql, con);
             await using var reader = await cmd.ExecuteReaderAsync();
             
             // Result Set 1: Master Schedules
@@ -179,9 +199,26 @@ public class BannerScheduleRepository : IBannerScheduleRepository
             await using var con = new SqlConnection(_conn);
             await con.OpenAsync();
 
-            await using var cmd = new SqlCommand("ManageBannerSchedules_CYH", con);
-            cmd.CommandType = CommandType.StoredProcedure;
-            cmd.Parameters.AddWithValue("@Flag", "GET_BY_DOCTOR");
+            const string sql = @"
+                SELECT s.Id, s.BannerDesignId, s.DoctorId, s.UserId, s.DoctorName, s.HospitalName,
+                       s.BannerHeading, s.ImageUrl, s.Caption, s.Platforms, s.ScheduledAt,
+                       s.Status, s.ExecutionAttempts, s.LastExecutedAt, s.ErrorMessage, s.CreatedAt, s.CreatedBy
+                FROM [dbo].[BannerSchedules_CYH] s
+                WHERE (@DoctorId IS NOT NULL AND s.DoctorId = @DoctorId)
+                   OR (@UserId IS NOT NULL AND s.UserId = @UserId)
+                   OR (@DoctorId IS NULL AND @UserId IS NULL)
+                ORDER BY s.ScheduledAt DESC, s.Id DESC;
+
+                SELECT d.Id, d.BannerScheduleId, d.Platform, d.TargetAccountName, d.TargetPageId,
+                       d.Status, d.PlatformPostId, d.PostUrl, d.ErrorMessage, d.PublishedAt
+                FROM [dbo].[BannerScheduleDetails_CYH] d
+                INNER JOIN [dbo].[BannerSchedules_CYH] s ON d.BannerScheduleId = s.Id
+                WHERE (@DoctorId IS NOT NULL AND s.DoctorId = @DoctorId)
+                   OR (@UserId IS NOT NULL AND s.UserId = @UserId)
+                   OR (@DoctorId IS NULL AND @UserId IS NULL)
+                ORDER BY d.Id ASC;";
+
+            await using var cmd = new SqlCommand(sql, con);
             cmd.Parameters.AddWithValue("@DoctorId", (object?)doctorId ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@UserId", (object?)userId ?? DBNull.Value);
 

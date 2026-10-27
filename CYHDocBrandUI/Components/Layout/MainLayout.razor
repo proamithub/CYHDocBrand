@@ -86,6 +86,12 @@
                                     }
                                 </div>
                             }
+
+                            <div class="mt-2 pt-2 border-top border-secondary border-opacity-25">
+                                <button type="button" class="btn btn-outline-info btn-sm w-100 py-1" style="font-size: 0.75rem;" @onclick="EnableDesktopNotificationsAsync">
+                                    <i class="bi bi-bell-fill text-warning me-1"></i> Test Chime Sound &amp; Alerts
+                                </button>
+                            </div>
                         </div>
                     }
                 </div>
@@ -113,11 +119,11 @@
         <!-- Floating Live Reminder Alert Strip (When post becomes due) -->
         @if (liveBannerAlert != null)
         {
-            <div class="alert alert-warning m-3 mb-0 p-3 rounded-4 shadow-lg d-flex align-items-center justify-content-between gap-3 border-warning border-opacity-50"
-                 style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.25) 0%, rgba(14, 25, 48, 0.95) 100%); backdrop-filter: blur(8px);">
+            <div class="alert alert-warning m-3 mb-0 p-3 rounded-4 shadow-lg d-flex align-items-center justify-content-between gap-3 border-warning position-relative"
+                 style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.35) 0%, rgba(14, 25, 48, 0.98) 100%); backdrop-filter: blur(12px); border: 2px solid #f59e0b !important; box-shadow: 0 10px 30px rgba(245, 158, 11, 0.3) !important;">
                 <div class="d-flex align-items-center gap-3">
-                    <div class="p-2 rounded-circle bg-warning text-dark fs-4">
-                        <i class="bi bi-clock-fill"></i>
+                    <div class="p-2 rounded-circle bg-warning text-dark fs-4 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; box-shadow: 0 0 15px rgba(245, 158, 11, 0.8);">
+                        <i class="bi bi-bell-fill bell-ring-anim"></i>
                     </div>
                     <div>
                         <div class="fw-bold text-white fs-6">
@@ -129,11 +135,11 @@
                     </div>
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                    <button type="button" class="btn btn-success px-3 py-2 fw-bold d-flex align-items-center gap-2" @onclick="() => OpenShareModal(liveBannerAlert)" style="background: #25d366; border: none; color: #070d1e;">
+                    <button type="button" class="btn btn-success px-3 py-2 fw-bold d-flex align-items-center gap-2 shadow" @onclick="() => OpenShareModal(liveBannerAlert)" style="background: #25d366; border: none; color: #070d1e;">
                         <i class="bi bi-whatsapp fs-5"></i>
                         <span>Send on WhatsApp / Social (1-Click)</span>
                     </button>
-                    <button type="button" class="btn-close btn-close-white" @onclick="() => liveBannerAlert = null"></button>
+                    <button type="button" class="btn-close btn-close-white" @onclick="() => liveBannerAlert = null" title="Dismiss"></button>
                 </div>
             </div>
         }
@@ -288,6 +294,7 @@
     private BannerScheduleDTO? activeShareModalSchedule;
     private bool showNotificationDropdown = false;
     private bool isCopied = false;
+    private readonly HashSet<int> notifiedScheduleIds = new();
 
     private System.Threading.Timer? checkTimer;
 
@@ -310,15 +317,15 @@
             return;
         }
 
-        // Initial check for due schedules
+        // Initial immediate check for due schedules
         await CheckDueSchedulesAsync();
 
-        // Run background check every 25 seconds for live notifications
+        // Run fast background check every 5 seconds for live alerts & notifications
         checkTimer = new System.Threading.Timer(async _ =>
         {
             await CheckDueSchedulesAsync();
             await InvokeAsync(StateHasChanged);
-        }, null, TimeSpan.FromSeconds(15), TimeSpan.FromSeconds(25));
+        }, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(5));
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -349,30 +356,75 @@
             else
             {
                 allSchedules = await ScheduleRepo.GetByDoctorAsync(CurrentUser.DoctorProfileId, CurrentUser.UserId);
+                if (allSchedules == null || allSchedules.Count == 0)
+                {
+                    var summary = await ScheduleRepo.GetAllAdminAsync();
+                    allSchedules = summary.Schedules.Where(s =>
+                        (CurrentUser.DoctorProfileId.HasValue && s.DoctorId == CurrentUser.DoctorProfileId.Value) ||
+                        (!string.IsNullOrEmpty(CurrentUser.UserId) && s.UserId == CurrentUser.UserId) ||
+                        (!string.IsNullOrEmpty(CurrentUser.FullName) && string.Equals(s.DoctorName, CurrentUser.FullName, StringComparison.OrdinalIgnoreCase))
+                    ).ToList();
+                }
             }
 
+            // Picks up if marked ReadyToShare or if scheduled time arrived in either UTC or local time
             var newlyDue = allSchedules
-                .Where(s => (s.Status == "Pending" || s.Status == "ReadyToShare") && s.ScheduledAt <= DateTime.UtcNow)
+                .Where(s => (s.Status == "Pending" || s.Status == "ReadyToShare" || s.Status == "Processing") &&
+                            (s.Status == "ReadyToShare" || s.ScheduledAt <= DateTime.UtcNow || s.ScheduledAt <= DateTime.Now))
                 .OrderBy(s => s.ScheduledAt)
                 .ToList();
 
-            // Detect if a fresh reminder should pop up
-            if (newlyDue.Count > 0 && (liveBannerAlert == null || !newlyDue.Any(s => s.Id == liveBannerAlert.Id)))
-            {
-                liveBannerAlert = newlyDue.First();
+            dueSchedules = newlyDue;
 
-                // Trigger native Windows/Browser desktop notification
+            // Fresh due schedules that haven't triggered audio/modal alert yet
+            var freshSchedules = newlyDue.Where(s => !notifiedScheduleIds.Contains(s.Id)).ToList();
+            if (freshSchedules.Count > 0)
+            {
+                var topAlert = freshSchedules.First();
+                notifiedScheduleIds.Add(topAlert.Id);
+                liveBannerAlert = topAlert;
+
+                // 1. Play audible sound chime (Ding-Dong)
+                try
+                {
+                    await JSRuntime.InvokeVoidAsync("cyhSocial.playAlertSound");
+                }
+                catch { }
+
+                // 2. Trigger native Windows / Browser desktop notification
                 try
                 {
                     await JSRuntime.InvokeVoidAsync("cyhSocial.showDesktopNotification",
-                        $"⏰ Banner Ready: {liveBannerAlert.BannerHeading}",
-                        $"Scheduled time arrived! Click to send on WhatsApp for Dr. {liveBannerAlert.DoctorName}.",
-                        liveBannerAlert.ImageUrl);
+                        $"⏰ Banner Time Ho Gaya: {topAlert.BannerHeading}",
+                        $"Dr. {topAlert.DoctorName} ka banner post ready hai! WhatsApp par 1-click share karein.",
+                        topAlert.ImageUrl);
                 }
                 catch { }
-            }
 
-            dueSchedules = newlyDue;
+                // 3. Automatically pop up the 1-Click Share Modal directly on screen
+                if (activeShareModalSchedule == null)
+                {
+                    activeShareModalSchedule = topAlert;
+                }
+            }
+            else if (liveBannerAlert == null && newlyDue.Count > 0)
+            {
+                liveBannerAlert = newlyDue.First();
+            }
+        }
+        catch { }
+    }
+
+    private async Task EnableDesktopNotificationsAsync()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("cyhSocial.playAlertSound");
+            var ok = await JSRuntime.InvokeAsync<bool>("cyhSocial.requestNotificationPermissionExplicit");
+            if (ok)
+            {
+                await JSRuntime.InvokeVoidAsync("cyhSocial.showDesktopNotification", "✅ Notifications Active", "Schedule banner alert notifications active ho chuki hain!", "/favicon.png");
+            }
         }
         catch { }
     }

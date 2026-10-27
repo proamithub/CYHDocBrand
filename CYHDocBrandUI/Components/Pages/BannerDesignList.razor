@@ -958,11 +958,18 @@
 
         try
         {
+            int? docId = currentUser?.DoctorProfileId;
+            if (!docId.HasValue && !string.IsNullOrEmpty(schedulingBanner.UserId))
+            {
+                var doc = await DoctorRepo.GetByUserIdAsync(schedulingBanner.UserId);
+                if (doc != null) docId = doc.Id;
+            }
+
             var req = new CreateBannerScheduleRequest
             {
                 BannerDesignId = schedulingBanner.Id,
-                DoctorId = currentUser?.DoctorProfileId,
-                UserId = currentUser?.UserId,
+                DoctorId = docId,
+                UserId = schedulingBanner.UserId ?? currentUser?.UserId,
                 DoctorName = schedulingBanner.DoctorName,
                 HospitalName = schedulingBanner.HospitalName,
                 BannerHeading = schedulingBanner.Heading,

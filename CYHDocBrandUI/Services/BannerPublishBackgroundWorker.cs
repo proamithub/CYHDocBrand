@@ -15,7 +15,7 @@ public class BannerPublishBackgroundWorker : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<BannerPublishBackgroundWorker> _logger;
-    private readonly TimeSpan _checkInterval = TimeSpan.FromSeconds(25);
+    private readonly TimeSpan _checkInterval = TimeSpan.FromSeconds(5);
 
     public BannerPublishBackgroundWorker(IServiceProvider serviceProvider, ILogger<BannerPublishBackgroundWorker> logger)
     {
