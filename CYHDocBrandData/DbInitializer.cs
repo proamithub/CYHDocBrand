@@ -1758,6 +1758,15 @@ public static class DbInitializer
 
                         SELECT @@ROWCOUNT AS RowsAffected;
                     END
+
+                    -- 10. Delete Schedule
+                    ELSE IF @Flag = 'DELETE'
+                    BEGIN
+                        DELETE FROM [dbo].[BannerSchedules_CYH]
+                        WHERE Id = @Id;
+
+                        SELECT @@ROWCOUNT AS RowsAffected;
+                    END
                 END";
 
             await using (var cmdSched = new SqlCommand(spBannerSchedulesSql, con))

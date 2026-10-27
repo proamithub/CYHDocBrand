@@ -367,10 +367,14 @@
 
                                     @if (item.Status == "Pending")
                                     {
-                                        <button type="button" class="btn btn-outline-danger btn-sm px-2 py-1" @onclick="() => CancelScheduleAsync(item.Id)" title="Cancel this scheduled post">
+                                        <button type="button" class="btn btn-outline-warning btn-sm px-2 py-1" @onclick="() => CancelScheduleAsync(item.Id)" title="Cancel this scheduled post">
                                             <i class="bi bi-x-circle"></i> Cancel
                                         </button>
                                     }
+
+                                    <button type="button" class="btn btn-outline-danger btn-sm px-2 py-1" @onclick="() => DeleteScheduleAsync(item.Id)" title="Delete this scheduled post">
+                                        <i class="bi bi-trash3-fill"></i>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -567,6 +571,20 @@
         else
         {
             ShowError("Failed", "Unable to cancel schedule.");
+        }
+    }
+
+    private async Task DeleteScheduleAsync(int scheduleId)
+    {
+        var ok = await ScheduleRepo.DeleteScheduleAsync(scheduleId);
+        if (ok)
+        {
+            ShowSuccess("Schedule Deleted", "Scheduled post has been permanently removed.");
+            await RefreshDataAsync();
+        }
+        else
+        {
+            ShowError("Delete Failed", "Unable to delete schedule.");
         }
     }
 

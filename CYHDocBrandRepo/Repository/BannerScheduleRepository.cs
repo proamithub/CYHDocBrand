@@ -299,6 +299,28 @@ public class BannerScheduleRepository : IBannerScheduleRepository
         }
     }
 
+    public async Task<bool> DeleteScheduleAsync(int scheduleId)
+    {
+        try
+        {
+            await using var con = new SqlConnection(_conn);
+            await con.OpenAsync();
+
+            await using var cmd = new SqlCommand("ManageBannerSchedules_CYH", con);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@Flag", "DELETE");
+            cmd.Parameters.AddWithValue("@Id", scheduleId);
+
+            var rows = await cmd.ExecuteNonQueryAsync();
+            return rows > 0;
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Error deleting schedule Id {ScheduleId}", scheduleId);
+            return false;
+        }
+    }
+
     private static BannerScheduleDTO ReadSchedule(SqlDataReader reader)
     {
         return new BannerScheduleDTO

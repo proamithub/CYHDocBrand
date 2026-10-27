@@ -15,7 +15,7 @@
 <!-- Animated Floating Toast Popup -->
 <ToastPopup Notification="activePopup" OnDismiss="DismissPopup" />
 
-<div class="container-fluid px-3 px-md-4 py-4 fade-in" style="max-width: 1300px;">
+<div class="container-fluid px-3 px-md-4 py-4 fade-in">
     <!-- Page Header -->
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
         <div>
@@ -29,7 +29,7 @@
                 My Scheduled Banners
             </h2>
             <p class="text-secondary mb-0" style="font-size: 0.92rem;">
-                Track your upcoming and published social media banners across Facebook &amp; Instagram.
+                Manage, send, or delete your scheduled banners across WhatsApp, Facebook, and Instagram.
             </p>
         </div>
 
@@ -45,173 +45,277 @@
         </div>
     </div>
 
-    <!-- Quick Stats -->
+    <!-- Quick Stats Cards -->
     <div class="row g-3 mb-4">
         <div class="col-md-3 col-6">
-            <div class="p-3 rounded-4 glass-panel" style="background: rgba(14, 25, 48, 0.65); border: 1px solid rgba(255, 255, 255, 0.08);">
-                <div class="text-secondary small fw-semibold">TOTAL SCHEDULED</div>
+            <div class="p-3 rounded-4 glass-panel h-100" style="background: rgba(14, 25, 48, 0.65); border: 1px solid rgba(255, 255, 255, 0.08);">
+                <div class="text-secondary small fw-semibold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.5px;">TOTAL SCHEDULED</div>
                 <h3 class="fw-bold text-white mb-0 mt-1">@mySchedules.Count</h3>
             </div>
         </div>
         <div class="col-md-3 col-6">
-            <div class="p-3 rounded-4 glass-panel" style="background: rgba(14, 25, 48, 0.65); border: 1px solid rgba(245, 158, 11, 0.25);">
-                <div class="text-warning small fw-semibold">PENDING</div>
-                <h3 class="fw-bold text-warning mb-0 mt-1">@mySchedules.Count(s => s.Status == "Pending")</h3>
+            <div class="p-3 rounded-4 glass-panel h-100" style="background: rgba(14, 25, 48, 0.65); border: 1px solid rgba(245, 158, 11, 0.35);">
+                <div class="text-warning small fw-semibold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.5px;">PENDING / QUEUED</div>
+                <h3 class="fw-bold text-warning mb-0 mt-1">@mySchedules.Count(s => s.Status == "Pending" || s.Status == "ReadyToShare")</h3>
             </div>
         </div>
         <div class="col-md-3 col-6">
-            <div class="p-3 rounded-4 glass-panel" style="background: rgba(14, 25, 48, 0.65); border: 1px solid rgba(16, 185, 129, 0.25);">
-                <div class="text-success small fw-semibold">PUBLISHED</div>
+            <div class="p-3 rounded-4 glass-panel h-100" style="background: rgba(14, 25, 48, 0.65); border: 1px solid rgba(16, 185, 129, 0.35);">
+                <div class="text-success small fw-semibold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.5px;">PUBLISHED / SENT</div>
                 <h3 class="fw-bold text-success mb-0 mt-1">@mySchedules.Count(s => s.Status == "Success")</h3>
             </div>
         </div>
         <div class="col-md-3 col-6">
-            <div class="p-3 rounded-4 glass-panel" style="background: rgba(14, 25, 48, 0.65); border: 1px solid rgba(239, 68, 68, 0.25);">
-                <div class="text-danger small fw-semibold">FAILED</div>
+            <div class="p-3 rounded-4 glass-panel h-100" style="background: rgba(14, 25, 48, 0.65); border: 1px solid rgba(239, 68, 68, 0.35);">
+                <div class="text-danger small fw-semibold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.5px;">FAILED / RETRY</div>
                 <h3 class="fw-bold text-danger mb-0 mt-1">@mySchedules.Count(s => s.Status == "Failed")</h3>
             </div>
         </div>
     </div>
 
-    <!-- Schedules List -->
-    @if (mySchedules.Count == 0)
+    <!-- Filters & Search Bar -->
+    <div class="glass-panel p-3 rounded-4 mb-4" style="background: rgba(14, 25, 48, 0.75); border: 1px solid rgba(255, 255, 255, 0.08);">
+        <div class="row g-2 align-items-center justify-content-between">
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="input-group">
+                    <span class="input-group-text bg-dark border-secondary text-secondary">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" class="form-control bg-dark text-white border-secondary small" 
+                           placeholder="Search by banner title or caption..." 
+                           @bind="searchTerm" @bind:event="oninput" />
+                    @if (!string.IsNullOrEmpty(searchTerm))
+                    {
+                        <button class="btn btn-outline-secondary" type="button" @onclick="() => searchTerm = string.Empty">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <div class="col-12 col-md-6 col-lg-8 d-flex flex-wrap gap-2 justify-content-md-end">
+                <button type="button" class="btn btn-sm @(selectedFilter == "All" ? "btn-info text-dark fw-bold" : "btn-outline-secondary text-white")" @onclick='() => selectedFilter = "All"'>
+                    All (@mySchedules.Count)
+                </button>
+                <button type="button" class="btn btn-sm @(selectedFilter == "Pending" ? "btn-warning text-dark fw-bold" : "btn-outline-secondary text-white")" @onclick='() => selectedFilter = "Pending"'>
+                    ⏳ Pending (@mySchedules.Count(s => s.Status == "Pending" || s.Status == "ReadyToShare"))
+                </button>
+                <button type="button" class="btn btn-sm @(selectedFilter == "Success" ? "btn-success fw-bold" : "btn-outline-secondary text-white")" @onclick='() => selectedFilter = "Success"'>
+                    ✅ Published (@mySchedules.Count(s => s.Status == "Success"))
+                </button>
+                <button type="button" class="btn btn-sm @(selectedFilter == "Failed" ? "btn-danger fw-bold" : "btn-outline-secondary text-white")" @onclick='() => selectedFilter = "Failed"'>
+                    ❌ Failed (@mySchedules.Count(s => s.Status == "Failed"))
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Schedules List - FULL LENGTH ROWS -->
+    @if (FilteredSchedules.Count == 0)
     {
         <div class="text-center py-5 glass-panel rounded-4" style="background: rgba(14, 25, 48, 0.5); border: 1px dashed rgba(255, 255, 255, 0.15);">
-            <i class="bi bi-calendar2-plus text-secondary" style="font-size: 3.5rem;"></i>
-            <h5 class="text-white mt-3 fw-bold">Aapke Paas Abhi Koi Scheduled Banner Nahi Hai</h5>
-            <p class="text-secondary small mb-3">Apne designed banners ko Facebook aur Instagram par share karne ke liye schedule karein.</p>
+            <i class="bi bi-calendar2-x text-secondary" style="font-size: 3.5rem;"></i>
+            <h5 class="text-white mt-3 fw-bold">Koi Scheduled Banner Nahi Mila</h5>
+            <p class="text-secondary small mb-3">
+                @if (mySchedules.Count == 0)
+                {
+                    <span>Aapne abhi tak koi banner schedule nahi kiya hai. Apne banners ko WhatsApp aur social platforms par schedule karein.</span>
+                }
+                else
+                {
+                    <span>Aapke search ya filter criteria se koi banner match nahi hua.</span>
+                }
+            </p>
             <NavLink href="banner-designs" class="btn btn-outline-info px-4 py-2">
-                Go to Banner Library
+                <i class="bi bi-plus-circle me-1"></i> Go to Banner Library
             </NavLink>
         </div>
     }
     else
     {
-        <div class="row g-3">
-            @foreach (var item in mySchedules)
+        <div class="d-flex flex-column gap-3">
+            @foreach (var item in FilteredSchedules)
             {
-                <div class="col-lg-6 col-12">
-                    <div class="p-3 rounded-4 glass-panel h-100 d-flex flex-column justify-content-between" style="background: rgba(14, 25, 48, 0.75); border: 1px solid rgba(255, 255, 255, 0.08);">
-                        <div class="d-flex gap-3 mb-3">
-                            <!-- Image Thumbnail -->
-                            @if (!string.IsNullOrEmpty(item.ImageUrl))
-                            {
-                                <img src="@item.ImageUrl" alt="Banner" class="rounded-3 border border-secondary border-opacity-50" style="width: 80px; height: 80px; object-fit: cover;" />
-                            }
-                            else
-                            {
-                                <div class="rounded-3 d-flex align-items-center justify-content-center bg-dark border border-secondary border-opacity-25" style="width: 80px; height: 80px; color: #00f2fe;">
-                                    <i class="bi bi-image fs-3"></i>
-                                </div>
-                            }
-
-                            <!-- Info -->
-                            <div class="flex-grow-1 min-w-0">
-                                <div class="d-flex align-items-center justify-content-between gap-2">
-                                    <h6 class="text-white fw-bold mb-0 text-truncate" title="@item.BannerHeading">
-                                        @(item.BannerHeading ?? "Healthcare Banner")
-                                    </h6>
-                                    @if (item.Status == "Pending")
-                                    {
-                                        <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50 rounded-pill small">⏳ Pending</span>
-                                    }
-                                    else if (item.Status == "Processing")
-                                    {
-                                        <span class="badge bg-info bg-opacity-25 text-info rounded-pill small">🔄 Publishing...</span>
-                                    }
-                                    else if (item.Status == "ReadyToShare")
-                                    {
-                                        <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50 rounded-pill small">🟢 Ready to Share</span>
-                                    }
-                                    else if (item.Status == "Success")
-                                    {
-                                        <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50 rounded-pill small">✅ Published</span>
-                                    }
-                                    else if (item.Status == "Failed")
-                                    {
-                                        <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-50 rounded-pill small">❌ Failed</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-secondary rounded-pill small">@item.Status</span>
-                                    }
-                                </div>
-
-                                <div class="text-secondary small mt-1 text-truncate" title="@item.Caption">
-                                    <i class="bi bi-chat-left-quote me-1"></i>@(string.IsNullOrWhiteSpace(item.Caption) ? "(No caption)" : item.Caption)
-                                </div>
-
-                                <div class="d-flex align-items-center gap-3 mt-2">
-                                    <div class="text-info small fw-semibold">
-                                        <i class="bi bi-clock me-1"></i>@item.ScheduledAt.ToLocalTime().ToString("dd MMM yyyy, hh:mm tt")
+                <div class="glass-panel p-3 p-md-4 rounded-4 position-relative overflow-hidden" 
+                     style="background: rgba(14, 25, 48, 0.82); border: 1px solid rgba(255, 255, 255, 0.08); border-left: 5px solid @GetStatusBorderColor(item.Status); box-shadow: 0 10px 30px rgba(0,0,0,0.35);">
+                    
+                    <div class="row align-items-center g-3">
+                        <!-- 1. Thumbnail Image (Click to Zoom) -->
+                        <div class="col-auto">
+                            <div class="position-relative" style="cursor: pointer;" @onclick="() => PreviewImage(item.ImageUrl, item.BannerHeading)" title="Click to view full image">
+                                @if (!string.IsNullOrEmpty(item.ImageUrl))
+                                {
+                                    <img src="@item.ImageUrl" alt="Banner" class="rounded-3 shadow border border-secondary border-opacity-50" 
+                                         style="width: 100px; height: 100px; object-fit: cover; transition: transform 0.2s ease;" />
+                                    <span class="position-absolute bottom-0 end-0 bg-dark bg-opacity-75 text-info rounded-1 p-1 small me-1 mb-1">
+                                        <i class="bi bi-arrows-fullscreen" style="font-size: 0.72rem;"></i>
+                                    </span>
+                                }
+                                else
+                                {
+                                    <div class="rounded-3 d-flex align-items-center justify-content-center bg-dark border border-secondary border-opacity-25" style="width: 100px; height: 100px; color: #00f2fe;">
+                                        <i class="bi bi-image fs-3"></i>
                                     </div>
-                                    <div class="d-flex gap-1">
-                                        @foreach (var p in item.PlatformList)
-                                        {
-                                            @if (p.Equals("WhatsApp", StringComparison.OrdinalIgnoreCase))
-                                            {
-                                                <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-40 small">
-                                                    <i class="bi bi-whatsapp me-1"></i>WA
-                                                </span>
-                                            }
-                                            else if (p.Equals("Facebook", StringComparison.OrdinalIgnoreCase))
-                                            {
-                                                <span class="badge bg-primary bg-opacity-25 text-primary border border-primary border-opacity-40 small">
-                                                    <i class="bi bi-facebook me-1"></i>FB
-                                                </span>
-                                            }
-                                            else if (p.Equals("Instagram", StringComparison.OrdinalIgnoreCase))
-                                            {
-                                                <span class="badge text-pink border small" style="background: rgba(225, 48, 108, 0.2); border-color: rgba(225, 48, 108, 0.4) !important; color: #f472b6;">
-                                                    <i class="bi bi-instagram me-1"></i>IG
-                                                </span>
-                                            }
-                                            else
-                                            {
-                                                <span class="badge bg-dark border border-secondary border-opacity-50 text-light small">@p</span>
-                                            }
-                                        }
-                                    </div>
-                                </div>
+                                }
                             </div>
                         </div>
 
-                        <!-- Error or Live Link Footer -->
-                        @if (!string.IsNullOrEmpty(item.ErrorMessage))
-                        {
-                            <div class="alert alert-danger py-1 px-2 small mb-2" style="font-size: 0.78rem;">
-                                <i class="bi bi-exclamation-triangle me-1"></i>@item.ErrorMessage
+                        <!-- 2. Banner Details & Caption -->
+                        <div class="col-12 col-md-5 col-xl-5 min-w-0">
+                            <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                                <h5 class="text-white fw-bold mb-0 text-truncate" style="max-width: 90%;" title="@item.BannerHeading">
+                                    @(item.BannerHeading ?? "Healthcare Banner")
+                                </h5>
+                                @if (item.BannerDesignId > 0)
+                                {
+                                    <span class="badge bg-dark border border-secondary border-opacity-50 text-secondary" style="font-size: 0.7rem;">#@item.BannerDesignId</span>
+                                }
                             </div>
-                        }
 
-                        <div class="d-flex align-items-center justify-content-between pt-2 border-top border-secondary border-opacity-10">
-                            <div>
-                                @foreach (var d in item.Details.Where(d => !string.IsNullOrEmpty(d.PostUrl)))
+                            <div class="text-secondary small mb-2 d-flex flex-wrap align-items-center gap-2">
+                                <span><i class="bi bi-hospital text-info me-1"></i>@(item.HospitalName ?? "CYH Hospital")</span>
+                                <span class="text-secondary">&bull;</span>
+                                <span><i class="bi bi-person text-info me-1"></i>@item.DoctorName</span>
+                                <span class="text-secondary">&bull;</span>
+                                <span class="text-muted"><i class="bi bi-clock-history me-1"></i>Created: @item.CreatedAt.ToLocalTime().ToString("dd MMM, hh:mm tt")</span>
+                            </div>
+
+                            <!-- Caption Box -->
+                            @if (!string.IsNullOrWhiteSpace(item.Caption))
+                            {
+                                <div class="p-2 rounded-2 small text-light position-relative" style="background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.06); font-size: 0.82rem; line-height: 1.4; max-height: 65px; overflow-y: auto;">
+                                    <i class="bi bi-quote text-info me-1"></i>@item.Caption
+                                </div>
+                            }
+
+                            <!-- Error Message if any -->
+                            @if (!string.IsNullOrEmpty(item.ErrorMessage))
+                            {
+                                <div class="alert alert-danger py-1 px-2 small mt-2 mb-0 d-flex align-items-center gap-1" style="font-size: 0.76rem;">
+                                    <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
+                                    <span class="text-truncate">@item.ErrorMessage</span>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- 3. Platforms Badges -->
+                        <div class="col-6 col-md-2 col-xl-2 text-md-center">
+                            <span class="text-secondary small d-block mb-2 fw-semibold text-uppercase" style="font-size: 0.68rem; letter-spacing: 0.5px;">Target Platforms</span>
+                            <div class="d-flex flex-wrap gap-1 justify-content-md-center">
+                                @foreach (var p in item.PlatformList)
                                 {
-                                    <a href="@d.PostUrl" target="_blank" class="btn btn-outline-info btn-sm py-1 px-2 me-1" style="font-size: 0.75rem;">
-                                        <i class="bi bi-box-arrow-up-right me-1"></i> View on @d.Platform
-                                    </a>
+                                    @if (p.Equals("WhatsApp", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-40 px-2 py-1 small" title="WhatsApp 1-Click / Cloud API">
+                                            <i class="bi bi-whatsapp me-1"></i>WhatsApp
+                                        </span>
+                                    }
+                                    else if (p.Equals("Facebook", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <span class="badge bg-primary bg-opacity-25 text-primary border border-primary border-opacity-40 px-2 py-1 small" title="Facebook Page">
+                                            <i class="bi bi-facebook me-1"></i>Facebook
+                                        </span>
+                                    }
+                                    else if (p.Equals("Instagram", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <span class="badge border px-2 py-1 small" style="background: rgba(225, 48, 108, 0.2); border-color: rgba(225, 48, 108, 0.4) !important; color: #f472b6;" title="Instagram">
+                                            <i class="bi bi-instagram me-1"></i>Instagram
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-dark border border-secondary text-light px-2 py-1 small">@p</span>
+                                    }
                                 }
                             </div>
-                            <div class="d-flex gap-2">
-                                <button type="button" class="btn btn-success btn-sm py-1 px-3 fw-bold d-flex align-items-center gap-1"
-                                        @onclick="() => SendDirectWhatsApp(item)" style="background: #25d366; border: none; color: #070d1e;">
-                                    <i class="bi bi-whatsapp"></i>
-                                    <span>Send WhatsApp</span>
-                                </button>
-                                @if (item.Status == "Failed")
-                                {
-                                    <button type="button" class="btn btn-warning btn-sm py-1 px-3 fw-semibold" @onclick="() => RetrySchedule(item.Id)">
-                                        <i class="bi bi-arrow-clockwise me-1"></i> Retry
-                                    </button>
-                                }
+                        </div>
+
+                        <!-- 4. Scheduled Time & Live Status -->
+                        <div class="col-6 col-md-2 col-xl-2 text-md-center">
+                            <span class="text-secondary small d-block mb-1 fw-semibold text-uppercase" style="font-size: 0.68rem; letter-spacing: 0.5px;">Scheduled Time</span>
+                            <div class="text-info fw-bold small">
+                                <i class="bi bi-calendar-event me-1"></i>@item.ScheduledAt.ToLocalTime().ToString("dd MMM yyyy")
+                            </div>
+                            <div class="text-white fw-bold small mb-2">
+                                <i class="bi bi-clock me-1 text-warning"></i>@item.ScheduledAt.ToLocalTime().ToString("hh:mm tt")
+                            </div>
+                            <div>
                                 @if (item.Status == "Pending")
                                 {
-                                    <button type="button" class="btn btn-outline-danger btn-sm py-1 px-3" @onclick="() => CancelSchedule(item.Id)">
-                                        <i class="bi bi-x-circle me-1"></i> Cancel
-                                    </button>
+                                    <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50 rounded-pill px-3 py-1 small">
+                                        ⏳ Pending (Queued)
+                                    </span>
+                                }
+                                else if (item.Status == "ReadyToShare")
+                                {
+                                    <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50 rounded-pill px-3 py-1 small">
+                                        🟢 Ready to Share
+                                    </span>
+                                }
+                                else if (item.Status == "Processing")
+                                {
+                                    <span class="badge bg-info bg-opacity-25 text-info border border-info border-opacity-50 rounded-pill px-3 py-1 small d-inline-flex align-items-center gap-1">
+                                        <span class="spinner-border spinner-border-sm" role="status" style="width: 10px; height: 10px;"></span>
+                                        Publishing...
+                                    </span>
+                                }
+                                else if (item.Status == "Success")
+                                {
+                                    <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50 rounded-pill px-3 py-1 small">
+                                        ✅ Published
+                                    </span>
+                                }
+                                else if (item.Status == "Failed")
+                                {
+                                    <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-50 rounded-pill px-3 py-1 small">
+                                        ❌ Failed
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary rounded-pill px-3 py-1 small">@item.Status</span>
                                 }
                             </div>
+                        </div>
+
+                        <!-- 5. Actions (WhatsApp, Delete, Links) -->
+                        <div class="col-12 col-xl-auto d-flex flex-wrap flex-md-column align-items-stretch justify-content-center gap-2 ms-xl-auto">
+                            <!-- Send on WhatsApp (1-Click) -->
+                            <button type="button" class="btn btn-success btn-sm py-2 px-3 fw-bold d-flex align-items-center justify-content-center gap-2 shadow-sm"
+                                    @onclick="() => SendDirectWhatsApp(item)" 
+                                    style="background: linear-gradient(135deg, #25d366 0%, #128c7e 100%); border: none; color: #ffffff; border-radius: 9px;"
+                                    title="WhatsApp Web / App popup me turant send karein">
+                                <i class="bi bi-whatsapp fs-6"></i>
+                                <span>Send WhatsApp</span>
+                            </button>
+
+                            <!-- View Post Links if available -->
+                            @foreach (var d in item.Details.Where(d => !string.IsNullOrEmpty(d.PostUrl)))
+                            {
+                                <a href="@d.PostUrl" target="_blank" class="btn btn-outline-info btn-sm py-1 px-2 d-flex align-items-center justify-content-center gap-1" style="font-size: 0.78rem; border-radius: 8px;">
+                                    <i class="bi bi-box-arrow-up-right"></i>
+                                    <span>View on @d.Platform</span>
+                                </a>
+                            }
+
+                            <!-- Retry if Failed -->
+                            @if (item.Status == "Failed")
+                            {
+                                <button type="button" class="btn btn-warning btn-sm py-1 px-3 fw-semibold d-flex align-items-center justify-content-center gap-1" 
+                                        @onclick="() => RetrySchedule(item.Id)" style="border-radius: 8px;">
+                                    <i class="bi bi-arrow-clockwise"></i>
+                                    <span>Retry Publish</span>
+                                </button>
+                            }
+
+                            <!-- DELETE SCHEDULE BUTTON (Send se pehle ya kabhi bhi delete karein) -->
+                            <button type="button" class="btn btn-outline-danger btn-sm py-2 px-3 fw-semibold d-flex align-items-center justify-content-center gap-2"
+                                    @onclick="() => PromptDelete(item)" 
+                                    style="border-color: rgba(239, 68, 68, 0.45); border-radius: 9px; background: rgba(239, 68, 68, 0.08);"
+                                    title="Send hone se pehle schedule ko queue se delete karein">
+                                <i class="bi bi-trash3-fill"></i>
+                                <span>Delete Schedule</span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -220,10 +324,105 @@
     }
 </div>
 
+<!-- ── Delete Confirmation Modal ── -->
+@if (deletingSchedule != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); z-index: 9999;">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 490px;">
+            <div class="modal-content glass-panel text-white border-0 shadow-lg" style="background: rgba(14, 25, 48, 0.98); border: 1px solid rgba(239, 68, 68, 0.4) !important; border-radius: 18px;">
+                <div class="modal-header border-0 pb-0 pt-4 px-4">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="rounded-circle p-2 d-flex align-items-center justify-content-center" style="background: rgba(239, 68, 68, 0.15); color: #f87171; width: 44px; height: 44px; border: 1px solid rgba(239, 68, 68, 0.3);">
+                            <i class="bi bi-trash3-fill fs-5"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title fw-bold text-white mb-0">Delete Scheduled Banner?</h5>
+                            <span class="text-secondary small">Send hone se pehle queue se hatayein</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseDeleteModal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="p-3 rounded-3 mb-3 d-flex align-items-center gap-3" style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08);">
+                        @if (!string.IsNullOrEmpty(deletingSchedule.ImageUrl))
+                        {
+                            <img src="@deletingSchedule.ImageUrl" class="rounded-2 border border-secondary border-opacity-50" style="width: 58px; height: 58px; object-fit: cover;" />
+                        }
+                        <div class="min-w-0 flex-grow-1">
+                            <div class="fw-bold text-white text-truncate">@deletingSchedule.BannerHeading</div>
+                            <div class="text-warning small mt-1">
+                                <i class="bi bi-clock me-1"></i>Scheduled: @deletingSchedule.ScheduledAt.ToLocalTime().ToString("dd MMM yyyy, hh:mm tt")
+                            </div>
+                            <div class="text-secondary small">
+                                <i class="bi bi-share me-1"></i>Platforms: @deletingSchedule.Platforms
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-light small mb-0" style="opacity: 0.9;">
+                        Kya aap sach me is schedule ko delete karna chahte hain? Delete karne par ye banner scheduled time par WhatsApp ya Social media par share nahi hoga.
+                    </p>
+                </div>
+                <div class="modal-footer border-0 pt-0 pb-4 px-4 gap-2">
+                    <button type="button" class="btn btn-outline-secondary px-4 py-2" @onclick="CloseDeleteModal" disabled="@isDeleting" style="border-radius: 9px;">
+                        Cancel
+                    </button>
+                    <button type="button" class="btn btn-danger px-4 py-2 fw-bold d-flex align-items-center gap-2" 
+                            @onclick="ConfirmDeleteScheduleAsync" disabled="@isDeleting" 
+                            style="background: #ef4444; border: none; border-radius: 9px;">
+                        @if (isDeleting)
+                        {
+                            <span class="spinner-border spinner-border-sm" role="status"></span>
+                            <span>Deleting...</span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-trash3-fill"></i>
+                            <span>Yes, Delete Schedule</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- ── Lightbox Image Preview Modal ── -->
+@if (!string.IsNullOrEmpty(previewImageUrl))
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.92); backdrop-filter: blur(10px); z-index: 10000;" @onclick="CloseImagePreview">
+        <div class="modal-dialog modal-dialog-centered modal-lg" @onclick:stopPropagation="true">
+            <div class="modal-content glass-panel border-0 text-white p-3" style="background: rgba(10, 18, 38, 0.96); border: 1px solid rgba(0, 242, 254, 0.3) !important; border-radius: 18px;">
+                <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom border-secondary border-opacity-25">
+                    <h6 class="text-white fw-bold mb-0">@previewImageHeading</h6>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseImagePreview"></button>
+                </div>
+                <div class="text-center p-2">
+                    <img src="@previewImageUrl" class="img-fluid rounded-3 shadow-lg" style="max-height: 75vh; object-fit: contain;" />
+                </div>
+                <div class="text-end pt-2">
+                    <a href="@previewImageUrl" target="_blank" download="ScheduledBanner.png" class="btn btn-outline-info btn-sm px-3">
+                        <i class="bi bi-download me-1"></i> Download Banner
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private CurrentUserDTO? currentUser;
     private List<BannerScheduleDTO> mySchedules = new();
     private ToastNotificationDTO? activePopup;
+    private string searchTerm = string.Empty;
+    private string selectedFilter = "All";
+
+    // Delete modal state
+    private BannerScheduleDTO? deletingSchedule;
+    private bool isDeleting = false;
+
+    // Image preview state
+    private string? previewImageUrl;
+    private string? previewImageHeading;
 
     protected override async Task OnInitializedAsync()
     {
@@ -236,6 +435,104 @@
         mySchedules = await ScheduleRepo.GetByDoctorAsync(currentUser?.DoctorProfileId, currentUser?.UserId);
     }
 
+    private List<BannerScheduleDTO> FilteredSchedules
+    {
+        get
+        {
+            var list = mySchedules.AsEnumerable();
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var term = searchTerm.Trim().ToLowerInvariant();
+                list = list.Where(s => 
+                    (s.BannerHeading ?? "").ToLowerInvariant().Contains(term) ||
+                    (s.Caption ?? "").ToLowerInvariant().Contains(term) ||
+                    (s.Platforms ?? "").ToLowerInvariant().Contains(term)
+                );
+            }
+
+            if (selectedFilter == "Pending")
+            {
+                list = list.Where(s => s.Status == "Pending" || s.Status == "ReadyToShare");
+            }
+            else if (selectedFilter == "Success")
+            {
+                list = list.Where(s => s.Status == "Success");
+            }
+            else if (selectedFilter == "Failed")
+            {
+                list = list.Where(s => s.Status == "Failed");
+            }
+
+            return list.OrderByDescending(s => s.ScheduledAt).ToList();
+        }
+    }
+
+    private string GetStatusBorderColor(string status) => status switch
+    {
+        "Pending" => "rgba(245, 158, 11, 0.8)",
+        "ReadyToShare" => "rgba(16, 185, 129, 0.9)",
+        "Processing" => "rgba(0, 242, 254, 0.9)",
+        "Success" => "rgba(16, 185, 129, 0.9)",
+        "Failed" => "rgba(239, 68, 68, 0.9)",
+        _ => "rgba(148, 163, 184, 0.5)"
+    };
+
+    private void PreviewImage(string? url, string? heading)
+    {
+        if (string.IsNullOrEmpty(url)) return;
+        previewImageUrl = url;
+        previewImageHeading = heading ?? "Banner Preview";
+    }
+
+    private void CloseImagePreview()
+    {
+        previewImageUrl = null;
+        previewImageHeading = null;
+    }
+
+    private void PromptDelete(BannerScheduleDTO item)
+    {
+        deletingSchedule = item;
+    }
+
+    private void CloseDeleteModal()
+    {
+        deletingSchedule = null;
+        isDeleting = false;
+    }
+
+    private async Task ConfirmDeleteScheduleAsync()
+    {
+        if (deletingSchedule == null) return;
+        isDeleting = true;
+        StateHasChanged();
+
+        try
+        {
+            var ok = await ScheduleRepo.DeleteScheduleAsync(deletingSchedule.Id);
+            if (ok)
+            {
+                ShowSuccess("Schedule Deleted", $"'{deletingSchedule.BannerHeading}' queue se successfully delete ho gaya hai.");
+                CloseDeleteModal();
+                await LoadSchedulesAsync();
+            }
+            else
+            {
+                ShowError("Delete Failed", "Schedule delete karne me problem aayi. Please retry karein.");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowError("Error", ex.Message);
+        }
+        finally
+        {
+            isDeleting = false;
+            StateHasChanged();
+        }
+    }
+
     private async Task SendDirectWhatsApp(BannerScheduleDTO item)
     {
         var message = $"{item.BannerHeading}\n\n{item.Caption}";
@@ -245,7 +542,7 @@
         }
         await JSRuntime.InvokeVoidAsync("cyhSocial.openWhatsApp", "", message);
         await ScheduleRepo.UpdateScheduleStatusAsync(item.Id, "Success", null);
-        ShowSuccess("Opened WhatsApp", "Banner details have been sent to WhatsApp!");
+        ShowSuccess("Opened WhatsApp", "Banner details WhatsApp par send karne ke liye taiyaar hain!");
         await LoadSchedulesAsync();
     }
 
@@ -259,16 +556,6 @@
         }
     }
 
-    private async Task CancelSchedule(int id)
-    {
-        var ok = await ScheduleRepo.CancelScheduleAsync(id);
-        if (ok)
-        {
-            ShowSuccess("Cancelled", "Schedule has been cancelled.");
-            await LoadSchedulesAsync();
-        }
-    }
-
     private void ShowSuccess(string title, string msg)
     {
         activePopup = new ToastNotificationDTO
@@ -276,6 +563,16 @@
             Title = title,
             Message = msg,
             Type = "save"
+        };
+    }
+
+    private void ShowError(string title, string msg)
+    {
+        activePopup = new ToastNotificationDTO
+        {
+            Title = title,
+            Message = msg,
+            Type = "error"
         };
     }
 

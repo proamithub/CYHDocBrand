@@ -12,4 +12,5 @@ public interface IBannerScheduleRepository
     Task<AdminScheduleSummaryDTO> GetAllAdminAsync(int? doctorId = null, string? status = null, string? search = null);
     Task<bool> CancelScheduleAsync(int scheduleId);
     Task<bool> RetryScheduleAsync(int scheduleId);
+    Task<bool> DeleteScheduleAsync(int scheduleId);
 }
