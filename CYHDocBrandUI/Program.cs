@@ -30,6 +30,7 @@ builder.Services.AddScoped<IDoctorAiSettingRepository, DoctorAiSettingRepository
 builder.Services.AddScoped<ICreditRepository, CreditRepository>();
 builder.Services.AddScoped<ISocialAccountRepository, SocialAccountRepository>();
 builder.Services.AddScoped<IBannerScheduleRepository, BannerScheduleRepository>();
+builder.Services.AddScoped<IPushNotificationRepository, PushNotificationRepository>();
 
 // 4. Application & Notification Services
 builder.Services.AddHttpClient();
@@ -37,6 +38,7 @@ builder.Services.AddMemoryCache();
 builder.Services.AddScoped<ISMSService, SMSService>();
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 builder.Services.AddScoped<IBannerAiService, BannerAiService>();
+builder.Services.AddSingleton<IWebPushNotificationService, WebPushNotificationService>();
 builder.Services.AddHostedService<BannerPublishBackgroundWorker>();
 
 // 5. Performance Optimizations (Compression & SignalR Speed)
@@ -99,5 +101,18 @@ app.UseAntiforgery();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+
+// 9. Web Push Notification Endpoints
+app.MapGet("/api/push/public-key", (IWebPushNotificationService pushService) => 
+    Results.Ok(new { publicKey = pushService.PublicKey }));
+
+app.MapPost("/api/push/subscribe", async (CYHDocBrandModel.DTO.PushSubscriptionRequest request, IPushNotificationRepository pushRepo) =>
+{
+    if (request == null || string.IsNullOrWhiteSpace(request.Endpoint))
+        return Results.BadRequest(new { success = false, message = "Invalid subscription" });
+
+    var ok = await pushRepo.SaveSubscriptionAsync(request);
+    return Results.Ok(new { success = ok });
+});
 
 app.Run();

@@ -55,6 +55,7 @@ public class BannerPublishBackgroundWorker : BackgroundService
     {
         using var scope = _serviceProvider.CreateScope();
         var scheduleRepo = scope.ServiceProvider.GetRequiredService<IBannerScheduleRepository>();
+        var pushService = scope.ServiceProvider.GetService<IWebPushNotificationService>();
 
         var dueSchedules = await scheduleRepo.GetDueSchedulesAsync();
         if (dueSchedules == null || dueSchedules.Count == 0)
@@ -76,6 +77,26 @@ public class BannerPublishBackgroundWorker : BackgroundService
             await scheduleRepo.UpdateScheduleStatusAsync(schedule.Id, "ReadyToShare", null);
             _logger.LogInformation("Schedule #{Id} ('{Heading}') is now ReadyToShare on {Platforms} for Dr. {DoctorName}.", 
                 schedule.Id, schedule.BannerHeading, schedule.Platforms, schedule.DoctorName);
+
+            // 🚀 Send Doctor-Wise Web Push Notification (Works even when browser is completely CLOSED!)
+            if (pushService != null)
+            {
+                try
+                {
+                    var pushedCount = await pushService.SendPushToDoctorAsync(
+                        schedule.DoctorId,
+                        schedule.UserId,
+                        $"⏰ Scheduled Banner: {schedule.BannerHeading}",
+                        $"Dr. {schedule.DoctorName}, aapka scheduled post share karne ke liye ready hai! Tap karein aur WhatsApp par send karein.",
+                        schedule
+                    );
+                    _logger.LogInformation("Delivered Web-Push to {Count} registered device(s) for Dr. {DoctorName}.", pushedCount, schedule.DoctorName);
+                }
+                catch (Exception pushEx)
+                {
+                    _logger.LogError(pushEx, "Failed to send background Web-Push for schedule #{Id}", schedule.Id);
+                }
+            }
         }
     }
 }

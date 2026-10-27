@@ -83,3 +83,78 @@ self.addEventListener('fetch', (event) => {
         );
     }
 });
+
+
+// ==============================================================================
+// Web Push Notifications: Works even when browser is completely CLOSED!
+// ==============================================================================
+self.addEventListener('push', function (event) {
+    if (!event.data) {
+        console.log('[SW] Push received with no payload');
+        return;
+    }
+
+    try {
+        const payload = event.data.json();
+        const title = payload.title || '⏰ Scheduled Post Reminder';
+        const options = {
+            body: payload.body || 'Aapka scheduled post ready hai!',
+            icon: payload.icon || '/images/branding/icon-192.png',
+            badge: payload.badge || '/favicon.png',
+            image: payload.image || undefined,
+            tag: payload.tag || 'cyh-banner-schedule',
+            requireInteraction: true,
+            vibrate: [200, 100, 200, 100, 200],
+            data: payload.data || {},
+            actions: [
+                {
+                    action: 'open-whatsapp',
+                    title: '🟢 Send on WhatsApp',
+                    icon: '/favicon.png'
+                },
+                {
+                    action: 'open-app',
+                    title: '📱 View Post',
+                    icon: '/favicon.png'
+                }
+            ]
+        };
+
+        event.waitUntil(self.registration.showNotification(title, options));
+    } catch (e) {
+        console.error('[SW] Error parsing push payload:', e);
+    }
+});
+
+// Click on Notification (when user taps the notification or action buttons)
+self.addEventListener('notificationclick', function (event) {
+    event.notification.close();
+
+    const data = event.notification.data || {};
+    const action = event.action;
+
+    let targetUrl = '/doctor/schedules';
+
+    if (action === 'open-whatsapp' && data.whatsappUrl) {
+        targetUrl = data.whatsappUrl;
+    } else if (data.actionUrl) {
+        targetUrl = data.actionUrl;
+    }
+
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
+            for (let i = 0; i < clientList.length; i++) {
+                const client = clientList[i];
+                if ('focus' in client && client.url.includes(self.location.origin)) {
+                    if (action === 'open-whatsapp' && data.whatsappUrl) {
+                        return clients.openWindow(data.whatsappUrl);
+                    }
+                    return client.focus();
+                }
+            }
+            if (clients.openWindow) {
+                return clients.openWindow(targetUrl);
+            }
+        })
+    );
+});

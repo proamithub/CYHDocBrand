@@ -407,6 +407,12 @@
 
                 // Ask browser desktop notification permission
                 await JSRuntime.InvokeVoidAsync("cyhSocial.requestNotificationPermission");
+
+                // 🚀 Register Device for Background Web Push (Works even when browser is CLOSED!)
+                if (CurrentUser != null)
+                {
+                    await JSRuntime.InvokeVoidAsync("cyhPush.subscribeUser", CurrentUser.DoctorProfileId, CurrentUser.UserId);
+                }
             }
             catch { }
         }
@@ -487,7 +493,11 @@
             var ok = await JSRuntime.InvokeAsync<bool>("cyhSocial.requestNotificationPermissionExplicit");
             if (ok)
             {
-                await JSRuntime.InvokeVoidAsync("cyhSocial.showDesktopNotification", "✅ Notifications Active", "Schedule banner alert notifications active ho chuki hain!", "/favicon.png");
+                if (CurrentUser != null)
+                {
+                    await JSRuntime.InvokeVoidAsync("cyhPush.subscribeUser", CurrentUser.DoctorProfileId, CurrentUser.UserId);
+                }
+                await JSRuntime.InvokeVoidAsync("cyhSocial.showDesktopNotification", "✅ Push Notifications Active", "Background Web Push active ho chuka hai! Browser band hone par bhi alerts milenge.", "/favicon.png");
             }
         }
         catch { }

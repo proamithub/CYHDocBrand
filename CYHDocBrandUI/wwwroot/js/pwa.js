@@ -150,3 +150,72 @@
 
     window.cyhPwa.init();
 })();
+
+
+// ==============================================================================
+// Background Web-Push Manager (VAPID via ServiceWorker)
+// ==============================================================================
+window.cyhPush = {
+    urlBase64ToUint8Array: function (base64String) {
+        var padding = '='.repeat((4 - base64String.length % 4) % 4);
+        var base64 = (base64String + padding)
+            .replace(/\-/g, '+')
+            .replace(/_/g, '/');
+        var rawData = window.atob(base64);
+        var outputArray = new Uint8Array(rawData.length);
+        for (var i = 0; i < rawData.length; ++i) {
+            outputArray[i] = rawData.charCodeAt(i);
+        }
+        return outputArray;
+    },
+
+    subscribeUser: async function (doctorId, userId) {
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+            console.log('[Push] Push notifications not supported by browser.');
+            return false;
+        }
+
+        try {
+            var reg = await navigator.serviceWorker.ready;
+
+            // 1. Get VAPID public key from backend
+            var res = await fetch('/api/push/public-key');
+            if (!res.ok) return false;
+            var keyData = await res.json();
+            var publicKey = keyData.publicKey;
+
+            // 2. Check existing subscription or create new
+            var sub = await reg.pushManager.getSubscription();
+            if (!sub) {
+                var convertedKey = window.cyhPush.urlBase64ToUint8Array(publicKey);
+                sub = await reg.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: convertedKey
+                });
+            }
+
+            var subJson = sub.toJSON();
+            var reqData = {
+                endpoint: sub.endpoint,
+                p256dh: subJson.keys ? subJson.keys.p256dh : '',
+                auth: subJson.keys ? subJson.keys.auth : '',
+                doctorId: doctorId || null,
+                userId: userId || null,
+                userAgent: navigator.userAgent
+            };
+
+            // 3. Post to backend to save for this doctor
+            var saveRes = await fetch('/api/push/subscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(reqData)
+            });
+
+            console.log('[Push] Device registered for background push notifications successfully!');
+            return saveRes.ok;
+        } catch (e) {
+            console.warn('[Push] Error subscribing user:', e);
+            return false;
+        }
+    }
+};
