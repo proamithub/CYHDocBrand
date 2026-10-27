@@ -28,7 +28,7 @@ BEGIN
         [Role]                 NVARCHAR (MAX)     NOT NULL,
         [AvatarUrl]            NVARCHAR (MAX)     NULL,
         [Department]           NVARCHAR (MAX)     NULL,
-        [CreatedAt]            DATETIME2 (7)      NOT NULL DEFAULT (SYSUTCDATETIME()),
+        [CreatedAt]            DATETIME2 (7)      NOT NULL DEFAULT (DATEADD(minute, 330, SYSUTCDATETIME())),
         [IsActive]             BIT                NOT NULL DEFAULT (1),
         [UserName]             NVARCHAR (256)     NULL,
         [NormalizedUserName]   NVARCHAR (256)     NULL,
@@ -81,7 +81,7 @@ BEGIN
         [AiCredits]        INT             NOT NULL DEFAULT (25),
         [IsVerified]       BIT             NOT NULL DEFAULT (1),
         [IsAvailableToday] BIT             NOT NULL DEFAULT (1),
-        [CreatedAt]        DATETIME2 (7)   NOT NULL DEFAULT (SYSUTCDATETIME()),
+        [CreatedAt]        DATETIME2 (7)   NOT NULL DEFAULT (DATEADD(minute, 330, SYSUTCDATETIME())),
         CONSTRAINT [PK_DoctorProfiles] PRIMARY KEY CLUSTERED ([Id] ASC),
         CONSTRAINT [FK_DoctorProfiles_AspNetUsers_UserId] FOREIGN KEY ([UserId]) REFERENCES [dbo].[AspNetUsers] ([Id]) ON DELETE CASCADE
     );
@@ -104,8 +104,8 @@ BEGIN
         [PrimaryColor]       NVARCHAR(50) NOT NULL DEFAULT ('#00f2fe'),
         [BackgroundImageUrl] NVARCHAR(MAX) NULL,
         [ConfigJson]         NVARCHAR(MAX) NOT NULL,
-        [CreatedAt]          DATETIME2(7) NOT NULL DEFAULT (SYSUTCDATETIME()),
-        [UpdatedAt]          DATETIME2(7) NOT NULL DEFAULT (SYSUTCDATETIME()),
+        [CreatedAt]          DATETIME2(7) NOT NULL DEFAULT (DATEADD(minute, 330, SYSUTCDATETIME())),
+        [UpdatedAt]          DATETIME2(7) NOT NULL DEFAULT (DATEADD(minute, 330, SYSUTCDATETIME())),
         [PublishedAt]        DATETIME2(7) NULL,
         CONSTRAINT [PK_BannerDesigns_CYH] PRIMARY KEY CLUSTERED ([Id] ASC)
     );
@@ -123,7 +123,7 @@ BEGIN
         [BadgeColor]   NVARCHAR(50)  NULL DEFAULT ('#00f2fe'),
         [DisplayOrder] INT NOT NULL DEFAULT (0),
         [IsActive]     BIT NOT NULL DEFAULT (1),
-        [CreatedAt]    DATETIME2(7) NOT NULL DEFAULT (SYSUTCDATETIME()),
+        [CreatedAt]    DATETIME2(7) NOT NULL DEFAULT (DATEADD(minute, 330, SYSUTCDATETIME())),
         CONSTRAINT [PK_BannerCategories_CYH] PRIMARY KEY CLUSTERED ([Id] ASC)
     );
 END
@@ -149,7 +149,7 @@ BEGIN
         [ConfigJson]         NVARCHAR(MAX) NOT NULL,
         [DisplayOrder]       INT NOT NULL DEFAULT (0),
         [IsActive]           BIT NOT NULL DEFAULT (1),
-        [CreatedAt]          DATETIME2(7) NOT NULL DEFAULT (SYSUTCDATETIME()),
+        [CreatedAt]          DATETIME2(7) NOT NULL DEFAULT (DATEADD(minute, 330, SYSUTCDATETIME())),
         CONSTRAINT [PK_BannerTemplates_CYH] PRIMARY KEY CLUSTERED ([Id] ASC),
         CONSTRAINT [FK_BannerTemplates_Category] FOREIGN KEY ([CategoryId]) 
             REFERENCES [dbo].[BannerCategories_CYH] ([Id])
@@ -170,8 +170,8 @@ BEGIN
         [ModelName]          NVARCHAR(100) NULL,
         [BaseUrl]            NVARCHAR(500) NULL,
         [IsActive]           BIT NOT NULL DEFAULT (1),
-        [CreatedAt]          DATETIME2(7) NOT NULL DEFAULT (SYSUTCDATETIME()),
-        [UpdatedAt]          DATETIME2(7) NOT NULL DEFAULT (SYSUTCDATETIME()),
+        [CreatedAt]          DATETIME2(7) NOT NULL DEFAULT (DATEADD(minute, 330, SYSUTCDATETIME())),
+        [UpdatedAt]          DATETIME2(7) NOT NULL DEFAULT (DATEADD(minute, 330, SYSUTCDATETIME())),
         CONSTRAINT [PK_DoctorAiSettings_CYH] PRIMARY KEY CLUSTERED ([Id] ASC)
     );
     CREATE NONCLUSTERED INDEX [IX_DoctorAiSettings_DoctorId] ON [dbo].[DoctorAiSettings_CYH]([DoctorId]);
@@ -377,7 +377,7 @@ BEGIN
         VALUES 
         (
             @UserId, @FullName, @Specialization, @LicenseNumber, @ExperienceYears,
-            @ConsultationFee, @AvailableDays, @AvailableHours, @Bio, ISNULL(@IsAvailableToday, 1), SYSUTCDATETIME(), @ProfilePic
+            @ConsultationFee, @AvailableDays, @AvailableHours, @Bio, ISNULL(@IsAvailableToday, 1), DATEADD(minute, 330, SYSUTCDATETIME()), @ProfilePic
         );
 
         SELECT SCOPE_IDENTITY() AS NewId;
@@ -394,7 +394,7 @@ BEGIN
         END
 
         DECLARE @NewUserId NVARCHAR(450) = ISNULL(@UserId, CAST(NEWID() AS NVARCHAR(450)));
-        DECLARE @Now DATETIME2(7) = SYSUTCDATETIME();
+        DECLARE @Now DATETIME2(7) = DATEADD(minute, 330, SYSUTCDATETIME());
 
         BEGIN TRANSACTION;
         BEGIN TRY
@@ -473,7 +473,7 @@ BEGIN
             VALUES (
                 CAST(NEWID() AS NVARCHAR(450)), 'admin@cyhdoctorhub.com', 'ADMIN@CYHDOCTORHUB.COM', 'admin@cyhdoctorhub.com', 'ADMIN@CYHDOCTORHUB.COM', 1,
                 'Hospital Chief Administrator', 'Admin', 'Hospital Operations & Executive',
-                'L4Yq5jzhlap0wTagsBRCUg==', SYSUTCDATETIME(), 1, 0, 0, 0, 0
+                'L4Yq5jzhlap0wTagsBRCUg==', DATEADD(minute, 330, SYSUTCDATETIME()), 1, 0, 0, 0, 0
             );
         END
         ELSE
@@ -489,7 +489,7 @@ BEGIN
             VALUES (
                 @Doc1UserId, 'doctor@cyhdoctorhub.com', 'DOCTOR@CYHDOCTORHUB.COM', 'doctor@cyhdoctorhub.com', 'DOCTOR@CYHDOCTORHUB.COM', 1,
                 'Dr. A. Sharma', 'Doctor', 'Cardiology',
-                'n7uoG53mus5DzCXmNgv7NQ==', SYSUTCDATETIME(), 1, 0, 0, 0, 0
+                'n7uoG53mus5DzCXmNgv7NQ==', DATEADD(minute, 330, SYSUTCDATETIME()), 1, 0, 0, 0, 0
             );
 
             IF NOT EXISTS (SELECT 1 FROM DoctorProfiles WHERE FullName = 'Dr. A. Sharma')
@@ -499,7 +499,7 @@ BEGIN
                     @Doc1UserId, 'Dr. A. Sharma', 'Chief Cardiologist', 'MED-DEL-98421', 14, 85.00,
                     'Mon - Sat', '09:00 AM - 04:00 PM',
                     'Specializing in interventional cardiology, heart failure management, and preventive cardiovascular wellness.',
-                    1, SYSUTCDATETIME()
+                    1, DATEADD(minute, 330, SYSUTCDATETIME())
                 );
             END
         END
@@ -516,7 +516,7 @@ BEGIN
             VALUES (
                 @Doc2UserId, 'priya.patel@cyhdoctorhub.com', 'PRIYA.PATEL@CYHDOCTORHUB.COM', 'priya.patel@cyhdoctorhub.com', 'PRIYA.PATEL@CYHDOCTORHUB.COM', 1,
                 'Dr. Priya Patel', 'Doctor', 'Neurology',
-                'n7uoG53mus5DzCXmNgv7NQ==', SYSUTCDATETIME(), 1, 0, 0, 0, 0
+                'n7uoG53mus5DzCXmNgv7NQ==', DATEADD(minute, 330, SYSUTCDATETIME()), 1, 0, 0, 0, 0
             );
 
             IF NOT EXISTS (SELECT 1 FROM DoctorProfiles WHERE FullName = 'Dr. Priya Patel')
@@ -526,7 +526,7 @@ BEGIN
                     @Doc2UserId, 'Dr. Priya Patel', 'Senior Neurologist', 'MED-MUM-77319', 10, 90.00,
                     'Mon, Wed, Fri', '10:00 AM - 05:00 PM',
                     'Expert in neuro-vascular disorders, neuro-rehabilitation, stroke management, and migraines.',
-                    1, SYSUTCDATETIME()
+                    1, DATEADD(minute, 330, SYSUTCDATETIME())
                 );
             END
         END
@@ -656,7 +656,7 @@ BEGIN
                 PrimaryColor = ISNULL(@PrimaryColor, PrimaryColor),
                 BackgroundImageUrl = @BackgroundImageUrl,
                 ConfigJson = ISNULL(@ConfigJson, ConfigJson),
-                UpdatedAt = SYSUTCDATETIME()
+                UpdatedAt = DATEADD(minute, 330, SYSUTCDATETIME())
             WHERE Id = @Id;
 
             SELECT @Id AS SavedId;
@@ -682,8 +682,8 @@ BEGIN
                 ISNULL(@PrimaryColor, '#00f2fe'), 
                 @BackgroundImageUrl, 
                 ISNULL(@ConfigJson, '{}'), 
-                SYSUTCDATETIME(), 
-                SYSUTCDATETIME()
+                DATEADD(minute, 330, SYSUTCDATETIME()), 
+                DATEADD(minute, 330, SYSUTCDATETIME())
             );
 
             SELECT SCOPE_IDENTITY() AS SavedId;
@@ -695,8 +695,8 @@ BEGIN
     BEGIN
         UPDATE [dbo].[BannerDesigns_CYH]
         SET Status = 'Published',
-            PublishedAt = SYSUTCDATETIME(),
-            UpdatedAt = SYSUTCDATETIME()
+            PublishedAt = DATEADD(minute, 330, SYSUTCDATETIME()),
+            UpdatedAt = DATEADD(minute, 330, SYSUTCDATETIME())
         WHERE Id = @Id
           AND (@UserId IS NULL OR UserId = @UserId OR UserId IS NULL);
 
@@ -821,7 +821,7 @@ BEGIN
                 ModelName = COALESCE(@ModelName, ModelName),
                 BaseUrl = COALESCE(@BaseUrl, BaseUrl),
                 IsActive = ISNULL(@IsActive, 1),
-                UpdatedAt = SYSUTCDATETIME()
+                UpdatedAt = DATEADD(minute, 330, SYSUTCDATETIME())
             WHERE Id = @ExistingId;
 
             SELECT @ExistingId AS ResultId;
@@ -829,7 +829,7 @@ BEGIN
         ELSE
         BEGIN
             INSERT INTO DoctorAiSettings_CYH (DoctorId, UserId, DoctorName, Provider, ApiKey, ModelName, BaseUrl, IsActive, CreatedAt, UpdatedAt)
-            VALUES (@DoctorId, @UserId, @DoctorName, @Provider, @ApiKey, @ModelName, @BaseUrl, ISNULL(@IsActive, 1), SYSUTCDATETIME(), SYSUTCDATETIME());
+            VALUES (@DoctorId, @UserId, @DoctorName, @Provider, @ApiKey, @ModelName, @BaseUrl, ISNULL(@IsActive, 1), DATEADD(minute, 330, SYSUTCDATETIME()), DATEADD(minute, 330, SYSUTCDATETIME()));
 
             SELECT SCOPE_IDENTITY() AS ResultId;
         END
@@ -991,7 +991,7 @@ BEGIN
         INSERT INTO [dbo].[BannerCategories_CYH] 
         (CategoryName, Slug, IconClass, BadgeColor, DisplayOrder, IsActive, CreatedAt)
         VALUES 
-        (@CategoryName, @Slug, ISNULL(@IconClass, 'bi-folder-fill'), ISNULL(@BadgeColor, '#00f2fe'), ISNULL(@DisplayOrder, 0), ISNULL(@IsActive, 1), SYSUTCDATETIME());
+        (@CategoryName, @Slug, ISNULL(@IconClass, 'bi-folder-fill'), ISNULL(@BadgeColor, '#00f2fe'), ISNULL(@DisplayOrder, 0), ISNULL(@IsActive, 1), DATEADD(minute, 330, SYSUTCDATETIME()));
 
         SELECT SCOPE_IDENTITY() AS ResultId;
     END
@@ -1147,7 +1147,7 @@ BEGIN
                 @BackgroundImageUrl, @ThumbnailUrl, ISNULL(@PrimaryColor, '#00f2fe'),
                 ISNULL(@SecondaryColor, '#0a192f'), ISNULL(@TextColor, '#ffffff'),
                 @DefaultHeading, @DefaultSubtitle, @BadgeText, @ConfigJson,
-                ISNULL(@DisplayOrder, 0), ISNULL(@IsActive, 1), SYSUTCDATETIME()
+                ISNULL(@DisplayOrder, 0), ISNULL(@IsActive, 1), DATEADD(minute, 330, SYSUTCDATETIME())
             );
 
             SELECT SCOPE_IDENTITY() AS ResultId;
@@ -1177,7 +1177,7 @@ BEGIN
         [IsActive]     BIT           NOT NULL DEFAULT (1),
         [Description]  NVARCHAR(500) NULL,
         [CreditCost]   INT           NOT NULL DEFAULT (1),
-        [CreatedAt]    DATETIME2(7)  NOT NULL DEFAULT (SYSUTCDATETIME()),
+        [CreatedAt]    DATETIME2(7)  NOT NULL DEFAULT (DATEADD(minute, 330, SYSUTCDATETIME())),
         CONSTRAINT [PK_CreditTypes_CYH] PRIMARY KEY CLUSTERED ([Id] ASC),
         CONSTRAINT [UQ_CreditTypes_Code] UNIQUE ([Code])
     );
@@ -1193,7 +1193,7 @@ BEGIN
         [TotalCredits]   INT NOT NULL DEFAULT (0),
         [UsedCredits]    INT NOT NULL DEFAULT (0),
         [IsActive]       BIT NOT NULL DEFAULT (1),
-        [LastUpdatedAt]  DATETIME2(7) NOT NULL DEFAULT (SYSUTCDATETIME()),
+        [LastUpdatedAt]  DATETIME2(7) NOT NULL DEFAULT (DATEADD(minute, 330, SYSUTCDATETIME())),
         CONSTRAINT [PK_DoctorCredits_CYH] PRIMARY KEY CLUSTERED ([Id] ASC),
         CONSTRAINT [UQ_Doctor_CreditType] UNIQUE ([DoctorId], [CreditTypeId])
     );
@@ -1214,7 +1214,7 @@ BEGIN
         [ActionBy]        NVARCHAR(200) NULL,
         [ReferenceId]     NVARCHAR(100) NULL,
         [Note]            NVARCHAR(500) NULL,
-        [CreatedAt]       DATETIME2(7)  NOT NULL DEFAULT (SYSUTCDATETIME()),
+        [CreatedAt]       DATETIME2(7)  NOT NULL DEFAULT (DATEADD(minute, 330, SYSUTCDATETIME())),
         CONSTRAINT [PK_CreditTransactions_CYH] PRIMARY KEY CLUSTERED ([Id] ASC)
     );
     CREATE NONCLUSTERED INDEX [IX_CreditTransactions_DoctorId] ON [dbo].[CreditTransactions_CYH]([DoctorId]);
@@ -1239,7 +1239,7 @@ BEGIN
         [LocationSummary]  NVARCHAR(300)     NULL,
         [UserAgent]        NVARCHAR(500)     NULL,
         [Remarks]          NVARCHAR(250)     NULL,
-        [ChangedAt]        DATETIME2(7)      NOT NULL DEFAULT (SYSUTCDATETIME()),
+        [ChangedAt]        DATETIME2(7)      NOT NULL DEFAULT (DATEADD(minute, 330, SYSUTCDATETIME())),
         CONSTRAINT [PK_PasswordChangeHistory_CYH] PRIMARY KEY CLUSTERED ([Id] ASC)
     );
     CREATE NONCLUSTERED INDEX [IX_PasswordChangeHistory_UserId] ON [dbo].[PasswordChangeHistory_CYH]([UserId]);
@@ -1277,7 +1277,7 @@ BEGIN
     IF @Flag = 'INIT_DOCTOR_CREDITS'
     BEGIN
         INSERT INTO [dbo].[DoctorCredits_CYH] (DoctorId, CreditTypeId, TotalCredits, UsedCredits, IsActive, LastUpdatedAt)
-        SELECT @DoctorId, ct.Id, 0, 0, 1, SYSUTCDATETIME()
+        SELECT @DoctorId, ct.Id, 0, 0, 1, DATEADD(minute, 330, SYSUTCDATETIME())
         FROM [dbo].[CreditTypes_CYH] ct
         WHERE ct.IsActive = 1
           AND NOT EXISTS (
@@ -1290,7 +1290,7 @@ BEGIN
         BEGIN
             INSERT INTO [dbo].[CreditTransactions_CYH]
             (DoctorId, CreditTypeId, TransactionType, CreditsChanged, BalanceBefore, BalanceAfter, ActionBy, Note, CreatedAt)
-            SELECT @DoctorId, ct.Id, 'SYSTEM_INIT', 0, 0, 0, 'System', 'Doctor account credit initialization at 0', SYSUTCDATETIME()
+            SELECT @DoctorId, ct.Id, 'SYSTEM_INIT', 0, 0, 0, 'System', 'Doctor account credit initialization at 0', DATEADD(minute, 330, SYSUTCDATETIME())
             FROM [dbo].[CreditTypes_CYH] ct
             WHERE ct.IsActive = 1;
         END
@@ -1345,13 +1345,13 @@ BEGIN
             INSERT INTO [dbo].[CreditTypes_CYH]
             (Name, Code, ServiceType, IsPaid, IsActive, Description, CreditCost, CreatedAt)
             VALUES
-            (@Name, @Code, ISNULL(@ServiceType, 'Free'), ISNULL(@IsPaid, 0), ISNULL(@IsActive, 1), @Description, ISNULL(@CreditCost, 1), SYSUTCDATETIME());
+            (@Name, @Code, ISNULL(@ServiceType, 'Free'), ISNULL(@IsPaid, 0), ISNULL(@IsActive, 1), @Description, ISNULL(@CreditCost, 1), DATEADD(minute, 330, SYSUTCDATETIME()));
 
             DECLARE @NewTypeId INT = SCOPE_IDENTITY();
 
             -- Auto add this new credit type to all existing doctors with 0
             INSERT INTO [dbo].[DoctorCredits_CYH] (DoctorId, CreditTypeId, TotalCredits, UsedCredits, IsActive, LastUpdatedAt)
-            SELECT d.Id, @NewTypeId, 0, 0, 1, SYSUTCDATETIME()
+            SELECT d.Id, @NewTypeId, 0, 0, 1, DATEADD(minute, 330, SYSUTCDATETIME())
             FROM [dbo].[DoctorProfiles] d
             WHERE NOT EXISTS (
                 SELECT 1 FROM [dbo].[DoctorCredits_CYH] dc WHERE dc.DoctorId = d.Id AND dc.CreditTypeId = @NewTypeId
@@ -1420,7 +1420,7 @@ BEGIN
         IF NOT EXISTS (SELECT 1 FROM [dbo].[DoctorCredits_CYH] WHERE DoctorId = @DoctorId AND CreditTypeId = @CreditTypeId)
         BEGIN
             INSERT INTO [dbo].[DoctorCredits_CYH] (DoctorId, CreditTypeId, TotalCredits, UsedCredits, IsActive, LastUpdatedAt)
-            VALUES (@DoctorId, @CreditTypeId, 0, 0, 1, SYSUTCDATETIME());
+            VALUES (@DoctorId, @CreditTypeId, 0, 0, 1, DATEADD(minute, 330, SYSUTCDATETIME()));
         END
 
         SELECT @CurrentTotal = TotalCredits, @CurrentUsed = UsedCredits
@@ -1434,13 +1434,13 @@ BEGIN
 
         UPDATE [dbo].[DoctorCredits_CYH]
         SET TotalCredits = @NewTotal,
-            LastUpdatedAt = SYSUTCDATETIME()
+            LastUpdatedAt = DATEADD(minute, 330, SYSUTCDATETIME())
         WHERE DoctorId = @DoctorId AND CreditTypeId = @CreditTypeId;
 
         INSERT INTO [dbo].[CreditTransactions_CYH]
         (DoctorId, CreditTypeId, TransactionType, CreditsChanged, BalanceBefore, BalanceAfter, ActionBy, Note, CreatedAt)
         VALUES
-        (@DoctorId, @CreditTypeId, @AdjustTxType, @Amount, @CurrentBalance, @NewBalance, ISNULL(@ActionBy, 'Admin'), @Note, SYSUTCDATETIME());
+        (@DoctorId, @CreditTypeId, @AdjustTxType, @Amount, @CurrentBalance, @NewBalance, ISNULL(@ActionBy, 'Admin'), @Note, DATEADD(minute, 330, SYSUTCDATETIME()));
 
         SET @OutSuccess = 1;
         SET @OutMessage = 'Credits updated successfully.';
@@ -1478,7 +1478,7 @@ BEGIN
         IF NOT EXISTS (SELECT 1 FROM [dbo].[DoctorCredits_CYH] WHERE DoctorId = @DoctorId AND CreditTypeId = @FoundTypeId)
         BEGIN
             INSERT INTO [dbo].[DoctorCredits_CYH] (DoctorId, CreditTypeId, TotalCredits, UsedCredits, IsActive, LastUpdatedAt)
-            VALUES (@DoctorId, @FoundTypeId, 0, 0, 1, SYSUTCDATETIME());
+            VALUES (@DoctorId, @FoundTypeId, 0, 0, 1, DATEADD(minute, 330, SYSUTCDATETIME()));
         END
 
         DECLARE @DocTotal INT = 0;
@@ -1515,13 +1515,13 @@ BEGIN
 
         UPDATE [dbo].[DoctorCredits_CYH]
         SET UsedCredits = @DocUsed,
-            LastUpdatedAt = SYSUTCDATETIME()
+            LastUpdatedAt = DATEADD(minute, 330, SYSUTCDATETIME())
         WHERE DoctorId = @DoctorId AND CreditTypeId = @FoundTypeId;
 
         INSERT INTO [dbo].[CreditTransactions_CYH]
         (DoctorId, CreditTypeId, TransactionType, CreditsChanged, BalanceBefore, BalanceAfter, ActionBy, ReferenceId, Note, CreatedAt)
         VALUES
-        (@DoctorId, @FoundTypeId, 'DEBIT_ON_PUBLISH', -@CreditCostToDeduct, @DocBalanceBefore, @DocBalanceAfter, ISNULL(@ActionBy, 'Doctor'), @ReferenceId, @Note, SYSUTCDATETIME());
+        (@DoctorId, @FoundTypeId, 'DEBIT_ON_PUBLISH', -@CreditCostToDeduct, @DocBalanceBefore, @DocBalanceAfter, ISNULL(@ActionBy, 'Doctor'), @ReferenceId, @Note, DATEADD(minute, 330, SYSUTCDATETIME()));
 
         SET @OutSuccess = 1;
         SET @OutMessage = 'Credit deducted successfully.';
@@ -1557,5 +1557,87 @@ BEGIN
           AND (@ToDate IS NULL OR t.CreatedAt <= @ToDate)
         ORDER BY t.CreatedAt DESC, t.Id DESC;
     END
+END
+GO
+
+
+-- ============================================================================
+-- 10. Doctor Social Accounts Table
+-- ============================================================================
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[DoctorSocialAccounts_CYH]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE [dbo].[DoctorSocialAccounts_CYH] (
+        [Id]               INT IDENTITY(1,1) NOT NULL,
+        [DoctorId]         INT NULL,
+        [UserId]           NVARCHAR(450) NULL,
+        [DoctorName]       NVARCHAR(200) NULL,
+        [Platform]         NVARCHAR(50)  NOT NULL,
+        [AccountName]      NVARCHAR(200) NOT NULL,
+        [PageOrAccountId]  NVARCHAR(200) NOT NULL,
+        [AccessToken]      NVARCHAR(MAX) NOT NULL,
+        [RefreshToken]     NVARCHAR(MAX) NULL,
+        [TokenExpiresAt]   DATETIME2(7)  NULL,
+        [IsActive]         BIT           NOT NULL DEFAULT (1),
+        [ConnectedAt]      DATETIME2(7)  NOT NULL DEFAULT (DATEADD(minute, 330, SYSUTCDATETIME())),
+        [LastTestedAt]     DATETIME2(7)  NULL,
+        [LastTestStatus]   NVARCHAR(50)  NULL,
+        [LastTestMessage]  NVARCHAR(MAX) NULL,
+        CONSTRAINT [PK_DoctorSocialAccounts_CYH] PRIMARY KEY CLUSTERED ([Id] ASC)
+    );
+    CREATE NONCLUSTERED INDEX [IX_DoctorSocialAccounts_DoctorId] ON [dbo].[DoctorSocialAccounts_CYH]([DoctorId]);
+    CREATE NONCLUSTERED INDEX [IX_DoctorSocialAccounts_UserId] ON [dbo].[DoctorSocialAccounts_CYH]([UserId]);
+END
+GO
+
+-- ============================================================================
+-- 11. Banner Schedules Master Table
+-- ============================================================================
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[BannerSchedules_CYH]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE [dbo].[BannerSchedules_CYH] (
+        [Id]                 INT IDENTITY(1,1) NOT NULL,
+        [BannerDesignId]     INT NOT NULL,
+        [DoctorId]           INT NULL,
+        [UserId]             NVARCHAR(450) NULL,
+        [DoctorName]         NVARCHAR(200) NOT NULL,
+        [HospitalName]       NVARCHAR(200) NULL,
+        [BannerHeading]      NVARCHAR(500) NULL,
+        [ImageUrl]           NVARCHAR(MAX) NULL,
+        [Caption]            NVARCHAR(MAX) NULL,
+        [Platforms]          NVARCHAR(200) NOT NULL,
+        [ScheduledAt]        DATETIME2(7) NOT NULL,
+        [Status]             NVARCHAR(50) NOT NULL DEFAULT ('Pending'),
+        [ExecutionAttempts]  INT NOT NULL DEFAULT (0),
+        [LastExecutedAt]     DATETIME2(7) NULL,
+        [ErrorMessage]       NVARCHAR(MAX) NULL,
+        [CreatedAt]          DATETIME2(7) NOT NULL DEFAULT (DATEADD(minute, 330, SYSUTCDATETIME())),
+        [CreatedBy]          NVARCHAR(200) NULL,
+        CONSTRAINT [PK_BannerSchedules_CYH] PRIMARY KEY CLUSTERED ([Id] ASC)
+    );
+    CREATE NONCLUSTERED INDEX [IX_BannerSchedules_ScheduledAt_Status] ON [dbo].[BannerSchedules_CYH]([ScheduledAt], [Status]);
+    CREATE NONCLUSTERED INDEX [IX_BannerSchedules_DoctorId] ON [dbo].[BannerSchedules_CYH]([DoctorId]);
+END
+GO
+
+-- ============================================================================
+-- 12. Banner Schedule Details (Per-Platform Breakdown)
+-- ============================================================================
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[BannerScheduleDetails_CYH]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE [dbo].[BannerScheduleDetails_CYH] (
+        [Id]                INT IDENTITY(1,1) NOT NULL,
+        [BannerScheduleId]  INT NOT NULL,
+        [Platform]          NVARCHAR(50) NOT NULL,
+        [TargetAccountName] NVARCHAR(200) NULL,
+        [TargetPageId]      NVARCHAR(200) NULL,
+        [Status]            NVARCHAR(50) NOT NULL DEFAULT ('Pending'),
+        [PlatformPostId]    NVARCHAR(200) NULL,
+        [PostUrl]           NVARCHAR(MAX) NULL,
+        [ErrorMessage]      NVARCHAR(MAX) NULL,
+        [PublishedAt]       DATETIME2(7) NULL,
+        CONSTRAINT [PK_BannerScheduleDetails_CYH] PRIMARY KEY CLUSTERED ([Id] ASC),
+        CONSTRAINT [FK_BannerScheduleDetails_Master] FOREIGN KEY ([BannerScheduleId]) REFERENCES [dbo].[BannerSchedules_CYH]([Id]) ON DELETE CASCADE
+    );
+    CREATE NONCLUSTERED INDEX [IX_BannerScheduleDetails_ScheduleId] ON [dbo].[BannerScheduleDetails_CYH]([BannerScheduleId]);
 END
 GO

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Caching.Memory;
 using System.Data;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
@@ -11,11 +12,13 @@ public class BannerTemplateRepository : IBannerTemplateRepository
 {
     private readonly string _conn;
     private readonly ILogger<BannerTemplateRepository>? _logger;
+    private readonly IMemoryCache? _cache;
 
-    public BannerTemplateRepository(IConfiguration configuration, ILogger<BannerTemplateRepository>? logger = null)
+    public BannerTemplateRepository(IConfiguration configuration, IMemoryCache? cache = null, ILogger<BannerTemplateRepository>? logger = null)
     {
         _conn = configuration.GetConnectionString("DefaultConnection")
             ?? "Server=AMITLAP;Database=CYHDocBrandBD;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
+        _cache = cache;
         _logger = logger;
     }
 

@@ -4,6 +4,7 @@
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 
 @using CYHDocBrandModel.DTO
+@using CYHDocBrandModel.Common
 @using CYHDocBrandData.Entities
 @using CYHDocBrandUI.Components.Common
 
@@ -471,7 +472,7 @@
 
     private async Task FilterByTimeframe()
     {
-        var now = DateTime.UtcNow;
+        var now = IndianTimeHelper.Now;
         FilterFromDate = SelectedTimeframe switch
         {
             "TODAY" => now.Date,

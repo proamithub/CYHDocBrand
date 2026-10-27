@@ -1,3 +1,4 @@
+using CYHDocBrandModel.Common;
 namespace CYHDocBrandModel.DTO;
 
 public class BannerScheduleDTO
@@ -17,14 +18,14 @@ public class BannerScheduleDTO
     public int ExecutionAttempts { get; set; } = 0;
     public DateTime? LastExecutedAt { get; set; }
     public string? ErrorMessage { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = IndianTimeHelper.Now;
     public string? CreatedBy { get; set; }
 
     // Child platform statuses
     public List<BannerScheduleDetailDTO> Details { get; set; } = new();
 
     // Helper for UI
-    public bool IsDue => ScheduledAt <= DateTime.UtcNow && Status == "Pending";
+    public bool IsDue => ScheduledAt <= IndianTimeHelper.Now && Status == "Pending";
     public string[] PlatformList => (Platforms ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 }
 
@@ -53,7 +54,7 @@ public class CreateBannerScheduleRequest
     public string? ImageUrl { get; set; }
     public string? Caption { get; set; }
     public List<string> SelectedPlatforms { get; set; } = new();
-    public DateTime ScheduledAt { get; set; } = DateTime.UtcNow.AddMinutes(5);
+    public DateTime ScheduledAt { get; set; } = IndianTimeHelper.Now.AddMinutes(5);
 }
 
 public class AdminScheduleSummaryDTO

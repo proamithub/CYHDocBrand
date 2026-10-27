@@ -1,3 +1,4 @@
+using CYHDocBrandModel.Common;
 using System.IO;
 
 namespace CYHDocBrandRepo.Utilities;
@@ -136,7 +137,7 @@ public static class ImageUtility
             }
 
             // Generate clean unique filename
-            var fileName = $"doc_{fileIdentifier}_{DateTime.UtcNow.Ticks}{extension}";
+            var fileName = $"doc_{fileIdentifier}_{IndianTimeHelper.Now.Ticks}{extension}";
             var fullPath = Path.Combine(targetDirectory, fileName);
 
             // Write to physical disk

@@ -13,6 +13,18 @@ public static class DbInitializer
             await using var con = new SqlConnection(connectionString);
             await con.OpenAsync();
 
+            // ⚡ Fast-path check: If primary tables are already created, skip 2,000-line remote DDL scripts on every boot
+            await using (var checkCmd = con.CreateCommand())
+            {
+                checkCmd.CommandText = "SELECT COUNT(1) FROM sys.tables WHERE name IN ('BannerDesigns_CYH', 'BannerTemplates_CYH', 'BannerSchedules_CYH', 'CreditTypes_CYH', 'DoctorSocialAccounts_CYH')";
+                var existingCount = Convert.ToInt32(await checkCmd.ExecuteScalarAsync());
+                if (existingCount >= 5)
+                {
+                    logger?.LogInformation("⚡ Fast-Path: Core database tables already verified in {Db}. Skipping repetitive DDL scripts for ultra-fast startup.", con.Database);
+                    return;
+                }
+            }
+
             // 1. Ensure BannerDesigns_CYH and DoctorAiSettings_CYH tables exist
             var createTableSql = @"
                 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[BannerDesigns_CYH]') AND type in (N'U'))
@@ -30,8 +42,8 @@ public static class DbInitializer
                         [PrimaryColor]       NVARCHAR(50) NOT NULL DEFAULT ('#00f2fe'),
                         [BackgroundImageUrl] NVARCHAR(MAX) NULL,
                         [ConfigJson]         NVARCHAR(MAX) NOT NULL,
-                        [CreatedAt]          DATETIME2(7) NOT NULL DEFAULT (SYSUTCDATETIME()),
-                        [UpdatedAt]          DATETIME2(7) NOT NULL DEFAULT (SYSUTCDATETIME()),
+                        [CreatedAt]          DATETIME2(7) NOT NULL DEFAULT (DATEADD(minute, 330, SYSUTCDATETIME())),
+                        [UpdatedAt]          DATETIME2(7) NOT NULL DEFAULT (DATEADD(minute, 330, SYSUTCDATETIME())),
                         [PublishedAt]        DATETIME2(7) NULL,
                         CONSTRAINT [PK_BannerDesigns_CYH] PRIMARY KEY CLUSTERED ([Id] ASC)
                     );
@@ -50,8 +62,8 @@ public static class DbInitializer
                         [ModelName]          NVARCHAR(100) NULL,
                         [BaseUrl]            NVARCHAR(500) NULL,
                         [IsActive]           BIT NOT NULL DEFAULT (1),
-                        [CreatedAt]          DATETIME2(7) NOT NULL DEFAULT (SYSUTCDATETIME()),
-                        [UpdatedAt]          DATETIME2(7) NOT NULL DEFAULT (SYSUTCDATETIME()),
+                        [CreatedAt]          DATETIME2(7) NOT NULL DEFAULT (DATEADD(minute, 330, SYSUTCDATETIME())),
+                        [UpdatedAt]          DATETIME2(7) NOT NULL DEFAULT (DATEADD(minute, 330, SYSUTCDATETIME())),
                         CONSTRAINT [PK_DoctorAiSettings_CYH] PRIMARY KEY CLUSTERED ([Id] ASC)
                     );
                     CREATE NONCLUSTERED INDEX [IX_DoctorAiSettings_DoctorId] ON [dbo].[DoctorAiSettings_CYH]([DoctorId]);
@@ -69,7 +81,7 @@ public static class DbInitializer
                         [BadgeColor]   NVARCHAR(50)  NULL DEFAULT ('#00f2fe'),
                         [DisplayOrder] INT NOT NULL DEFAULT (0),
                         [IsActive]     BIT NOT NULL DEFAULT (1),
-                        [CreatedAt]    DATETIME2(7) NOT NULL DEFAULT (SYSUTCDATETIME()),
+                        [CreatedAt]    DATETIME2(7) NOT NULL DEFAULT (DATEADD(minute, 330, SYSUTCDATETIME())),
                         CONSTRAINT [PK_BannerCategories_CYH] PRIMARY KEY CLUSTERED ([Id] ASC)
                     );
                 END
@@ -93,7 +105,7 @@ public static class DbInitializer
                         [ConfigJson]         NVARCHAR(MAX) NOT NULL,
                         [DisplayOrder]       INT NOT NULL DEFAULT (0),
                         [IsActive]           BIT NOT NULL DEFAULT (1),
-                        [CreatedAt]          DATETIME2(7) NOT NULL DEFAULT (SYSUTCDATETIME()),
+                        [CreatedAt]          DATETIME2(7) NOT NULL DEFAULT (DATEADD(minute, 330, SYSUTCDATETIME())),
                         CONSTRAINT [PK_BannerTemplates_CYH] PRIMARY KEY CLUSTERED ([Id] ASC)
                     );
                 END
@@ -144,7 +156,7 @@ public static class DbInitializer
                         [IsActive]     BIT           NOT NULL DEFAULT (1),
                         [Description]  NVARCHAR(500) NULL,
                         [CreditCost]   INT           NOT NULL DEFAULT (1),
-                        [CreatedAt]    DATETIME2(7)  NOT NULL DEFAULT (SYSUTCDATETIME()),
+                        [CreatedAt]    DATETIME2(7)  NOT NULL DEFAULT (DATEADD(minute, 330, SYSUTCDATETIME())),
                         CONSTRAINT [PK_CreditTypes_CYH] PRIMARY KEY CLUSTERED ([Id] ASC),
                         CONSTRAINT [UQ_CreditTypes_Code] UNIQUE ([Code])
                     );
@@ -159,7 +171,7 @@ public static class DbInitializer
                         [TotalCredits]   INT NOT NULL DEFAULT (0),
                         [UsedCredits]    INT NOT NULL DEFAULT (0),
                         [IsActive]       BIT NOT NULL DEFAULT (1),
-                        [LastUpdatedAt]  DATETIME2(7) NOT NULL DEFAULT (SYSUTCDATETIME()),
+                        [LastUpdatedAt]  DATETIME2(7) NOT NULL DEFAULT (DATEADD(minute, 330, SYSUTCDATETIME())),
                         CONSTRAINT [PK_DoctorCredits_CYH] PRIMARY KEY CLUSTERED ([Id] ASC),
                         CONSTRAINT [UQ_Doctor_CreditType] UNIQUE ([DoctorId], [CreditTypeId])
                     );
@@ -179,7 +191,7 @@ public static class DbInitializer
                         [ActionBy]        NVARCHAR(200) NULL,
                         [ReferenceId]     NVARCHAR(100) NULL,
                         [Note]            NVARCHAR(500) NULL,
-                        [CreatedAt]       DATETIME2(7)  NOT NULL DEFAULT (SYSUTCDATETIME()),
+                        [CreatedAt]       DATETIME2(7)  NOT NULL DEFAULT (DATEADD(minute, 330, SYSUTCDATETIME())),
                         CONSTRAINT [PK_CreditTransactions_CYH] PRIMARY KEY CLUSTERED ([Id] ASC)
                     );
                     CREATE NONCLUSTERED INDEX [IX_CreditTransactions_DoctorId] ON [dbo].[CreditTransactions_CYH]([DoctorId]);
@@ -203,7 +215,7 @@ public static class DbInitializer
                         [LocationSummary]  NVARCHAR(300)     NULL,
                         [UserAgent]        NVARCHAR(500)     NULL,
                         [Remarks]          NVARCHAR(250)     NULL,
-                        [ChangedAt]        DATETIME2(7)      NOT NULL DEFAULT (SYSUTCDATETIME()),
+                        [ChangedAt]        DATETIME2(7)      NOT NULL DEFAULT (DATEADD(minute, 330, SYSUTCDATETIME())),
                         CONSTRAINT [PK_PasswordChangeHistory_CYH] PRIMARY KEY CLUSTERED ([Id] ASC)
                     );
                     CREATE NONCLUSTERED INDEX [IX_PasswordChangeHistory_UserId] ON [dbo].[PasswordChangeHistory_CYH]([UserId]);
@@ -225,7 +237,7 @@ public static class DbInitializer
                         [RefreshToken]     NVARCHAR(MAX) NULL,
                         [TokenExpiresAt]   DATETIME2(7)  NULL,
                         [IsActive]         BIT           NOT NULL DEFAULT (1),
-                        [ConnectedAt]      DATETIME2(7)  NOT NULL DEFAULT (SYSUTCDATETIME()),
+                        [ConnectedAt]      DATETIME2(7)  NOT NULL DEFAULT (DATEADD(minute, 330, SYSUTCDATETIME())),
                         [LastTestedAt]     DATETIME2(7)  NULL,
                         [LastTestStatus]   NVARCHAR(50)  NULL,
                         [LastTestMessage]  NVARCHAR(MAX) NULL,
@@ -254,7 +266,7 @@ public static class DbInitializer
                         [ExecutionAttempts]  INT NOT NULL DEFAULT (0),
                         [LastExecutedAt]     DATETIME2(7) NULL,
                         [ErrorMessage]       NVARCHAR(MAX) NULL,
-                        [CreatedAt]          DATETIME2(7) NOT NULL DEFAULT (SYSUTCDATETIME()),
+                        [CreatedAt]          DATETIME2(7) NOT NULL DEFAULT (DATEADD(minute, 330, SYSUTCDATETIME())),
                         [CreatedBy]          NVARCHAR(200) NULL,
                         CONSTRAINT [PK_BannerSchedules_CYH] PRIMARY KEY CLUSTERED ([Id] ASC)
                     );
@@ -452,7 +464,7 @@ public static class DbInitializer
                         VALUES 
                         (
                             @UserId, @FullName, @Specialization, @LicenseNumber, @ExperienceYears,
-                            @ConsultationFee, @AvailableDays, @AvailableHours, @Bio, ISNULL(@IsAvailableToday, 1), SYSUTCDATETIME(), @ProfilePic,
+                            @ConsultationFee, @AvailableDays, @AvailableHours, @Bio, ISNULL(@IsAvailableToday, 1), DATEADD(minute, 330, SYSUTCDATETIME()), @ProfilePic,
                             ISNULL(@DisplayName, @FullName), @Qualifications, @MobileNo, @ClinicName, @ClinicAddress, @City, @State, @PinCode, @WebsiteUrl, @ClinicLogo,
                             ISNULL(@PrimaryColorHex, '#00f2fe'), ISNULL(@SecondaryColorHex, '#4facfe'), ISNULL(@PreferredFont, 'Inter'), ISNULL(@AiCredits, 25), 1
                         );
@@ -470,7 +482,7 @@ public static class DbInitializer
                         END
 
                         DECLARE @NewUserId NVARCHAR(450) = ISNULL(@UserId, CAST(NEWID() AS NVARCHAR(450)));
-                        DECLARE @Now DATETIME2(7) = SYSUTCDATETIME();
+                        DECLARE @Now DATETIME2(7) = DATEADD(minute, 330, SYSUTCDATETIME());
 
                         BEGIN TRANSACTION;
                         BEGIN TRY
@@ -585,7 +597,7 @@ public static class DbInitializer
                             VALUES (
                                 CAST(NEWID() AS NVARCHAR(450)), 'admin@cyhdoctorhub.com', 'ADMIN@CYHDOCTORHUB.COM', 'admin@cyhdoctorhub.com', 'ADMIN@CYHDOCTORHUB.COM', 1,
                                 'Hospital Chief Administrator', 'Admin', 'Hospital Operations & Executive',
-                                'L4Yq5jzhlap0wTagsBRCUg==', SYSUTCDATETIME(), 1, 0, 0, 0, 0
+                                'L4Yq5jzhlap0wTagsBRCUg==', DATEADD(minute, 330, SYSUTCDATETIME()), 1, 0, 0, 0, 0
                             );
                         END
                         ELSE
@@ -600,13 +612,13 @@ public static class DbInitializer
                             VALUES (
                                 @Doc1UserId, 'doctor@cyhdoctorhub.com', 'DOCTOR@CYHDOCTORHUB.COM', 'doctor@cyhdoctorhub.com', 'DOCTOR@CYHDOCTORHUB.COM', 1,
                                 'Dr. A. Sharma', 'Doctor', 'Cardiology',
-                                'n7uoG53mus5DzCXmNgv7NQ==', SYSUTCDATETIME(), 1, 0, 0, 0, 0
+                                'n7uoG53mus5DzCXmNgv7NQ==', DATEADD(minute, 330, SYSUTCDATETIME()), 1, 0, 0, 0, 0
                             );
 
                             INSERT INTO DoctorProfiles (UserId, FullName, Specialization, LicenseNumber, ExperienceYears, ConsultationFee, AvailableDays, AvailableHours, Bio, IsAvailableToday, CreatedAt, DisplayName, Qualifications, PrimaryColorHex, SecondaryColorHex, PreferredFont, AiCredits, IsVerified)
                             VALUES (
                                 @Doc1UserId, 'Dr. A. Sharma', 'Cardiology', 'MCI-2015-88214', 12, 800.00, 'Mon - Sat', '09:00 AM - 02:00 PM',
-                                'Senior Interventional Cardiologist specializing in preventive cardiology and coronary angioplasty.', 1, SYSUTCDATETIME(),
+                                'Senior Interventional Cardiologist specializing in preventive cardiology and coronary angioplasty.', 1, DATEADD(minute, 330, SYSUTCDATETIME()),
                                 'Dr. A. Sharma, MD', 'MBBS, MD (Cardiology)', '#00f2fe', '#4facfe', 'Inter', 25, 1
                             );
                         END
@@ -686,8 +698,8 @@ public static class DbInitializer
                                 PrimaryColor = ISNULL(@PrimaryColor, PrimaryColor),
                                 BackgroundImageUrl = ISNULL(@BackgroundImageUrl, BackgroundImageUrl),
                                 ConfigJson = ISNULL(@ConfigJson, ConfigJson),
-                                UpdatedAt = SYSUTCDATETIME(),
-                                PublishedAt = CASE WHEN @Status = 'Published' AND PublishedAt IS NULL THEN SYSUTCDATETIME() ELSE PublishedAt END
+                                UpdatedAt = DATEADD(minute, 330, SYSUTCDATETIME()),
+                                PublishedAt = CASE WHEN @Status = 'Published' AND PublishedAt IS NULL THEN DATEADD(minute, 330, SYSUTCDATETIME()) ELSE PublishedAt END
                             WHERE Id = @Id;
 
                             SELECT @Id AS ResultId;
@@ -705,8 +717,8 @@ public static class DbInitializer
                                 @UserId, @DoctorName, @HospitalName, @TemplateType, @Heading, @Subtitle,
                                 ISNULL(@Status, 'Draft'), ISNULL(@AspectRatio, '1:1'), ISNULL(@PrimaryColor, '#00f2fe'),
                                 @BackgroundImageUrl, @ConfigJson,
-                                SYSUTCDATETIME(), SYSUTCDATETIME(),
-                                CASE WHEN @Status = 'Published' THEN SYSUTCDATETIME() ELSE NULL END
+                                DATEADD(minute, 330, SYSUTCDATETIME()), DATEADD(minute, 330, SYSUTCDATETIME()),
+                                CASE WHEN @Status = 'Published' THEN DATEADD(minute, 330, SYSUTCDATETIME()) ELSE NULL END
                             );
 
                             SELECT SCOPE_IDENTITY() AS ResultId;
@@ -719,8 +731,8 @@ public static class DbInitializer
                         UPDATE [dbo].[BannerDesigns_CYH]
                         SET 
                             Status = @NewStatus,
-                            UpdatedAt = SYSUTCDATETIME(),
-                            PublishedAt = CASE WHEN @NewStatus = 'Published' AND PublishedAt IS NULL THEN SYSUTCDATETIME() ELSE PublishedAt END
+                            UpdatedAt = DATEADD(minute, 330, SYSUTCDATETIME()),
+                            PublishedAt = CASE WHEN @NewStatus = 'Published' AND PublishedAt IS NULL THEN DATEADD(minute, 330, SYSUTCDATETIME()) ELSE PublishedAt END
                         WHERE Id = @Id;
 
                         SELECT @@ROWCOUNT AS RowsAffected;
@@ -830,7 +842,7 @@ public static class DbInitializer
                                 ModelName = COALESCE(@ModelName, ModelName),
                                 BaseUrl = COALESCE(@BaseUrl, BaseUrl),
                                 IsActive = ISNULL(@IsActive, 1),
-                                UpdatedAt = SYSUTCDATETIME()
+                                UpdatedAt = DATEADD(minute, 330, SYSUTCDATETIME())
                             WHERE Id = @ExistingId;
 
                             SELECT @ExistingId AS ResultId;
@@ -838,7 +850,7 @@ public static class DbInitializer
                         ELSE
                         BEGIN
                             INSERT INTO DoctorAiSettings_CYH (DoctorId, UserId, DoctorName, Provider, ApiKey, ModelName, BaseUrl, IsActive, CreatedAt, UpdatedAt)
-                            VALUES (@DoctorId, @UserId, @DoctorName, @Provider, @ApiKey, @ModelName, @BaseUrl, ISNULL(@IsActive, 1), SYSUTCDATETIME(), SYSUTCDATETIME());
+                            VALUES (@DoctorId, @UserId, @DoctorName, @Provider, @ApiKey, @ModelName, @BaseUrl, ISNULL(@IsActive, 1), DATEADD(minute, 330, SYSUTCDATETIME()), DATEADD(minute, 330, SYSUTCDATETIME()));
 
                             SELECT SCOPE_IDENTITY() AS ResultId;
                         END
@@ -979,7 +991,7 @@ public static class DbInitializer
                         INSERT INTO [dbo].[BannerCategories_CYH] 
                         (CategoryName, Slug, IconClass, BadgeColor, DisplayOrder, IsActive, CreatedAt)
                         VALUES 
-                        (@CategoryName, @Slug, ISNULL(@IconClass, 'bi-folder-fill'), ISNULL(@BadgeColor, '#00f2fe'), ISNULL(@DisplayOrder, 0), ISNULL(@IsActive, 1), SYSUTCDATETIME());
+                        (@CategoryName, @Slug, ISNULL(@IconClass, 'bi-folder-fill'), ISNULL(@BadgeColor, '#00f2fe'), ISNULL(@DisplayOrder, 0), ISNULL(@IsActive, 1), DATEADD(minute, 330, SYSUTCDATETIME()));
 
                         SELECT SCOPE_IDENTITY() AS ResultId;
                     END
@@ -1136,7 +1148,7 @@ public static class DbInitializer
                                 @BackgroundImageUrl, @ThumbnailUrl, ISNULL(@PrimaryColor, '#00f2fe'),
                                 ISNULL(@SecondaryColor, '#0a192f'), ISNULL(@TextColor, '#ffffff'),
                                 @DefaultHeading, @DefaultSubtitle, @BadgeText, @ConfigJson,
-                                ISNULL(@DisplayOrder, 0), ISNULL(@IsActive, 1), SYSUTCDATETIME()
+                                ISNULL(@DisplayOrder, 0), ISNULL(@IsActive, 1), DATEADD(minute, 330, SYSUTCDATETIME())
                             );
 
                             SELECT SCOPE_IDENTITY() AS ResultId;
@@ -1189,7 +1201,7 @@ public static class DbInitializer
                     IF @Flag = 'INIT_DOCTOR_CREDITS'
                     BEGIN
                         INSERT INTO [dbo].[DoctorCredits_CYH] (DoctorId, CreditTypeId, TotalCredits, UsedCredits, IsActive, LastUpdatedAt)
-                        SELECT @DoctorId, ct.Id, 0, 0, 1, SYSUTCDATETIME()
+                        SELECT @DoctorId, ct.Id, 0, 0, 1, DATEADD(minute, 330, SYSUTCDATETIME())
                         FROM [dbo].[CreditTypes_CYH] ct
                         WHERE ct.IsActive = 1
                           AND NOT EXISTS (
@@ -1202,7 +1214,7 @@ public static class DbInitializer
                         BEGIN
                             INSERT INTO [dbo].[CreditTransactions_CYH]
                             (DoctorId, CreditTypeId, TransactionType, CreditsChanged, BalanceBefore, BalanceAfter, ActionBy, Note, CreatedAt)
-                            SELECT @DoctorId, ct.Id, 'SYSTEM_INIT', 0, 0, 0, 'System', 'Doctor account credit initialization at 0', SYSUTCDATETIME()
+                            SELECT @DoctorId, ct.Id, 'SYSTEM_INIT', 0, 0, 0, 'System', 'Doctor account credit initialization at 0', DATEADD(minute, 330, SYSUTCDATETIME())
                             FROM [dbo].[CreditTypes_CYH] ct
                             WHERE ct.IsActive = 1;
                         END
@@ -1257,13 +1269,13 @@ public static class DbInitializer
                             INSERT INTO [dbo].[CreditTypes_CYH]
                             (Name, Code, ServiceType, IsPaid, IsActive, Description, CreditCost, CreatedAt)
                             VALUES
-                            (@Name, @Code, ISNULL(@ServiceType, 'Free'), ISNULL(@IsPaid, 0), ISNULL(@IsActive, 1), @Description, ISNULL(@CreditCost, 1), SYSUTCDATETIME());
+                            (@Name, @Code, ISNULL(@ServiceType, 'Free'), ISNULL(@IsPaid, 0), ISNULL(@IsActive, 1), @Description, ISNULL(@CreditCost, 1), DATEADD(minute, 330, SYSUTCDATETIME()));
 
                             DECLARE @NewTypeId INT = SCOPE_IDENTITY();
 
                             -- Auto add this new credit type to all existing doctors with 0
                             INSERT INTO [dbo].[DoctorCredits_CYH] (DoctorId, CreditTypeId, TotalCredits, UsedCredits, IsActive, LastUpdatedAt)
-                            SELECT d.Id, @NewTypeId, 0, 0, 1, SYSUTCDATETIME()
+                            SELECT d.Id, @NewTypeId, 0, 0, 1, DATEADD(minute, 330, SYSUTCDATETIME())
                             FROM [dbo].[DoctorProfiles] d
                             WHERE NOT EXISTS (
                                 SELECT 1 FROM [dbo].[DoctorCredits_CYH] dc WHERE dc.DoctorId = d.Id AND dc.CreditTypeId = @NewTypeId
@@ -1332,7 +1344,7 @@ public static class DbInitializer
                         IF NOT EXISTS (SELECT 1 FROM [dbo].[DoctorCredits_CYH] WHERE DoctorId = @DoctorId AND CreditTypeId = @CreditTypeId)
                         BEGIN
                             INSERT INTO [dbo].[DoctorCredits_CYH] (DoctorId, CreditTypeId, TotalCredits, UsedCredits, IsActive, LastUpdatedAt)
-                            VALUES (@DoctorId, @CreditTypeId, 0, 0, 1, SYSUTCDATETIME());
+                            VALUES (@DoctorId, @CreditTypeId, 0, 0, 1, DATEADD(minute, 330, SYSUTCDATETIME()));
                         END
 
                         SELECT @CurrentTotal = TotalCredits, @CurrentUsed = UsedCredits
@@ -1346,13 +1358,13 @@ public static class DbInitializer
 
                         UPDATE [dbo].[DoctorCredits_CYH]
                         SET TotalCredits = @NewTotal,
-                            LastUpdatedAt = SYSUTCDATETIME()
+                            LastUpdatedAt = DATEADD(minute, 330, SYSUTCDATETIME())
                         WHERE DoctorId = @DoctorId AND CreditTypeId = @CreditTypeId;
 
                         INSERT INTO [dbo].[CreditTransactions_CYH]
                         (DoctorId, CreditTypeId, TransactionType, CreditsChanged, BalanceBefore, BalanceAfter, ActionBy, Note, CreatedAt)
                         VALUES
-                        (@DoctorId, @CreditTypeId, @AdjustTxType, @Amount, @CurrentBalance, @NewBalance, ISNULL(@ActionBy, 'Admin'), @Note, SYSUTCDATETIME());
+                        (@DoctorId, @CreditTypeId, @AdjustTxType, @Amount, @CurrentBalance, @NewBalance, ISNULL(@ActionBy, 'Admin'), @Note, DATEADD(minute, 330, SYSUTCDATETIME()));
 
                         SET @OutSuccess = 1;
                         SET @OutMessage = 'Credits updated successfully.';
@@ -1390,7 +1402,7 @@ public static class DbInitializer
                         IF NOT EXISTS (SELECT 1 FROM [dbo].[DoctorCredits_CYH] WHERE DoctorId = @DoctorId AND CreditTypeId = @FoundTypeId)
                         BEGIN
                             INSERT INTO [dbo].[DoctorCredits_CYH] (DoctorId, CreditTypeId, TotalCredits, UsedCredits, IsActive, LastUpdatedAt)
-                            VALUES (@DoctorId, @FoundTypeId, 0, 0, 1, SYSUTCDATETIME());
+                            VALUES (@DoctorId, @FoundTypeId, 0, 0, 1, DATEADD(minute, 330, SYSUTCDATETIME()));
                         END
 
                         DECLARE @DocTotal INT = 0;
@@ -1427,13 +1439,13 @@ public static class DbInitializer
 
                         UPDATE [dbo].[DoctorCredits_CYH]
                         SET UsedCredits = @DocUsed,
-                            LastUpdatedAt = SYSUTCDATETIME()
+                            LastUpdatedAt = DATEADD(minute, 330, SYSUTCDATETIME())
                         WHERE DoctorId = @DoctorId AND CreditTypeId = @FoundTypeId;
 
                         INSERT INTO [dbo].[CreditTransactions_CYH]
                         (DoctorId, CreditTypeId, TransactionType, CreditsChanged, BalanceBefore, BalanceAfter, ActionBy, ReferenceId, Note, CreatedAt)
                         VALUES
-                        (@DoctorId, @FoundTypeId, 'DEBIT_ON_PUBLISH', -@CreditCostToDeduct, @DocBalanceBefore, @DocBalanceAfter, ISNULL(@ActionBy, 'Doctor'), @ReferenceId, @Note, SYSUTCDATETIME());
+                        (@DoctorId, @FoundTypeId, 'DEBIT_ON_PUBLISH', -@CreditCostToDeduct, @DocBalanceBefore, @DocBalanceAfter, ISNULL(@ActionBy, 'Doctor'), @ReferenceId, @Note, DATEADD(minute, 330, SYSUTCDATETIME()));
 
                         SET @OutSuccess = 1;
                         SET @OutMessage = 'Credit deducted successfully.';
@@ -1539,7 +1551,7 @@ public static class DbInitializer
                                 RefreshToken = ISNULL(@RefreshToken, RefreshToken),
                                 TokenExpiresAt = ISNULL(@TokenExpiresAt, TokenExpiresAt),
                                 IsActive = ISNULL(@IsActive, 1),
-                                LastTestedAt = SYSUTCDATETIME(),
+                                LastTestedAt = DATEADD(minute, 330, SYSUTCDATETIME()),
                                 LastTestStatus = 'Success',
                                 LastTestMessage = 'Connected successfully'
                             WHERE Id = @ExistingId;
@@ -1551,7 +1563,7 @@ public static class DbInitializer
                             INSERT INTO [dbo].[DoctorSocialAccounts_CYH]
                             (DoctorId, UserId, DoctorName, Platform, AccountName, PageOrAccountId, AccessToken, RefreshToken, TokenExpiresAt, IsActive, ConnectedAt, LastTestedAt, LastTestStatus, LastTestMessage)
                             VALUES
-                            (@DoctorId, @UserId, @DoctorName, @Platform, @AccountName, @PageOrAccountId, @AccessToken, @RefreshToken, @TokenExpiresAt, ISNULL(@IsActive, 1), SYSUTCDATETIME(), SYSUTCDATETIME(), 'Success', 'Connected successfully');
+                            (@DoctorId, @UserId, @DoctorName, @Platform, @AccountName, @PageOrAccountId, @AccessToken, @RefreshToken, @TokenExpiresAt, ISNULL(@IsActive, 1), DATEADD(minute, 330, SYSUTCDATETIME()), DATEADD(minute, 330, SYSUTCDATETIME()), 'Success', 'Connected successfully');
 
                             SELECT SCOPE_IDENTITY() AS ResultId;
                         END
@@ -1559,7 +1571,7 @@ public static class DbInitializer
                     ELSE IF @Flag = 'UPDATE_TEST_STATUS'
                     BEGIN
                         UPDATE [dbo].[DoctorSocialAccounts_CYH]
-                        SET LastTestedAt = SYSUTCDATETIME(),
+                        SET LastTestedAt = DATEADD(minute, 330, SYSUTCDATETIME()),
                             LastTestStatus = @LastTestStatus,
                             LastTestMessage = @LastTestMessage
                         WHERE Id = @Id;
@@ -1619,7 +1631,7 @@ public static class DbInitializer
                         INSERT INTO [dbo].[BannerSchedules_CYH]
                         (BannerDesignId, DoctorId, UserId, DoctorName, HospitalName, BannerHeading, ImageUrl, Caption, Platforms, ScheduledAt, Status, ExecutionAttempts, CreatedAt, CreatedBy)
                         VALUES
-                        (@BannerDesignId, @DoctorId, @UserId, @DoctorName, @HospitalName, @BannerHeading, @ImageUrl, @Caption, @Platforms, @ScheduledAt, 'Pending', 0, SYSUTCDATETIME(), @CreatedBy);
+                        (@BannerDesignId, @DoctorId, @UserId, @DoctorName, @HospitalName, @BannerHeading, @ImageUrl, @Caption, @Platforms, @ScheduledAt, 'Pending', 0, DATEADD(minute, 330, SYSUTCDATETIME()), @CreatedBy);
 
                         DECLARE @NewScheduleId INT = SCOPE_IDENTITY();
                         SELECT @NewScheduleId AS ResultId;
@@ -1643,11 +1655,11 @@ public static class DbInitializer
 
                         UPDATE TOP (10) [dbo].[BannerSchedules_CYH]
                         SET Status = 'Processing',
-                            LastExecutedAt = SYSUTCDATETIME(),
+                            LastExecutedAt = DATEADD(minute, 330, SYSUTCDATETIME()),
                             ExecutionAttempts = ExecutionAttempts + 1
                         OUTPUT inserted.Id INTO @DueList
                         WHERE Status = 'Pending' 
-                          AND ScheduledAt <= SYSUTCDATETIME();
+                          AND ScheduledAt <= DATEADD(minute, 330, SYSUTCDATETIME());
 
                         -- Return the main schedule records
                         SELECT s.Id, s.BannerDesignId, s.DoctorId, s.UserId, s.DoctorName, s.HospitalName,
@@ -1671,7 +1683,7 @@ public static class DbInitializer
                             PlatformPostId = ISNULL(@PlatformPostId, PlatformPostId),
                             PostUrl = ISNULL(@PostUrl, PostUrl),
                             ErrorMessage = @ErrorMessage,
-                            PublishedAt = CASE WHEN @Status = 'Success' THEN SYSUTCDATETIME() ELSE PublishedAt END
+                            PublishedAt = CASE WHEN @Status = 'Success' THEN DATEADD(minute, 330, SYSUTCDATETIME()) ELSE PublishedAt END
                         WHERE Id = @ScheduleDetailId;
 
                         SELECT @@ROWCOUNT AS RowsAffected;
@@ -1683,7 +1695,7 @@ public static class DbInitializer
                         UPDATE [dbo].[BannerSchedules_CYH]
                         SET Status = @Status,
                             ErrorMessage = @ErrorMessage,
-                            LastExecutedAt = SYSUTCDATETIME()
+                            LastExecutedAt = DATEADD(minute, 330, SYSUTCDATETIME())
                         WHERE Id = @Id;
 
                         SELECT @@ROWCOUNT AS RowsAffected;
@@ -1747,7 +1759,7 @@ public static class DbInitializer
                     BEGIN
                         UPDATE [dbo].[BannerSchedules_CYH]
                         SET Status = 'Pending',
-                            ScheduledAt = SYSUTCDATETIME(),
+                            ScheduledAt = DATEADD(minute, 330, SYSUTCDATETIME()),
                             ErrorMessage = NULL
                         WHERE Id = @Id;
 

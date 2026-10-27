@@ -1,3 +1,4 @@
+using CYHDocBrandModel.Common;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -102,7 +103,7 @@ public class BannerAiService : IBannerAiService
                 Success = true,
                 ImageUrl = presetUrl,
                 ProviderUsed = $"{provider} (Curated Medical Preset - Map Doctor Key in SQL for Live Generation)",
-                GeneratedAt = DateTime.UtcNow
+                GeneratedAt = IndianTimeHelper.Now
             };
         }
         catch (Exception ex)

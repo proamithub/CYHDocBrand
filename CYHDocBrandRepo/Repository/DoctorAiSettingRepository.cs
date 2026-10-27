@@ -1,3 +1,4 @@
+using CYHDocBrandModel.Common;
 using System.Data;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
@@ -167,8 +168,8 @@ public class DoctorAiSettingRepository : IDoctorAiSettingRepository
             ModelName = reader["ModelName"] != DBNull.Value ? reader["ModelName"].ToString() : null,
             BaseUrl = reader["BaseUrl"] != DBNull.Value ? reader["BaseUrl"].ToString() : null,
             IsActive = reader["IsActive"] != DBNull.Value && Convert.ToBoolean(reader["IsActive"]),
-            CreatedAt = reader["CreatedAt"] != DBNull.Value ? Convert.ToDateTime(reader["CreatedAt"]) : DateTime.UtcNow,
-            UpdatedAt = reader["UpdatedAt"] != DBNull.Value ? Convert.ToDateTime(reader["UpdatedAt"]) : DateTime.UtcNow
+            CreatedAt = reader["CreatedAt"] != DBNull.Value ? Convert.ToDateTime(reader["CreatedAt"]) : IndianTimeHelper.Now,
+            UpdatedAt = reader["UpdatedAt"] != DBNull.Value ? Convert.ToDateTime(reader["UpdatedAt"]) : IndianTimeHelper.Now
         };
     }
 }

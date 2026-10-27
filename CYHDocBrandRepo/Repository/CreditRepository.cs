@@ -1,3 +1,4 @@
+using CYHDocBrandModel.Common;
 using System.Data;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
@@ -45,7 +46,7 @@ public class CreditRepository : ICreditRepository
                     IsActive = !reader.IsDBNull(reader.GetOrdinal("IsActive")) && reader.GetBoolean(reader.GetOrdinal("IsActive")),
                     Description = reader.IsDBNull(reader.GetOrdinal("Description")) ? null : reader.GetString(reader.GetOrdinal("Description")),
                     CreditCost = reader.IsDBNull(reader.GetOrdinal("CreditCost")) ? 1 : reader.GetInt32(reader.GetOrdinal("CreditCost")),
-                    CreatedAt = reader.IsDBNull(reader.GetOrdinal("CreatedAt")) ? DateTime.UtcNow : reader.GetDateTime(reader.GetOrdinal("CreatedAt"))
+                    CreatedAt = reader.IsDBNull(reader.GetOrdinal("CreatedAt")) ? IndianTimeHelper.Now : reader.GetDateTime(reader.GetOrdinal("CreatedAt"))
                 });
             }
         }
@@ -81,7 +82,7 @@ public class CreditRepository : ICreditRepository
                     IsActive = !reader.IsDBNull(reader.GetOrdinal("IsActive")) && reader.GetBoolean(reader.GetOrdinal("IsActive")),
                     Description = reader.IsDBNull(reader.GetOrdinal("Description")) ? null : reader.GetString(reader.GetOrdinal("Description")),
                     CreditCost = reader.IsDBNull(reader.GetOrdinal("CreditCost")) ? 1 : reader.GetInt32(reader.GetOrdinal("CreditCost")),
-                    CreatedAt = reader.IsDBNull(reader.GetOrdinal("CreatedAt")) ? DateTime.UtcNow : reader.GetDateTime(reader.GetOrdinal("CreatedAt"))
+                    CreatedAt = reader.IsDBNull(reader.GetOrdinal("CreatedAt")) ? IndianTimeHelper.Now : reader.GetDateTime(reader.GetOrdinal("CreatedAt"))
                 };
             }
         }
@@ -117,7 +118,7 @@ public class CreditRepository : ICreditRepository
                     IsActive = !reader.IsDBNull(reader.GetOrdinal("IsActive")) && reader.GetBoolean(reader.GetOrdinal("IsActive")),
                     Description = reader.IsDBNull(reader.GetOrdinal("Description")) ? null : reader.GetString(reader.GetOrdinal("Description")),
                     CreditCost = reader.IsDBNull(reader.GetOrdinal("CreditCost")) ? 1 : reader.GetInt32(reader.GetOrdinal("CreditCost")),
-                    CreatedAt = reader.IsDBNull(reader.GetOrdinal("CreatedAt")) ? DateTime.UtcNow : reader.GetDateTime(reader.GetOrdinal("CreatedAt"))
+                    CreatedAt = reader.IsDBNull(reader.GetOrdinal("CreatedAt")) ? IndianTimeHelper.Now : reader.GetDateTime(reader.GetOrdinal("CreatedAt"))
                 };
             }
         }
@@ -240,7 +241,7 @@ public class CreditRepository : ICreditRepository
                     TotalCredits = reader.GetInt32(reader.GetOrdinal("TotalCredits")),
                     UsedCredits = reader.GetInt32(reader.GetOrdinal("UsedCredits")),
                     IsActive = !reader.IsDBNull(reader.GetOrdinal("IsActive")) && reader.GetBoolean(reader.GetOrdinal("IsActive")),
-                    LastUpdatedAt = reader.IsDBNull(reader.GetOrdinal("LastUpdatedAt")) ? DateTime.UtcNow : reader.GetDateTime(reader.GetOrdinal("LastUpdatedAt"))
+                    LastUpdatedAt = reader.IsDBNull(reader.GetOrdinal("LastUpdatedAt")) ? IndianTimeHelper.Now : reader.GetDateTime(reader.GetOrdinal("LastUpdatedAt"))
                 });
             }
         }

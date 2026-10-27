@@ -5,6 +5,7 @@
 @implements IDisposable
 
 @using CYHDocBrandModel.DTO
+@using CYHDocBrandModel.Common
 @using CYHDocBrandData.Entities
 @using CYHDocBrandUI.Components.Common
 @using CYHDocBrandRepo.Utilities
@@ -560,7 +561,7 @@
                                     <i class="bi bi-cursor-fill text-info me-1"></i>Box par click karne par calendar &amp; time popup khulega
                                 </span>
                                 <span class="text-info small fw-bold" style="font-size: 0.82rem;">
-                                    <i class="bi bi-clock-history me-1 text-warning"></i>@scheduleDateTime.ToString("ddd, dd MMM yyyy — hh:mm tt")
+                                    <i class="bi bi-clock-history me-1 text-warning"></i>@scheduleDateTime.ToString("ddd, dd MMM yyyy — hh:mm tt") IST
                                 </span>
                             </div>
                         </div>
@@ -842,7 +843,7 @@
         try
         {
             await EnsureBannerStudioLoadedAsync();
-            var fileName = $"CYH_Banner_{viewingBanner.Id}_{DateTime.UtcNow:yyyyMMdd_HHmmss}.png";
+            var fileName = $"CYH_Banner_{viewingBanner.Id}_{IndianTimeHelper.Now:yyyyMMdd_HHmmss}.png";
             await JSRuntime.InvokeVoidAsync("bannerStudio.downloadBanner", "viewModalCanvas", fileName);
             ShowPopup("Download Started", "HD composite banner PNG download ho raha hai!", "save");
         }
@@ -871,7 +872,7 @@
     private bool scheduleFacebook = true;
     private bool scheduleInstagram = true;
     private bool scheduleTwitter = false;
-    private DateTime scheduleDateTime = DateTime.Now.AddHours(1);
+    private DateTime scheduleDateTime = IndianTimeHelper.Now.AddHours(1);
     private string scheduleCaption = string.Empty;
     private bool isSubmittingSchedule = false;
 
@@ -900,7 +901,7 @@
         var state = item.GetConfigState();
 
         scheduleCaption = $"{item.Heading}\n\n{(state.Subtitle ?? "")}\n\nFor expert consultations, visit {item.HospitalName ?? "CYH Hospital"} or contact {state.ContactPhone}.\n\n#Healthcare #Doctor #{item.DoctorName.Replace(" ", "")} #Wellness";
-        scheduleDateTime = DateTime.Now.AddHours(1);
+        scheduleDateTime = IndianTimeHelper.Now.AddHours(1);
 
         scheduleWhatsApp = true;
         scheduleFacebook = true;
@@ -947,7 +948,7 @@
             return;
         }
 
-        if (scheduleDateTime <= DateTime.Now.AddMinutes(1))
+        if (scheduleDateTime <= IndianTimeHelper.Now.AddMinutes(1))
         {
             ShowPopup("Invalid Time", "Schedule time future ka hona chahiye (at least 2 minutes aage).", "error");
             return;
@@ -976,13 +977,13 @@
                 ImageUrl = schedulingBanner.BackgroundImageUrl,
                 Caption = scheduleCaption,
                 SelectedPlatforms = selected,
-                ScheduledAt = scheduleDateTime.ToUniversalTime()
+                ScheduledAt = scheduleDateTime // Saved in Indian Standard Time (IST)
             };
 
             var id = await ScheduleRepo.CreateScheduleAsync(req, currentUser?.FullName);
             if (id > 0)
             {
-                ShowPopup("Banner Scheduled!", $"Banner successfully queue me add ho gaya hai! Post scheduled for {scheduleDateTime:dd MMM, hh:mm tt}.", "save");
+                ShowPopup("Banner Scheduled!", $"Banner successfully queue me add ho gaya hai! Post scheduled for {scheduleDateTime:dd MMM, hh:mm tt} IST.", "save");
                 CloseScheduleModal();
             }
             else

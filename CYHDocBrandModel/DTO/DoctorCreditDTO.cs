@@ -1,3 +1,4 @@
+using CYHDocBrandModel.Common;
 namespace CYHDocBrandModel.DTO;
 
 public class DoctorCreditDTO
@@ -14,7 +15,7 @@ public class DoctorCreditDTO
     public int UsedCredits { get; set; } = 0;
     public int RemainingCredits => TotalCredits - UsedCredits;
     public bool IsActive { get; set; } = true;
-    public DateTime LastUpdatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime LastUpdatedAt { get; set; } = IndianTimeHelper.Now;
 }
 
 public class AdminAdjustCreditDTO

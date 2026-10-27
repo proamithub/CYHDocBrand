@@ -1,8 +1,10 @@
 @inherits LayoutComponentBase
 @implements IDisposable
 @using CYHDocBrandModel.DTO
+@using CYHDocBrandModel.Common
 @using CYHDocBrandRepo.IRepository
 @using CYHDocBrandUI.Services
+@using CYHDocBrandUI.Components.Common
 
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
@@ -34,6 +36,9 @@
                     <span class="d-none d-sm-inline">@(IsAdmin ? "Hospital Administration Console" : "Doctor Clinical Workspace")</span>
                     <span class="d-inline d-sm-none">@(IsAdmin ? "Admin Console" : "Doctor Workspace")</span>
                 </span>
+
+                <!-- Live Running Server Time (Indian Standard Time) -->
+                <ServerTimeClock />
             </div>
 
             <div class="d-flex align-items-center gap-2 gap-sm-3">
@@ -85,7 +90,7 @@
                                         <div class="p-2 mb-2 rounded-3 bg-dark border border-secondary border-opacity-25 d-flex gap-2 align-items-center justify-content-between">
                                             <div class="min-w-0 flex-grow-1 cursor-pointer" @onclick="() => OpenShareModal(s)" style="cursor: pointer;">
                                                 <div class="text-white fw-semibold small text-truncate">@s.BannerHeading</div>
-                                                <div class="text-info small" style="font-size: 0.72rem;">Doctor: @s.DoctorName</div>
+                                                <div class="text-info small" style="font-size: 0.72rem;">Doctor: @s.DoctorName &bull; <i class="bi bi-clock me-1 text-warning"></i>@s.ScheduledAt.ToIndianTime().ToString("hh:mm tt") IST</div>
                                             </div>
                                             <button type="button" class="btn btn-success btn-sm py-1 px-2 fw-semibold" @onclick="() => OpenShareModal(s)" style="background: #25d366; border: none; font-size: 0.75rem; color: #070d1e;">
                                                 <i class="bi bi-whatsapp"></i> Send
@@ -138,7 +143,7 @@
                             ⏰ Scheduled Banner Ka Time Ho Gaya: "@liveBannerAlert.BannerHeading"
                         </div>
                         <div class="text-light small">
-                            Scheduled for @liveBannerAlert.ScheduledAt.ToLocalTime().ToString("hh:mm tt") &bull; Doctor: <strong>@liveBannerAlert.DoctorName</strong>
+                            Scheduled for @liveBannerAlert.ScheduledAt.ToIndianTime().ToString("hh:mm tt") IST &bull; Doctor: <strong>@liveBannerAlert.DoctorName</strong>
                         </div>
                     </div>
                 </div>
@@ -376,11 +381,12 @@
         await CheckDueSchedulesAsync();
 
         // Run fast background check every 5 seconds for live alerts & notifications
+        // ⚡ Optimized 12-second non-blocking background notification polling
         checkTimer = new System.Threading.Timer(async _ =>
         {
             await CheckDueSchedulesAsync();
             await InvokeAsync(StateHasChanged);
-        }, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(5));
+        }, null, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(12));
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -409,30 +415,20 @@
 
         try
         {
-            List<BannerScheduleDTO> allSchedules;
-            if (IsAdmin)
+            var allSchedules = IsAdmin
+                ? (await ScheduleRepo.GetAllAdminAsync()).Schedules
+                : await ScheduleRepo.GetByDoctorAsync(CurrentUser.DoctorProfileId, CurrentUser.UserId);
+
+            if (allSchedules == null || allSchedules.Count == 0)
             {
-                var summary = await ScheduleRepo.GetAllAdminAsync();
-                allSchedules = summary.Schedules;
-            }
-            else
-            {
-                allSchedules = await ScheduleRepo.GetByDoctorAsync(CurrentUser.DoctorProfileId, CurrentUser.UserId);
-                if (allSchedules == null || allSchedules.Count == 0)
-                {
-                    var summary = await ScheduleRepo.GetAllAdminAsync();
-                    allSchedules = summary.Schedules.Where(s =>
-                        (CurrentUser.DoctorProfileId.HasValue && s.DoctorId == CurrentUser.DoctorProfileId.Value) ||
-                        (!string.IsNullOrEmpty(CurrentUser.UserId) && s.UserId == CurrentUser.UserId) ||
-                        (!string.IsNullOrEmpty(CurrentUser.FullName) && string.Equals(s.DoctorName, CurrentUser.FullName, StringComparison.OrdinalIgnoreCase))
-                    ).ToList();
-                }
+                dueSchedules = new List<BannerScheduleDTO>();
+                return;
             }
 
-            // Picks up if marked ReadyToShare or if scheduled time arrived in either UTC or local time
+            // Picks up if marked ReadyToShare or if scheduled time arrived in Indian Standard Time (IST)
             var newlyDue = allSchedules
                 .Where(s => (s.Status == "Pending" || s.Status == "ReadyToShare" || s.Status == "Processing") &&
-                            (s.Status == "ReadyToShare" || s.ScheduledAt <= DateTime.UtcNow || s.ScheduledAt <= DateTime.Now))
+                            (s.Status == "ReadyToShare" || s.ScheduledAt <= IndianTimeHelper.Now))
                 .OrderBy(s => s.ScheduledAt)
                 .ToList();
 

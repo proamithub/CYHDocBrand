@@ -1,3 +1,4 @@
+using CYHDocBrandModel.Common;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -60,5 +61,5 @@ public class DoctorProfile
     public int AiCredits { get; set; } = 25;
     public bool IsVerified { get; set; } = true;
 
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = IndianTimeHelper.Now;
 }

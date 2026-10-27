@@ -1,4 +1,4 @@
-﻿-- =========================================================================
+-- =========================================================================
 -- CYHDocBrand: Categories & 50 Banner Templates Setup Script
 -- =========================================================================
 
@@ -13,7 +13,7 @@ BEGIN
         [BadgeColor]   NVARCHAR(50)  NULL DEFAULT ('#00f2fe'),
         [DisplayOrder] INT NOT NULL DEFAULT (0),
         [IsActive]     BIT NOT NULL DEFAULT (1),
-        [CreatedAt]    DATETIME2(7) NOT NULL DEFAULT (SYSUTCDATETIME()),
+        [CreatedAt]    DATETIME2(7) NOT NULL DEFAULT (DATEADD(minute, 330, SYSUTCDATETIME())),
         CONSTRAINT [PK_BannerCategories_CYH] PRIMARY KEY CLUSTERED ([Id] ASC)
     );
 END
@@ -39,7 +39,7 @@ BEGIN
         [ConfigJson]         NVARCHAR(MAX) NOT NULL,
         [DisplayOrder]       INT NOT NULL DEFAULT (0),
         [IsActive]           BIT NOT NULL DEFAULT (1),
-        [CreatedAt]          DATETIME2(7) NOT NULL DEFAULT (SYSUTCDATETIME()),
+        [CreatedAt]          DATETIME2(7) NOT NULL DEFAULT (DATEADD(minute, 330, SYSUTCDATETIME())),
         CONSTRAINT [PK_BannerTemplates_CYH] PRIMARY KEY CLUSTERED ([Id] ASC),
         CONSTRAINT [FK_BannerTemplates_Category] FOREIGN KEY ([CategoryId]) 
             REFERENCES [dbo].[BannerCategories_CYH] ([Id])
@@ -110,7 +110,7 @@ BEGIN
         INSERT INTO [dbo].[BannerCategories_CYH] 
         (CategoryName, Slug, IconClass, BadgeColor, DisplayOrder, IsActive, CreatedAt)
         VALUES 
-        (@CategoryName, @Slug, ISNULL(@IconClass, 'bi-folder-fill'), ISNULL(@BadgeColor, '#00f2fe'), ISNULL(@DisplayOrder, 0), ISNULL(@IsActive, 1), SYSUTCDATETIME());
+        (@CategoryName, @Slug, ISNULL(@IconClass, 'bi-folder-fill'), ISNULL(@BadgeColor, '#00f2fe'), ISNULL(@DisplayOrder, 0), ISNULL(@IsActive, 1), DATEADD(minute, 330, SYSUTCDATETIME()));
 
         SELECT SCOPE_IDENTITY() AS ResultId;
     END
@@ -263,7 +263,7 @@ BEGIN
                 @BackgroundImageUrl, @ThumbnailUrl, ISNULL(@PrimaryColor, '#00f2fe'),
                 ISNULL(@SecondaryColor, '#0a192f'), ISNULL(@TextColor, '#ffffff'),
                 @DefaultHeading, @DefaultSubtitle, @BadgeText, @ConfigJson,
-                ISNULL(@DisplayOrder, 0), ISNULL(@IsActive, 1), SYSUTCDATETIME()
+                ISNULL(@DisplayOrder, 0), ISNULL(@IsActive, 1), DATEADD(minute, 330, SYSUTCDATETIME())
             );
 
             SELECT SCOPE_IDENTITY() AS ResultId;

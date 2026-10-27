@@ -1,3 +1,4 @@
+using CYHDocBrandModel.Common;
 using System.Text.Json;
 
 namespace CYHDocBrandModel.DTO;
@@ -35,7 +36,7 @@ public class BannerTemplateDTO
     public string ConfigJson { get; set; } = string.Empty;
     public int DisplayOrder { get; set; } = 0;
     public bool IsActive { get; set; } = true;
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = IndianTimeHelper.Now;
 
     public BannerCustomizationState GetConfigState()
     {

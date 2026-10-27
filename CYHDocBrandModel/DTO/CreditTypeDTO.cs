@@ -1,3 +1,4 @@
+using CYHDocBrandModel.Common;
 namespace CYHDocBrandModel.DTO;
 
 public class CreditTypeDTO
@@ -10,5 +11,5 @@ public class CreditTypeDTO
     public bool IsActive { get; set; } = true;
     public string? Description { get; set; }
     public int CreditCost { get; set; } = 1;                   // credits deducted per action
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = IndianTimeHelper.Now;
 }

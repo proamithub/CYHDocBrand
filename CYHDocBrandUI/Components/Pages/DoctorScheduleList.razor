@@ -3,6 +3,7 @@
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 
 @using CYHDocBrandModel.DTO
+@using CYHDocBrandModel.Common
 @using CYHDocBrandRepo.IRepository
 @using CYHDocBrandUI.Services
 @using CYHDocBrandUI.Components.Common
@@ -173,7 +174,7 @@
                                 <span class="text-secondary">&bull;</span>
                                 <span><i class="bi bi-person text-info me-1"></i>@item.DoctorName</span>
                                 <span class="text-secondary">&bull;</span>
-                                <span class="text-muted"><i class="bi bi-clock-history me-1"></i>Created: @item.CreatedAt.ToLocalTime().ToString("dd MMM, hh:mm tt")</span>
+                                <span class="text-muted"><i class="bi bi-clock-history me-1"></i>Created: @item.CreatedAt.ToIndianTime().ToString("dd MMM, hh:mm tt") IST</span>
                             </div>
 
                             <!-- Caption Box -->
@@ -230,10 +231,10 @@
                         <div class="col-6 col-md-2 col-xl-2 text-md-center">
                             <span class="text-secondary small d-block mb-1 fw-semibold text-uppercase" style="font-size: 0.68rem; letter-spacing: 0.5px;">Scheduled Time</span>
                             <div class="text-info fw-bold small">
-                                <i class="bi bi-calendar-event me-1"></i>@item.ScheduledAt.ToLocalTime().ToString("dd MMM yyyy")
+                                <i class="bi bi-calendar-event me-1"></i>@item.ScheduledAt.ToIndianTime().ToString("dd MMM yyyy")
                             </div>
                             <div class="text-white fw-bold small mb-2">
-                                <i class="bi bi-clock me-1 text-warning"></i>@item.ScheduledAt.ToLocalTime().ToString("hh:mm tt")
+                                <i class="bi bi-clock me-1 text-warning"></i>@item.ScheduledAt.ToIndianTime().ToString("hh:mm tt") IST
                             </div>
                             <div>
                                 @if (item.Status == "Pending")
@@ -357,7 +358,7 @@
                         <div class="min-w-0 flex-grow-1">
                             <div class="fw-bold text-white text-truncate">@deletingSchedule.BannerHeading</div>
                             <div class="text-warning small mt-1">
-                                <i class="bi bi-clock me-1"></i>Scheduled: @deletingSchedule.ScheduledAt.ToLocalTime().ToString("dd MMM yyyy, hh:mm tt")
+                                <i class="bi bi-clock me-1"></i>Scheduled: @deletingSchedule.ScheduledAt.ToIndianTime().ToString("dd MMM yyyy, hh:mm tt") IST
                             </div>
                             <div class="text-secondary small">
                                 <i class="bi bi-share me-1"></i>Platforms: @deletingSchedule.Platforms

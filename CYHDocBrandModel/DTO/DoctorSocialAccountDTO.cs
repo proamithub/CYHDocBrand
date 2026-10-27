@@ -1,3 +1,4 @@
+using CYHDocBrandModel.Common;
 namespace CYHDocBrandModel.DTO;
 
 public class DoctorSocialAccountDTO
@@ -13,7 +14,7 @@ public class DoctorSocialAccountDTO
     public string? RefreshToken { get; set; }
     public DateTime? TokenExpiresAt { get; set; }
     public bool IsActive { get; set; } = true;
-    public DateTime ConnectedAt { get; set; } = DateTime.UtcNow;
+    public DateTime ConnectedAt { get; set; } = IndianTimeHelper.Now;
     public DateTime? LastTestedAt { get; set; }
     public string? LastTestStatus { get; set; } // "Success", "Failed", "Pending"
     public string? LastTestMessage { get; set; }

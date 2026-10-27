@@ -1,3 +1,4 @@
+using CYHDocBrandModel.Common;
 namespace CYHDocBrandModel.DTO;
 
 public class CreditTransactionDTO
@@ -19,7 +20,7 @@ public class CreditTransactionDTO
     public string? ActionBy { get; set; }
     public string? ReferenceId { get; set; }
     public string? Note { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = IndianTimeHelper.Now;
 
     // UI Helpers
     public bool IsCredit => CreditsChanged > 0;

@@ -1,4 +1,6 @@
-﻿namespace CYHDocBrandModel.DTO;
+using CYHDocBrandModel.Common;
+
+namespace CYHDocBrandModel.DTO;
 
 public class BannerGenerateRequest
 {
@@ -22,7 +24,7 @@ public class BannerGenerationResult
     public string? ImageBase64 { get; set; }
     public string? ErrorMessage { get; set; }
     public string ProviderUsed { get; set; } = string.Empty;
-    public DateTime GeneratedAt { get; set; } = DateTime.UtcNow;
+    public DateTime GeneratedAt { get; set; } = IndianTimeHelper.Now;
 }
 
 public class BannerOverlayImage
@@ -135,8 +137,8 @@ public class BannerDesignRecordDTO
     public string PrimaryColor { get; set; } = "#00f2fe";
     public string? BackgroundImageUrl { get; set; }
     public string ConfigJson { get; set; } = string.Empty;
-    public DateTime CreatedAt { get; set; }
-    public DateTime UpdatedAt { get; set; }
+    public DateTime CreatedAt { get; set; } = IndianTimeHelper.Now;
+    public DateTime UpdatedAt { get; set; } = IndianTimeHelper.Now;
     public DateTime? PublishedAt { get; set; }
 
     public BannerCustomizationState GetConfigState()

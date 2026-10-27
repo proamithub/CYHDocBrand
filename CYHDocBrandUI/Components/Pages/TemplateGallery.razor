@@ -5,6 +5,7 @@
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 
 @using CYHDocBrandModel.DTO
+@using CYHDocBrandModel.Common
 @using CYHDocBrandData.Entities
 @using CYHDocBrandRepo.IRepository
 @using CYHDocBrandRepo.Utilities
@@ -761,7 +762,7 @@
                 if (!string.IsNullOrWhiteSpace(doctorProfile.Specialization)) config.Specialization = doctorProfile.Specialization;
             }
 
-            var filename = $"CYH_Template_{tpl.Id}_{DateTime.Now:yyyyMMdd_HHmm}.png";
+            var filename = $"CYH_Template_{tpl.Id}_{IndianTimeHelper.Now:yyyyMMdd_HHmm}.png";
 
             // Render to quickExportCanvas and trigger download via bannerStudio JS
             await JSRuntime.InvokeVoidAsync("bannerStudio.renderBanner", "quickExportCanvas", config);

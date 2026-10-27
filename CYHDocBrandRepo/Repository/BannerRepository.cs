@@ -1,3 +1,4 @@
+using CYHDocBrandModel.Common;
 using System.Data;
 using System.Text.Json;
 using Microsoft.Data.SqlClient;
@@ -214,8 +215,8 @@ public class BannerRepository : IBannerRepository
             PrimaryColor = reader["PrimaryColor"] != DBNull.Value ? reader["PrimaryColor"].ToString() ?? "#00f2fe" : "#00f2fe",
             BackgroundImageUrl = reader["BackgroundImageUrl"] != DBNull.Value ? reader["BackgroundImageUrl"].ToString() : null,
             ConfigJson = configJson,
-            CreatedAt = reader["CreatedAt"] != DBNull.Value ? Convert.ToDateTime(reader["CreatedAt"]) : DateTime.UtcNow,
-            UpdatedAt = reader["UpdatedAt"] != DBNull.Value ? Convert.ToDateTime(reader["UpdatedAt"]) : DateTime.UtcNow,
+            CreatedAt = reader["CreatedAt"] != DBNull.Value ? Convert.ToDateTime(reader["CreatedAt"]) : IndianTimeHelper.Now,
+            UpdatedAt = reader["UpdatedAt"] != DBNull.Value ? Convert.ToDateTime(reader["UpdatedAt"]) : IndianTimeHelper.Now,
             PublishedAt = reader["PublishedAt"] != DBNull.Value ? Convert.ToDateTime(reader["PublishedAt"]) : null
         };
     }

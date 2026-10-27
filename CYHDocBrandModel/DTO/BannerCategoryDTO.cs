@@ -1,3 +1,4 @@
+using CYHDocBrandModel.Common;
 namespace CYHDocBrandModel.DTO;
 
 public class BannerCategoryDTO
@@ -10,5 +11,5 @@ public class BannerCategoryDTO
     public int DisplayOrder { get; set; } = 0;
     public bool IsActive { get; set; } = true;
     public int TemplateCount { get; set; } = 0;
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = IndianTimeHelper.Now;
 }

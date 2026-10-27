@@ -93,11 +93,11 @@ public class BannerScheduleRepository : IBannerScheduleRepository
 
                 UPDATE TOP (10) [dbo].[BannerSchedules_CYH]
                 SET Status = 'Processing',
-                    LastExecutedAt = SYSUTCDATETIME(),
+                    LastExecutedAt = DATEADD(minute, 330, SYSUTCDATETIME()),
                     ExecutionAttempts = ExecutionAttempts + 1
                 OUTPUT inserted.Id INTO @DueList
                 WHERE Status = 'Pending' 
-                  AND (ScheduledAt <= SYSUTCDATETIME() OR ScheduledAt <= GETDATE() OR ScheduledAt <= GETUTCDATE());
+                  AND (ScheduledAt <= DATEADD(minute, 330, SYSUTCDATETIME()) OR ScheduledAt <= SYSUTCDATETIME() OR ScheduledAt <= GETDATE() OR ScheduledAt <= GETUTCDATE());
 
                 SELECT s.Id, s.BannerDesignId, s.DoctorId, s.UserId, s.DoctorName, s.HospitalName,
                        s.BannerHeading, s.ImageUrl, s.Caption, s.Platforms, s.ScheduledAt,
@@ -337,7 +337,7 @@ public class BannerScheduleRepository : IBannerScheduleRepository
             const string sql = @"
                 UPDATE [dbo].[BannerSchedules_CYH]
                 SET Status = 'Pending',
-                    ScheduledAt = DATEADD(minute, @Minutes, SYSUTCDATETIME()),
+                    ScheduledAt = DATEADD(minute, @Minutes, DATEADD(minute, 330, SYSUTCDATETIME())),
                     ErrorMessage = NULL
                 WHERE Id = @Id;
 

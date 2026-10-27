@@ -5,6 +5,7 @@
 @implements IDisposable
 
 @using CYHDocBrandModel.DTO
+@using CYHDocBrandModel.Common
 @using CYHDocBrandUI.Components.Common
 
 @inject IBannerAiService BannerAiService
@@ -2084,7 +2085,7 @@
 
                 state.BackgroundImageUrl = bgUrl;
                 state.BackgroundStyle = "ai-image";
-                state.BackgroundImageFileName = $"AI-Background-{DateTime.Now:yyyyMMddHHmmss}.jpg";
+                state.BackgroundImageFileName = $"AI-Background-{IndianTimeHelper.Now:yyyyMMddHHmmss}.jpg";
 
                 await RenderCanvas();
                 statusMessage = $"Background generated successfully with {result.ProviderUsed}!";
@@ -2127,7 +2128,7 @@
         try
         {
             await EnsureBannerStudioLoadedAsync();
-            var filename = $"CYH_Banner_{state.TemplateType}_{DateTime.UtcNow:yyyyMMdd_HHmmss}.png";
+            var filename = $"CYH_Banner_{state.TemplateType}_{IndianTimeHelper.Now:yyyyMMdd_HHmmss}.png";
             await JSRuntime.InvokeVoidAsync("bannerStudio.downloadBanner", "bannerCanvas", filename);
             statusMessage = "Banner downloaded successfully in high resolution PNG!";
             ShowPopup("PNG Downloaded", "High-Resolution PNG banner successfully download ho gaya hai!", "save");

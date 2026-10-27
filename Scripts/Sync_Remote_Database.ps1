@@ -78,7 +78,7 @@ try {
             [LocationSummary]  NVARCHAR(300)     NULL,
             [UserAgent]        NVARCHAR(500)     NULL,
             [Remarks]          NVARCHAR(250)     NULL,
-            [ChangedAt]        DATETIME2(7)      NOT NULL DEFAULT (SYSUTCDATETIME()),
+            [ChangedAt]        DATETIME2(7)      NOT NULL DEFAULT (DATEADD(minute, 330, SYSUTCDATETIME())),
             CONSTRAINT [PK_PasswordChangeHistory_CYH] PRIMARY KEY CLUSTERED ([Id] ASC)
         );
         CREATE NONCLUSTERED INDEX [IX_PasswordChangeHistory_UserId] ON [dbo].[PasswordChangeHistory_CYH]([UserId]);

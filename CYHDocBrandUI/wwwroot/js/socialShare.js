@@ -185,7 +185,7 @@ window.cyhDatePicker = {
             enableTime: true,
             dateFormat: "Y-m-d H:i",
             altInput: true,
-            altFormat: "D, d M Y — h:i K",
+            altFormat: "D, d M Y — h:i K (IST)",
             altInputClass: "form-control bg-dark text-white border-secondary fw-bold py-2 px-3",
             minDate: "today",
             defaultDate: defaultVal,
@@ -224,3 +224,54 @@ window.cyhDatePicker = {
         }
     }
 };
+
+// ==============================================================================
+// Live Running Server Time Engine (Strictly Indian Standard Time - IST / Asia/Kolkata)
+// ==============================================================================
+window.cyhLiveClock = {
+    start: function () {
+        function tick() {
+            try {
+                var now = new Date();
+                var timeStr = now.toLocaleTimeString('en-IN', {
+                    timeZone: 'Asia/Kolkata',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: true
+                });
+                var dateStr = now.toLocaleDateString('en-IN', {
+                    timeZone: 'Asia/Kolkata',
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric'
+                });
+
+                var timeEls = document.querySelectorAll('.cyh-live-time-display');
+                for (var i = 0; i < timeEls.length; i++) {
+                    timeEls[i].textContent = timeStr;
+                }
+                var dateEls = document.querySelectorAll('.cyh-live-date-display');
+                for (var j = 0; j < dateEls.length; j++) {
+                    dateEls[j].textContent = dateStr;
+                }
+            } catch (e) { }
+        }
+
+        tick();
+        if (!window._cyhClockInterval) {
+            window._cyhClockInterval = setInterval(tick, 1000);
+        }
+    }
+};
+
+// Start immediately on load or whenever invoked
+if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () {
+            window.cyhLiveClock.start();
+        });
+    } else {
+        window.cyhLiveClock.start();
+    }
+}

@@ -262,7 +262,7 @@ BEGIN
         VALUES 
         (
             @UserId, @FullName, @Specialization, @LicenseNumber, @ExperienceYears,
-            @ConsultationFee, @AvailableDays, @AvailableHours, @Bio, ISNULL(@IsAvailableToday, 1), SYSUTCDATETIME(), @ProfilePic
+            @ConsultationFee, @AvailableDays, @AvailableHours, @Bio, ISNULL(@IsAvailableToday, 1), DATEADD(minute, 330, SYSUTCDATETIME()), @ProfilePic
         );
 
         SELECT SCOPE_IDENTITY() AS NewId;
@@ -279,7 +279,7 @@ BEGIN
         END
 
         DECLARE @NewUserId NVARCHAR(450) = ISNULL(@UserId, CAST(NEWID() AS NVARCHAR(450)));
-        DECLARE @Now DATETIME2(7) = SYSUTCDATETIME();
+        DECLARE @Now DATETIME2(7) = DATEADD(minute, 330, SYSUTCDATETIME());
 
         BEGIN TRANSACTION;
         BEGIN TRY
@@ -393,7 +393,7 @@ BEGIN
             VALUES (
                 CAST(NEWID() AS NVARCHAR(450)), 'admin@cyhdoctorhub.com', 'ADMIN@CYHDOCTORHUB.COM', 'admin@cyhdoctorhub.com', 'ADMIN@CYHDOCTORHUB.COM', 1,
                 'Hospital Chief Administrator', 'Admin', 'Hospital Operations & Executive',
-                'L4Yq5jzhlap0wTagsBRCUg==', SYSUTCDATETIME(), 1, 0, 0, 0, 0
+                'L4Yq5jzhlap0wTagsBRCUg==', DATEADD(minute, 330, SYSUTCDATETIME()), 1, 0, 0, 0, 0
             );
         END
         ELSE
@@ -409,7 +409,7 @@ BEGIN
             VALUES (
                 @Doc1UserId, 'doctor@cyhdoctorhub.com', 'DOCTOR@CYHDOCTORHUB.COM', 'doctor@cyhdoctorhub.com', 'DOCTOR@CYHDOCTORHUB.COM', 1,
                 'Dr. A. Sharma', 'Doctor', 'Cardiology',
-                'n7uoG53mus5DzCXmNgv7NQ==', SYSUTCDATETIME(), 1, 0, 0, 0, 0
+                'n7uoG53mus5DzCXmNgv7NQ==', DATEADD(minute, 330, SYSUTCDATETIME()), 1, 0, 0, 0, 0
             );
 
             IF NOT EXISTS (SELECT 1 FROM DoctorProfiles WHERE FullName = 'Dr. A. Sharma')
@@ -419,7 +419,7 @@ BEGIN
                     @Doc1UserId, 'Dr. A. Sharma', 'Chief Cardiologist', 'MED-DEL-98421', 14, 85.00,
                     'Mon - Sat', '09:00 AM - 04:00 PM',
                     'Specializing in interventional cardiology, heart failure management, and preventive cardiovascular wellness.',
-                    1, SYSUTCDATETIME()
+                    1, DATEADD(minute, 330, SYSUTCDATETIME())
                 );
             END
         END
@@ -436,7 +436,7 @@ BEGIN
             VALUES (
                 @Doc2UserId, 'priya.patel@cyhdoctorhub.com', 'PRIYA.PATEL@CYHDOCTORHUB.COM', 'priya.patel@cyhdoctorhub.com', 'PRIYA.PATEL@CYHDOCTORHUB.COM', 1,
                 'Dr. Priya Patel', 'Doctor', 'Neurology',
-                'n7uoG53mus5DzCXmNgv7NQ==', SYSUTCDATETIME(), 1, 0, 0, 0, 0
+                'n7uoG53mus5DzCXmNgv7NQ==', DATEADD(minute, 330, SYSUTCDATETIME()), 1, 0, 0, 0, 0
             );
 
             IF NOT EXISTS (SELECT 1 FROM DoctorProfiles WHERE FullName = 'Dr. Priya Patel')
@@ -446,7 +446,7 @@ BEGIN
                     @Doc2UserId, 'Dr. Priya Patel', 'Senior Neurologist', 'MED-MUM-77319', 10, 90.00,
                     'Mon, Wed, Fri', '10:00 AM - 05:00 PM',
                     'Expert in neuro-vascular disorders, neuro-rehabilitation, stroke management, and migraines.',
-                    1, SYSUTCDATETIME()
+                    1, DATEADD(minute, 330, SYSUTCDATETIME())
                 );
             END
         END
@@ -576,8 +576,8 @@ BEGIN
                 PrimaryColor = ISNULL(@PrimaryColor, PrimaryColor),
                 BackgroundImageUrl = ISNULL(@BackgroundImageUrl, BackgroundImageUrl),
                 ConfigJson = ISNULL(@ConfigJson, ConfigJson),
-                UpdatedAt = SYSUTCDATETIME(),
-                PublishedAt = CASE WHEN @Status = 'Published' AND PublishedAt IS NULL THEN SYSUTCDATETIME() ELSE PublishedAt END
+                UpdatedAt = DATEADD(minute, 330, SYSUTCDATETIME()),
+                PublishedAt = CASE WHEN @Status = 'Published' AND PublishedAt IS NULL THEN DATEADD(minute, 330, SYSUTCDATETIME()) ELSE PublishedAt END
             WHERE Id = @Id;
 
             SELECT @Id AS ResultId;
@@ -603,9 +603,9 @@ BEGIN
                 ISNULL(@PrimaryColor, '#00f2fe'), 
                 @BackgroundImageUrl, 
                 ISNULL(@ConfigJson, '{}'), 
-                SYSUTCDATETIME(), 
-                SYSUTCDATETIME(),
-                CASE WHEN @Status = 'Published' THEN SYSUTCDATETIME() ELSE NULL END
+                DATEADD(minute, 330, SYSUTCDATETIME()), 
+                DATEADD(minute, 330, SYSUTCDATETIME()),
+                CASE WHEN @Status = 'Published' THEN DATEADD(minute, 330, SYSUTCDATETIME()) ELSE NULL END
             );
 
             SELECT SCOPE_IDENTITY() AS ResultId;
@@ -618,8 +618,8 @@ BEGIN
         DECLARE @NewStatus NVARCHAR(50) = ISNULL(@Status, CASE WHEN @Flag = 'PUBLISH' THEN 'Published' ELSE 'Draft' END);
         UPDATE [dbo].[BannerDesigns_CYH]
         SET Status = @NewStatus,
-            PublishedAt = CASE WHEN @NewStatus = 'Published' AND PublishedAt IS NULL THEN SYSUTCDATETIME() ELSE PublishedAt END,
-            UpdatedAt = SYSUTCDATETIME()
+            PublishedAt = CASE WHEN @NewStatus = 'Published' AND PublishedAt IS NULL THEN DATEADD(minute, 330, SYSUTCDATETIME()) ELSE PublishedAt END,
+            UpdatedAt = DATEADD(minute, 330, SYSUTCDATETIME())
         WHERE Id = @Id
           AND (@UserId IS NULL OR UserId = @UserId OR UserId IS NULL);
 
@@ -744,7 +744,7 @@ BEGIN
                 ModelName = COALESCE(@ModelName, ModelName),
                 BaseUrl = COALESCE(@BaseUrl, BaseUrl),
                 IsActive = ISNULL(@IsActive, 1),
-                UpdatedAt = SYSUTCDATETIME()
+                UpdatedAt = DATEADD(minute, 330, SYSUTCDATETIME())
             WHERE Id = @ExistingId;
 
             SELECT @ExistingId AS ResultId;
@@ -752,7 +752,7 @@ BEGIN
         ELSE
         BEGIN
             INSERT INTO DoctorAiSettings_CYH (DoctorId, UserId, DoctorName, Provider, ApiKey, ModelName, BaseUrl, IsActive, CreatedAt, UpdatedAt)
-            VALUES (@DoctorId, @UserId, @DoctorName, @Provider, @ApiKey, @ModelName, @BaseUrl, ISNULL(@IsActive, 1), SYSUTCDATETIME(), SYSUTCDATETIME());
+            VALUES (@DoctorId, @UserId, @DoctorName, @Provider, @ApiKey, @ModelName, @BaseUrl, ISNULL(@IsActive, 1), DATEADD(minute, 330, SYSUTCDATETIME()), DATEADD(minute, 330, SYSUTCDATETIME()));
 
             SELECT SCOPE_IDENTITY() AS ResultId;
         END
@@ -914,7 +914,7 @@ BEGIN
         INSERT INTO [dbo].[BannerCategories_CYH] 
         (CategoryName, Slug, IconClass, BadgeColor, DisplayOrder, IsActive, CreatedAt)
         VALUES 
-        (@CategoryName, @Slug, ISNULL(@IconClass, 'bi-folder-fill'), ISNULL(@BadgeColor, '#00f2fe'), ISNULL(@DisplayOrder, 0), ISNULL(@IsActive, 1), SYSUTCDATETIME());
+        (@CategoryName, @Slug, ISNULL(@IconClass, 'bi-folder-fill'), ISNULL(@BadgeColor, '#00f2fe'), ISNULL(@DisplayOrder, 0), ISNULL(@IsActive, 1), DATEADD(minute, 330, SYSUTCDATETIME()));
 
         SELECT SCOPE_IDENTITY() AS ResultId;
     END
@@ -1070,7 +1070,7 @@ BEGIN
                 @BackgroundImageUrl, @ThumbnailUrl, ISNULL(@PrimaryColor, '#00f2fe'),
                 ISNULL(@SecondaryColor, '#0a192f'), ISNULL(@TextColor, '#ffffff'),
                 @DefaultHeading, @DefaultSubtitle, @BadgeText, @ConfigJson,
-                ISNULL(@DisplayOrder, 0), ISNULL(@IsActive, 1), SYSUTCDATETIME()
+                ISNULL(@DisplayOrder, 0), ISNULL(@IsActive, 1), DATEADD(minute, 330, SYSUTCDATETIME())
             );
 
             SELECT SCOPE_IDENTITY() AS ResultId;
@@ -1100,7 +1100,7 @@ BEGIN
         [IsActive]     BIT           NOT NULL DEFAULT (1),
         [Description]  NVARCHAR(500) NULL,
         [CreditCost]   INT           NOT NULL DEFAULT (1),
-        [CreatedAt]    DATETIME2(7)  NOT NULL DEFAULT (SYSUTCDATETIME()),
+        [CreatedAt]    DATETIME2(7)  NOT NULL DEFAULT (DATEADD(minute, 330, SYSUTCDATETIME())),
         CONSTRAINT [PK_CreditTypes_CYH] PRIMARY KEY CLUSTERED ([Id] ASC),
         CONSTRAINT [UQ_CreditTypes_Code] UNIQUE ([Code])
     );
@@ -1116,7 +1116,7 @@ BEGIN
         [TotalCredits]   INT NOT NULL DEFAULT (0),
         [UsedCredits]    INT NOT NULL DEFAULT (0),
         [IsActive]       BIT NOT NULL DEFAULT (1),
-        [LastUpdatedAt]  DATETIME2(7) NOT NULL DEFAULT (SYSUTCDATETIME()),
+        [LastUpdatedAt]  DATETIME2(7) NOT NULL DEFAULT (DATEADD(minute, 330, SYSUTCDATETIME())),
         CONSTRAINT [PK_DoctorCredits_CYH] PRIMARY KEY CLUSTERED ([Id] ASC),
         CONSTRAINT [UQ_Doctor_CreditType] UNIQUE ([DoctorId], [CreditTypeId])
     );
@@ -1137,7 +1137,7 @@ BEGIN
         [ActionBy]        NVARCHAR(200) NULL,
         [ReferenceId]     NVARCHAR(100) NULL,
         [Note]            NVARCHAR(500) NULL,
-        [CreatedAt]       DATETIME2(7)  NOT NULL DEFAULT (SYSUTCDATETIME()),
+        [CreatedAt]       DATETIME2(7)  NOT NULL DEFAULT (DATEADD(minute, 330, SYSUTCDATETIME())),
         CONSTRAINT [PK_CreditTransactions_CYH] PRIMARY KEY CLUSTERED ([Id] ASC)
     );
     CREATE NONCLUSTERED INDEX [IX_CreditTransactions_DoctorId] ON [dbo].[CreditTransactions_CYH]([DoctorId]);
@@ -1162,7 +1162,7 @@ BEGIN
         [LocationSummary]  NVARCHAR(300)     NULL,
         [UserAgent]        NVARCHAR(500)     NULL,
         [Remarks]          NVARCHAR(250)     NULL,
-        [ChangedAt]        DATETIME2(7)      NOT NULL DEFAULT (SYSUTCDATETIME()),
+        [ChangedAt]        DATETIME2(7)      NOT NULL DEFAULT (DATEADD(minute, 330, SYSUTCDATETIME())),
         CONSTRAINT [PK_PasswordChangeHistory_CYH] PRIMARY KEY CLUSTERED ([Id] ASC)
     );
     CREATE NONCLUSTERED INDEX [IX_PasswordChangeHistory_UserId] ON [dbo].[PasswordChangeHistory_CYH]([UserId]);
@@ -1200,7 +1200,7 @@ BEGIN
     IF @Flag = 'INIT_DOCTOR_CREDITS'
     BEGIN
         INSERT INTO [dbo].[DoctorCredits_CYH] (DoctorId, CreditTypeId, TotalCredits, UsedCredits, IsActive, LastUpdatedAt)
-        SELECT @DoctorId, ct.Id, 0, 0, 1, SYSUTCDATETIME()
+        SELECT @DoctorId, ct.Id, 0, 0, 1, DATEADD(minute, 330, SYSUTCDATETIME())
         FROM [dbo].[CreditTypes_CYH] ct
         WHERE ct.IsActive = 1
           AND NOT EXISTS (
@@ -1213,7 +1213,7 @@ BEGIN
         BEGIN
             INSERT INTO [dbo].[CreditTransactions_CYH]
             (DoctorId, CreditTypeId, TransactionType, CreditsChanged, BalanceBefore, BalanceAfter, ActionBy, Note, CreatedAt)
-            SELECT @DoctorId, ct.Id, 'SYSTEM_INIT', 0, 0, 0, 'System', 'Doctor account credit initialization at 0', SYSUTCDATETIME()
+            SELECT @DoctorId, ct.Id, 'SYSTEM_INIT', 0, 0, 0, 'System', 'Doctor account credit initialization at 0', DATEADD(minute, 330, SYSUTCDATETIME())
             FROM [dbo].[CreditTypes_CYH] ct
             WHERE ct.IsActive = 1;
         END
@@ -1268,13 +1268,13 @@ BEGIN
             INSERT INTO [dbo].[CreditTypes_CYH]
             (Name, Code, ServiceType, IsPaid, IsActive, Description, CreditCost, CreatedAt)
             VALUES
-            (@Name, @Code, ISNULL(@ServiceType, 'Free'), ISNULL(@IsPaid, 0), ISNULL(@IsActive, 1), @Description, ISNULL(@CreditCost, 1), SYSUTCDATETIME());
+            (@Name, @Code, ISNULL(@ServiceType, 'Free'), ISNULL(@IsPaid, 0), ISNULL(@IsActive, 1), @Description, ISNULL(@CreditCost, 1), DATEADD(minute, 330, SYSUTCDATETIME()));
 
             DECLARE @NewTypeId INT = SCOPE_IDENTITY();
 
             -- Auto add this new credit type to all existing doctors with 0
             INSERT INTO [dbo].[DoctorCredits_CYH] (DoctorId, CreditTypeId, TotalCredits, UsedCredits, IsActive, LastUpdatedAt)
-            SELECT d.Id, @NewTypeId, 0, 0, 1, SYSUTCDATETIME()
+            SELECT d.Id, @NewTypeId, 0, 0, 1, DATEADD(minute, 330, SYSUTCDATETIME())
             FROM [dbo].[DoctorProfiles] d
             WHERE NOT EXISTS (
                 SELECT 1 FROM [dbo].[DoctorCredits_CYH] dc WHERE dc.DoctorId = d.Id AND dc.CreditTypeId = @NewTypeId
@@ -1343,7 +1343,7 @@ BEGIN
         IF NOT EXISTS (SELECT 1 FROM [dbo].[DoctorCredits_CYH] WHERE DoctorId = @DoctorId AND CreditTypeId = @CreditTypeId)
         BEGIN
             INSERT INTO [dbo].[DoctorCredits_CYH] (DoctorId, CreditTypeId, TotalCredits, UsedCredits, IsActive, LastUpdatedAt)
-            VALUES (@DoctorId, @CreditTypeId, 0, 0, 1, SYSUTCDATETIME());
+            VALUES (@DoctorId, @CreditTypeId, 0, 0, 1, DATEADD(minute, 330, SYSUTCDATETIME()));
         END
 
         SELECT @CurrentTotal = TotalCredits, @CurrentUsed = UsedCredits
@@ -1357,13 +1357,13 @@ BEGIN
 
         UPDATE [dbo].[DoctorCredits_CYH]
         SET TotalCredits = @NewTotal,
-            LastUpdatedAt = SYSUTCDATETIME()
+            LastUpdatedAt = DATEADD(minute, 330, SYSUTCDATETIME())
         WHERE DoctorId = @DoctorId AND CreditTypeId = @CreditTypeId;
 
         INSERT INTO [dbo].[CreditTransactions_CYH]
         (DoctorId, CreditTypeId, TransactionType, CreditsChanged, BalanceBefore, BalanceAfter, ActionBy, Note, CreatedAt)
         VALUES
-        (@DoctorId, @CreditTypeId, @AdjustTxType, @Amount, @CurrentBalance, @NewBalance, ISNULL(@ActionBy, 'Admin'), @Note, SYSUTCDATETIME());
+        (@DoctorId, @CreditTypeId, @AdjustTxType, @Amount, @CurrentBalance, @NewBalance, ISNULL(@ActionBy, 'Admin'), @Note, DATEADD(minute, 330, SYSUTCDATETIME()));
 
         SET @OutSuccess = 1;
         SET @OutMessage = 'Credits updated successfully.';
@@ -1401,7 +1401,7 @@ BEGIN
         IF NOT EXISTS (SELECT 1 FROM [dbo].[DoctorCredits_CYH] WHERE DoctorId = @DoctorId AND CreditTypeId = @FoundTypeId)
         BEGIN
             INSERT INTO [dbo].[DoctorCredits_CYH] (DoctorId, CreditTypeId, TotalCredits, UsedCredits, IsActive, LastUpdatedAt)
-            VALUES (@DoctorId, @FoundTypeId, 0, 0, 1, SYSUTCDATETIME());
+            VALUES (@DoctorId, @FoundTypeId, 0, 0, 1, DATEADD(minute, 330, SYSUTCDATETIME()));
         END
 
         DECLARE @DocTotal INT = 0;
@@ -1438,13 +1438,13 @@ BEGIN
 
         UPDATE [dbo].[DoctorCredits_CYH]
         SET UsedCredits = @DocUsed,
-            LastUpdatedAt = SYSUTCDATETIME()
+            LastUpdatedAt = DATEADD(minute, 330, SYSUTCDATETIME())
         WHERE DoctorId = @DoctorId AND CreditTypeId = @FoundTypeId;
 
         INSERT INTO [dbo].[CreditTransactions_CYH]
         (DoctorId, CreditTypeId, TransactionType, CreditsChanged, BalanceBefore, BalanceAfter, ActionBy, ReferenceId, Note, CreatedAt)
         VALUES
-        (@DoctorId, @FoundTypeId, 'DEBIT_ON_PUBLISH', -@CreditCostToDeduct, @DocBalanceBefore, @DocBalanceAfter, ISNULL(@ActionBy, 'Doctor'), @ReferenceId, @Note, SYSUTCDATETIME());
+        (@DoctorId, @FoundTypeId, 'DEBIT_ON_PUBLISH', -@CreditCostToDeduct, @DocBalanceBefore, @DocBalanceAfter, ISNULL(@ActionBy, 'Doctor'), @ReferenceId, @Note, DATEADD(minute, 330, SYSUTCDATETIME()));
 
         SET @OutSuccess = 1;
         SET @OutMessage = 'Credit deducted successfully.';
@@ -1480,5 +1480,205 @@ BEGIN
           AND (@ToDate IS NULL OR t.CreatedAt <= @ToDate)
         ORDER BY t.CreatedAt DESC, t.Id DESC;
     END
+END
+GO
+
+
+-- ============================================================================
+-- 10. Manage Banner Schedules Procedure
+-- ============================================================================
+CREATE OR ALTER PROCEDURE dbo.ManageBannerSchedules_CYH
+    @Flag NVARCHAR(50),
+    @Id INT = NULL,
+    @BannerDesignId INT = NULL,
+    @DoctorId INT = NULL,
+    @UserId NVARCHAR(450) = NULL,
+    @DoctorName NVARCHAR(200) = NULL,
+    @HospitalName NVARCHAR(200) = NULL,
+    @BannerHeading NVARCHAR(500) = NULL,
+    @ImageUrl NVARCHAR(MAX) = NULL,
+    @Caption NVARCHAR(MAX) = NULL,
+    @Platforms NVARCHAR(200) = NULL,
+    @ScheduledAt DATETIME2(7) = NULL,
+    @Status NVARCHAR(50) = NULL,
+    @ErrorMessage NVARCHAR(MAX) = NULL,
+    @CreatedBy NVARCHAR(200) = NULL,
+    @ScheduleDetailId INT = NULL,
+    @Platform NVARCHAR(50) = NULL,
+    @TargetAccountName NVARCHAR(200) = NULL,
+    @TargetPageId NVARCHAR(200) = NULL,
+    @PlatformPostId NVARCHAR(200) = NULL,
+    @PostUrl NVARCHAR(MAX) = NULL,
+    @Search NVARCHAR(200) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- 1. Create schedule entry with initial details
+    IF @Flag = 'CREATE'
+    BEGIN
+        INSERT INTO [dbo].[BannerSchedules_CYH]
+        (BannerDesignId, DoctorId, UserId, DoctorName, HospitalName, BannerHeading, ImageUrl, Caption, Platforms, ScheduledAt, Status, ExecutionAttempts, CreatedAt, CreatedBy)
+        VALUES
+        (@BannerDesignId, @DoctorId, @UserId, @DoctorName, @HospitalName, @BannerHeading, @ImageUrl, @Caption, @Platforms, @ScheduledAt, 'Pending', 0, DATEADD(minute, 330, SYSUTCDATETIME()), @CreatedBy);
+
+        DECLARE @NewScheduleId INT = SCOPE_IDENTITY();
+        SELECT @NewScheduleId AS ResultId;
+    END
+
+    -- 2. Add Detail for Platform
+    ELSE IF @Flag = 'ADD_DETAIL'
+    BEGIN
+        INSERT INTO [dbo].[BannerScheduleDetails_CYH]
+        (BannerScheduleId, Platform, TargetAccountName, TargetPageId, Status)
+        VALUES
+        (@Id, @Platform, @TargetAccountName, @TargetPageId, 'Pending');
+
+        SELECT SCOPE_IDENTITY() AS ResultId;
+    END
+
+    -- 3. Get Due Schedules for Background Worker (Locking with 'Processing')
+    ELSE IF @Flag = 'GET_DUE_SCHEDULES'
+    BEGIN
+        DECLARE @DueList TABLE (Id INT);
+
+        UPDATE TOP (10) [dbo].[BannerSchedules_CYH]
+        SET Status = 'Processing',
+            LastExecutedAt = DATEADD(minute, 330, SYSUTCDATETIME()),
+            ExecutionAttempts = ExecutionAttempts + 1
+        OUTPUT inserted.Id INTO @DueList
+        WHERE Status = 'Pending' 
+          AND ScheduledAt <= DATEADD(minute, 330, SYSUTCDATETIME());
+
+        -- Return the main schedule records
+        SELECT s.Id, s.BannerDesignId, s.DoctorId, s.UserId, s.DoctorName, s.HospitalName,
+               s.BannerHeading, s.ImageUrl, s.Caption, s.Platforms, s.ScheduledAt,
+               s.Status, s.ExecutionAttempts, s.LastExecutedAt, s.ErrorMessage, s.CreatedAt, s.CreatedBy
+        FROM [dbo].[BannerSchedules_CYH] s
+        INNER JOIN @DueList d ON s.Id = d.Id;
+
+        -- Return details for those schedules
+        SELECT d.Id, d.BannerScheduleId, d.Platform, d.TargetAccountName, d.TargetPageId,
+               d.Status, d.PlatformPostId, d.PostUrl, d.ErrorMessage, d.PublishedAt
+        FROM [dbo].[BannerScheduleDetails_CYH] d
+        INNER JOIN @DueList dl ON d.BannerScheduleId = dl.Id;
+    END
+
+    -- 4. Update Detail Status (from publisher service)
+    ELSE IF @Flag = 'UPDATE_DETAIL_STATUS'
+    BEGIN
+        UPDATE [dbo].[BannerScheduleDetails_CYH]
+        SET Status = @Status,
+            PlatformPostId = ISNULL(@PlatformPostId, PlatformPostId),
+            PostUrl = ISNULL(@PostUrl, PostUrl),
+            ErrorMessage = @ErrorMessage,
+            PublishedAt = CASE WHEN @Status = 'Success' THEN DATEADD(minute, 330, SYSUTCDATETIME()) ELSE PublishedAt END
+        WHERE Id = @ScheduleDetailId;
+
+        SELECT @@ROWCOUNT AS RowsAffected;
+    END
+
+    -- 5. Mark Schedule Master Status
+    ELSE IF @Flag = 'UPDATE_SCHEDULE_STATUS'
+    BEGIN
+        UPDATE [dbo].[BannerSchedules_CYH]
+        SET Status = @Status,
+            ErrorMessage = @ErrorMessage,
+            LastExecutedAt = DATEADD(minute, 330, SYSUTCDATETIME())
+        WHERE Id = @Id;
+
+        SELECT @@ROWCOUNT AS RowsAffected;
+    END
+
+    -- 6. Get All Schedules for Admin (with search & filters)
+    ELSE IF @Flag = 'GET_ALL_ADMIN'
+    BEGIN
+        SELECT s.Id, s.BannerDesignId, s.DoctorId, s.UserId, s.DoctorName, s.HospitalName,
+               s.BannerHeading, s.ImageUrl, s.Caption, s.Platforms, s.ScheduledAt,
+               s.Status, s.ExecutionAttempts, s.LastExecutedAt, s.ErrorMessage, s.CreatedAt, s.CreatedBy
+        FROM [dbo].[BannerSchedules_CYH] s
+        WHERE (@DoctorId IS NULL OR s.DoctorId = @DoctorId)
+          AND (@Status IS NULL OR @Status = 'All' OR s.Status = @Status)
+          AND (@Search IS NULL OR s.DoctorName LIKE '%' + @Search + '%' OR s.BannerHeading LIKE '%' + @Search + '%' OR s.Caption LIKE '%' + @Search + '%')
+        ORDER BY s.ScheduledAt DESC, s.Id DESC;
+
+        SELECT d.Id, d.BannerScheduleId, d.Platform, d.TargetAccountName, d.TargetPageId,
+               d.Status, d.PlatformPostId, d.PostUrl, d.ErrorMessage, d.PublishedAt
+        FROM [dbo].[BannerScheduleDetails_CYH] d
+        ORDER BY d.Id ASC;
+    END
+
+    -- 7. Get Schedules by Doctor
+    ELSE IF @Flag = 'GET_BY_DOCTOR'
+    BEGIN
+        SELECT s.Id, s.BannerDesignId, s.DoctorId, s.UserId, s.DoctorName, s.HospitalName,
+               s.BannerHeading, s.ImageUrl, s.Caption, s.Platforms, s.ScheduledAt,
+               s.Status, s.ExecutionAttempts, s.LastExecutedAt, s.ErrorMessage, s.CreatedAt, s.CreatedBy
+        FROM [dbo].[BannerSchedules_CYH] s
+        WHERE (@DoctorId IS NOT NULL AND s.DoctorId = @DoctorId)
+           OR (@UserId IS NOT NULL AND s.UserId = @UserId)
+        ORDER BY s.ScheduledAt DESC, s.Id DESC;
+
+        SELECT d.Id, d.BannerScheduleId, d.Platform, d.TargetAccountName, d.TargetPageId,
+               d.Status, d.PlatformPostId, d.PostUrl, d.ErrorMessage, d.PublishedAt
+        FROM [dbo].[BannerScheduleDetails_CYH] d
+        INNER JOIN [dbo].[BannerSchedules_CYH] s ON d.BannerScheduleId = s.Id
+        WHERE (@DoctorId IS NOT NULL AND s.DoctorId = @DoctorId)
+           OR (@UserId IS NOT NULL AND s.UserId = @UserId)
+        ORDER BY d.Id ASC;
+    END
+
+    -- 8. Cancel Schedule
+    ELSE IF @Flag = 'CANCEL_SCHEDULE'
+    BEGIN
+        UPDATE [dbo].[BannerSchedules_CYH]
+        SET Status = 'Cancelled',
+            ErrorMessage = 'Cancelled by user/admin'
+        WHERE Id = @Id AND Status = 'Pending';
+
+        UPDATE [dbo].[BannerScheduleDetails_CYH]
+        SET Status = 'Cancelled'
+        WHERE BannerScheduleId = @Id AND Status = 'Pending';
+
+        SELECT @@ROWCOUNT AS RowsAffected;
+    END
+
+    -- 9. Retry Schedule
+    ELSE IF @Flag = 'RETRY_SCHEDULE'
+    BEGIN
+        UPDATE [dbo].[BannerSchedules_CYH]
+        SET Status = 'Pending',
+            ScheduledAt = DATEADD(minute, 330, SYSUTCDATETIME()),
+            ErrorMessage = NULL
+        WHERE Id = @Id;
+
+        UPDATE [dbo].[BannerScheduleDetails_CYH]
+        SET Status = 'Pending',
+            ErrorMessage = NULL
+        WHERE BannerScheduleId = @Id AND Status IN ('Failed', 'Cancelled');
+
+        SELECT @@ROWCOUNT AS RowsAffected;
+    END
+
+    -- 10. Delete Schedule
+    ELSE IF @Flag = 'DELETE'
+    BEGIN
+        DELETE FROM [dbo].[BannerScheduleDetails_CYH] WHERE BannerScheduleId = @Id;
+        DELETE FROM [dbo].[BannerSchedules_CYH] WHERE Id = @Id;
+
+        SELECT @@ROWCOUNT AS RowsAffected;
+    END
+END
+GO
+
+
+-- ============================================================================
+-- 11. Helper Function: Get Current Indian Standard Time (IST - UTC+05:30)
+-- ============================================================================
+CREATE OR ALTER FUNCTION dbo.GetIndianDateTime()
+RETURNS DATETIME2(7)
+AS
+BEGIN
+    RETURN DATEADD(minute, 330, SYSUTCDATETIME());
 END
 GO

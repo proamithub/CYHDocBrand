@@ -9,6 +9,7 @@
 @using Microsoft.Data.SqlClient
 @using CYHDocBrandRepo.Utilities
 @using CYHDocBrandModel.DTO
+@using CYHDocBrandModel.Common
 @using CYHDocBrandUI.Components.Common
 
 <div class="cyh-app-container">
@@ -35,6 +36,9 @@
                     <span class="d-none d-sm-inline">Hospital Central Command</span>
                     <span class="d-inline d-sm-none">Admin Console</span>
                 </span>
+
+                <!-- Live Running Server Time (Indian Standard Time) -->
+                <ServerTimeClock />
             </div>
 
             <!-- Top Right Admin Dropdown -->
@@ -542,7 +546,7 @@
                 INSERT INTO dbo.PasswordChangeHistory_CYH
                     (UserId, UserEmail, UserRole, IpAddress, City, Region, Country, Latitude, Longitude, LocationSummary, UserAgent, Remarks, ChangedAt)
                 VALUES
-                    (@UserId, @UserEmail, @UserRole, @IpAddress, @City, @Region, @Country, @Latitude, @Longitude, @LocationSummary, @UserAgent, @Remarks, SYSUTCDATETIME());", conn))
+                    (@UserId, @UserEmail, @UserRole, @IpAddress, @City, @Region, @Country, @Latitude, @Longitude, @LocationSummary, @UserAgent, @Remarks, DATEADD(minute, 330, SYSUTCDATETIME()));", conn))
             {
                 histCmd.Parameters.AddWithValue("@UserId", CurrentUser?.UserId ?? "admin-sys-01");
                 histCmd.Parameters.AddWithValue("@UserEmail", (object?)CurrentUser?.Email ?? DBNull.Value);

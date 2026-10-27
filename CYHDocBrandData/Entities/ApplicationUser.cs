@@ -1,3 +1,5 @@
+using CYHDocBrandModel.Common;
+
 namespace CYHDocBrandData.Entities;
 
 public class ApplicationUser
@@ -11,6 +13,6 @@ public class ApplicationUser
     public string? AvatarUrl { get; set; }
     public string? Department { get; set; }
     public string? Password { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = IndianTimeHelper.Now;
     public bool IsActive { get; set; } = true;
 }

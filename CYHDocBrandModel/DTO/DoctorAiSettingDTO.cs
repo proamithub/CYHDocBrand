@@ -1,3 +1,4 @@
+using CYHDocBrandModel.Common;
 namespace CYHDocBrandModel.DTO;
 
 public class DoctorAiSettingDTO
@@ -11,8 +12,8 @@ public class DoctorAiSettingDTO
     public string? ModelName { get; set; }
     public string? BaseUrl { get; set; }
     public bool IsActive { get; set; } = true;
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = IndianTimeHelper.Now;
+    public DateTime UpdatedAt { get; set; } = IndianTimeHelper.Now;
 
     // Helper display
     public string MaskedApiKey => string.IsNullOrWhiteSpace(ApiKey) 
