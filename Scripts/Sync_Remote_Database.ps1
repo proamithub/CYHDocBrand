@@ -94,6 +94,37 @@ try {
     Write-Host "Notice on PasswordChangeHistory_CYH: $($_.Exception.Message)" -ForegroundColor Yellow
 }
 
+# 4.1 Ensure DoctorPushSubscriptions_CYH Table Exists
+Write-Host "`nEnsuring [DoctorPushSubscriptions_CYH] table is up to date..." -ForegroundColor Cyan
+try {
+    $ensurePushSql = @"
+    IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[DoctorPushSubscriptions_CYH]') AND type in (N'U'))
+    BEGIN
+        CREATE TABLE [dbo].[DoctorPushSubscriptions_CYH] (
+            [Id]           INT IDENTITY(1,1) NOT NULL,
+            [DoctorId]     INT               NULL,
+            [UserId]       NVARCHAR(450)     NULL,
+            [Endpoint]     NVARCHAR(MAX)     NOT NULL,
+            [P256dh]       NVARCHAR(500)     NOT NULL,
+            [Auth]         NVARCHAR(500)     NOT NULL,
+            [UserAgent]    NVARCHAR(500)     NULL,
+            [CreatedAt]    DATETIME2(7)      NOT NULL DEFAULT (DATEADD(minute, 330, SYSUTCDATETIME())),
+            [LastActiveAt] DATETIME2(7)      NOT NULL DEFAULT (DATEADD(minute, 330, SYSUTCDATETIME())),
+            CONSTRAINT [PK_DoctorPushSubscriptions_CYH] PRIMARY KEY CLUSTERED ([Id] ASC)
+        );
+        CREATE NONCLUSTERED INDEX [IX_DoctorPush_DoctorId] ON [dbo].[DoctorPushSubscriptions_CYH]([DoctorId]);
+        CREATE NONCLUSTERED INDEX [IX_DoctorPush_UserId] ON [dbo].[DoctorPushSubscriptions_CYH]([UserId]);
+    END
+"@
+    $cmdPush = $con.CreateCommand()
+    $cmdPush.CommandText = $ensurePushSql
+    $cmdPush.ExecuteNonQuery() | Out-Null
+    $cmdPush.Dispose()
+    Write-Host "[DoctorPushSubscriptions_CYH] table verified/updated!" -ForegroundColor Green
+} catch {
+    Write-Host "Notice on DoctorPushSubscriptions_CYH: $($_.Exception.Message)" -ForegroundColor Yellow
+}
+
 # 5. Seed Initial Data
 Write-Host "`nSeeding Default Admin & Doctor accounts..." -ForegroundColor Cyan
 try {

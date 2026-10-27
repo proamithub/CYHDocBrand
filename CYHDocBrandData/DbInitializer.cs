@@ -16,9 +16,9 @@ public static class DbInitializer
             // ⚡ Fast-path check: If primary tables are already created, skip 2,000-line remote DDL scripts on every boot
             await using (var checkCmd = con.CreateCommand())
             {
-                checkCmd.CommandText = "SELECT COUNT(1) FROM sys.tables WHERE name IN ('BannerDesigns_CYH', 'BannerTemplates_CYH', 'BannerSchedules_CYH', 'CreditTypes_CYH', 'DoctorSocialAccounts_CYH')";
+                checkCmd.CommandText = "SELECT COUNT(1) FROM sys.tables WHERE name IN ('BannerDesigns_CYH', 'BannerTemplates_CYH', 'BannerSchedules_CYH', 'CreditTypes_CYH', 'DoctorSocialAccounts_CYH', 'DoctorPushSubscriptions_CYH')";
                 var existingCount = Convert.ToInt32(await checkCmd.ExecuteScalarAsync());
-                if (existingCount >= 5)
+                if (existingCount >= 6)
                 {
                     logger?.LogInformation("⚡ Fast-Path: Core database tables already verified in {Db}. Skipping repetitive DDL scripts for ultra-fast startup.", con.Database);
                     return;
@@ -292,6 +292,25 @@ public static class DbInitializer
                         CONSTRAINT [FK_BannerScheduleDetails_Master] FOREIGN KEY ([BannerScheduleId]) REFERENCES [dbo].[BannerSchedules_CYH]([Id]) ON DELETE CASCADE
                     );
                     CREATE NONCLUSTERED INDEX [IX_BannerScheduleDetails_ScheduleId] ON [dbo].[BannerScheduleDetails_CYH]([BannerScheduleId]);
+                END
+
+                -- Web Push Subscriptions Table
+                IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[DoctorPushSubscriptions_CYH]') AND type in (N'U'))
+                BEGIN
+                    CREATE TABLE [dbo].[DoctorPushSubscriptions_CYH] (
+                        [Id]           INT IDENTITY(1,1) NOT NULL,
+                        [DoctorId]     INT               NULL,
+                        [UserId]       NVARCHAR(450)     NULL,
+                        [Endpoint]     NVARCHAR(MAX)     NOT NULL,
+                        [P256dh]       NVARCHAR(500)     NOT NULL,
+                        [Auth]         NVARCHAR(500)     NOT NULL,
+                        [UserAgent]    NVARCHAR(500)     NULL,
+                        [CreatedAt]    DATETIME2(7)      NOT NULL DEFAULT (DATEADD(minute, 330, SYSUTCDATETIME())),
+                        [LastActiveAt] DATETIME2(7)      NOT NULL DEFAULT (DATEADD(minute, 330, SYSUTCDATETIME())),
+                        CONSTRAINT [PK_DoctorPushSubscriptions_CYH] PRIMARY KEY CLUSTERED ([Id] ASC)
+                    );
+                    CREATE NONCLUSTERED INDEX [IX_DoctorPush_DoctorId] ON [dbo].[DoctorPushSubscriptions_CYH]([DoctorId]);
+                    CREATE NONCLUSTERED INDEX [IX_DoctorPush_UserId] ON [dbo].[DoctorPushSubscriptions_CYH]([UserId]);
                 END";
 
             await using (var cmdTable = new SqlCommand(createTableSql, con))
