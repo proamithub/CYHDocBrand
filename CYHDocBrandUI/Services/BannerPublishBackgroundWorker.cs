@@ -6,11 +6,16 @@ using CYHDocBrandRepo.IRepository;
 
 namespace CYHDocBrandUI.Services;
 
+/// <summary>
+/// 100% Without-API Background Scheduler Worker.
+/// Detects when a banner schedule has reached its scheduled time, transitions the status to ReadyToShare,
+/// and cues up instant notifications and 1-click sharing (WhatsApp, Facebook, Instagram) for the doctor.
+/// </summary>
 public class BannerPublishBackgroundWorker : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<BannerPublishBackgroundWorker> _logger;
-    private readonly TimeSpan _checkInterval = TimeSpan.FromSeconds(30);
+    private readonly TimeSpan _checkInterval = TimeSpan.FromSeconds(25);
 
     public BannerPublishBackgroundWorker(IServiceProvider serviceProvider, ILogger<BannerPublishBackgroundWorker> logger)
     {
@@ -20,7 +25,7 @@ public class BannerPublishBackgroundWorker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("🚀 CYH Banner Publish Background Worker started. Checking due schedules every {Interval}s.", _checkInterval.TotalSeconds);
+        _logger.LogInformation("🚀 CYH Banner Scheduler Background Worker started. Checking due schedules every {Interval}s.", _checkInterval.TotalSeconds);
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -30,7 +35,7 @@ public class BannerPublishBackgroundWorker : BackgroundService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unexpected error in Banner Publish Background Worker loop.");
+                _logger.LogError(ex, "Unexpected error in Banner Scheduler Background Worker loop.");
             }
 
             try
@@ -43,15 +48,13 @@ public class BannerPublishBackgroundWorker : BackgroundService
             }
         }
 
-        _logger.LogInformation("🛑 CYH Banner Publish Background Worker stopped.");
+        _logger.LogInformation("🛑 CYH Banner Scheduler Background Worker stopped.");
     }
 
     private async Task ProcessDueSchedulesAsync(CancellationToken cancellationToken)
     {
         using var scope = _serviceProvider.CreateScope();
         var scheduleRepo = scope.ServiceProvider.GetRequiredService<IBannerScheduleRepository>();
-        var socialRepo = scope.ServiceProvider.GetRequiredService<ISocialAccountRepository>();
-        var publisher = scope.ServiceProvider.GetRequiredService<ISocialMediaPublisherService>();
 
         var dueSchedules = await scheduleRepo.GetDueSchedulesAsync();
         if (dueSchedules == null || dueSchedules.Count == 0)
@@ -59,74 +62,20 @@ public class BannerPublishBackgroundWorker : BackgroundService
             return;
         }
 
-        _logger.LogInformation("Found {Count} due banner schedule(s) to publish.", dueSchedules.Count);
+        _logger.LogInformation("Found {Count} due banner schedule(s) for 1-Click popup sharing & reminder.", dueSchedules.Count);
 
         foreach (var schedule in dueSchedules)
         {
             if (cancellationToken.IsCancellationRequested) break;
 
-            var doctorAccounts = await socialRepo.GetByDoctorAsync(schedule.DoctorId, schedule.UserId);
-            int successCount = 0;
-            int failedCount = 0;
-            var failureMessages = new List<string>();
-
             foreach (var detail in schedule.Details)
             {
-                // Find account matching platform
-                var account = doctorAccounts.FirstOrDefault(a => 
-                    a.IsActive && a.Platform.Equals(detail.Platform, StringComparison.OrdinalIgnoreCase));
-
-                if (account == null)
-                {
-                    // 1-Click Reminder Mode (WhatsApp / Popup without direct API token)
-                    // Notification & 1-click sharing are handled by MainLayout for the doctor.
-                    var msg = $"{detail.Platform}: 1-Click popup reminder ready.";
-                    await scheduleRepo.UpdateDetailStatusAsync(detail.Id, "ReadyToShare", null, null, msg);
-                    successCount++;
-                    _logger.LogInformation("Schedule #{Id} platform {Platform} queued for 1-Click Reminder.", schedule.Id, detail.Platform);
-                    continue;
-                }
-
-                // Call Social Media Publisher
-                var result = await publisher.PublishBannerAsync(account, schedule.ImageUrl, schedule.Caption);
-
-                if (result.IsSuccess)
-                {
-                    successCount++;
-                    await scheduleRepo.UpdateDetailStatusAsync(detail.Id, "Success", result.PlatformPostId, result.PostUrl, null);
-                    _logger.LogInformation("Successfully published Schedule #{Id} to {Platform}: {PostUrl}", schedule.Id, detail.Platform, result.PostUrl);
-                }
-                else
-                {
-                    failedCount++;
-                    var errMsg = result.ErrorMessage ?? "Publishing failed.";
-                    failureMessages.Add($"{detail.Platform}: {errMsg}");
-                    await scheduleRepo.UpdateDetailStatusAsync(detail.Id, "Failed", null, null, errMsg);
-                    _logger.LogWarning("Failed to publish Schedule #{Id} to {Platform}: {Error}", schedule.Id, detail.Platform, errMsg);
-                }
+                await scheduleRepo.UpdateDetailStatusAsync(detail.Id, "ReadyToShare", null, null, "Ready for 1-Click Share");
             }
 
-            // Determine Master Schedule Status
-            string finalStatus;
-            string? combinedError = null;
-
-            if (failedCount == 0 && successCount > 0)
-            {
-                var allDirectApi = schedule.Details.All(d => doctorAccounts.Any(a => a.IsActive && a.Platform.Equals(d.Platform, StringComparison.OrdinalIgnoreCase)));
-                finalStatus = allDirectApi ? "Success" : "ReadyToShare";
-            }
-            else if (successCount > 0 && failedCount > 0)
-            {
-                finalStatus = "Partial";
-                combinedError = string.Join("; ", failureMessages);
-            }
-            else
-            {
-                finalStatus = "Failed";
-                combinedError = string.Join("; ", failureMessages);
-            }
-
-            await scheduleRepo.UpdateScheduleStatusAsync(schedule.Id, finalStatus, combinedError);
+            await scheduleRepo.UpdateScheduleStatusAsync(schedule.Id, "ReadyToShare", null);
+            _logger.LogInformation("Schedule #{Id} ('{Heading}') is now ReadyToShare on {Platforms} for Dr. {DoctorName}.", 
+                schedule.Id, schedule.BannerHeading, schedule.Platforms, schedule.DoctorName);
         }
     }
 }

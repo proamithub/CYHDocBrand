@@ -205,30 +205,39 @@
 
                     <!-- 1-Click Action Buttons -->
                     <div class="mb-2">
-                        <label class="form-label text-secondary small fw-bold mb-2">SEND / PUBLISH NOW (Bina kisi API key ke direct open hoga):</label>
+                        <label class="form-label text-secondary small fw-bold mb-2">1-CLICK SHARE NOW (Bina kisi API key ke direct open hoga):</label>
                         <div class="d-grid gap-2">
                             <!-- WhatsApp 1-Click Send -->
                             <button type="button" class="btn btn-success py-3 px-4 fw-bold fs-6 d-flex align-items-center justify-content-center gap-2 rounded-3 shadow"
                                     @onclick="() => TriggerWhatsAppShare(activeShareModalSchedule)" style="background: linear-gradient(135deg, #25d366 0%, #128c7e 100%); border: none; color: #ffffff;">
                                 <i class="bi bi-whatsapp fs-4"></i>
-                                <span>Send on WhatsApp (WhatsApp Web / App 1-Click)</span>
+                                <span>Send on WhatsApp (1-Click Web / App)</span>
                             </button>
 
                             <div class="row g-2 mt-1">
                                 <!-- Facebook Share -->
-                                <div class="col-md-6 col-12">
+                                <div class="col-md-4 col-12">
                                     <button type="button" class="btn btn-primary w-100 py-2 d-flex align-items-center justify-content-center gap-2 rounded-3 fw-semibold"
                                             @onclick="() => TriggerFacebookShare(activeShareModalSchedule)" style="background: #1877f2; border: none;">
                                         <i class="bi bi-facebook fs-5"></i>
-                                        <span>Share to Facebook</span>
+                                        <span>Facebook</span>
                                     </button>
                                 </div>
-                                <!-- LinkedIn Share -->
-                                <div class="col-md-6 col-12">
+                                <!-- Instagram Share (Download & Open) -->
+                                <div class="col-md-4 col-12">
+                                    <button type="button" class="btn w-100 py-2 d-flex align-items-center justify-content-center gap-2 rounded-3 fw-semibold text-white"
+                                            @onclick="() => TriggerInstagramShare(activeShareModalSchedule)" 
+                                            style="background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%); border: none;">
+                                        <i class="bi bi-instagram fs-5"></i>
+                                        <span>Instagram</span>
+                                    </button>
+                                </div>
+                                <!-- Twitter / X Share -->
+                                <div class="col-md-4 col-12">
                                     <button type="button" class="btn btn-outline-light w-100 py-2 d-flex align-items-center justify-content-center gap-2 rounded-3 fw-semibold"
-                                            @onclick="() => TriggerLinkedInShare(activeShareModalSchedule)" style="border-color: rgba(10, 102, 194, 0.7); color: #38bdf8;">
-                                        <i class="bi bi-linkedin fs-5"></i>
-                                        <span>Share to LinkedIn</span>
+                                            @onclick="() => TriggerTwitterShare(activeShareModalSchedule)" style="border-color: rgba(255, 255, 255, 0.4);">
+                                        <i class="bi bi-twitter-x fs-5"></i>
+                                        <span>Twitter / X</span>
                                     </button>
                                 </div>
                             </div>
@@ -400,6 +409,18 @@
     private async Task TriggerLinkedInShare(BannerScheduleDTO schedule)
     {
         await JSRuntime.InvokeVoidAsync("cyhSocial.openLinkedInShare", schedule.ImageUrl);
+    }
+
+    private async Task TriggerInstagramShare(BannerScheduleDTO schedule)
+    {
+        var caption = $"{schedule.BannerHeading}\n\n{schedule.Caption}";
+        await JSRuntime.InvokeVoidAsync("cyhSocial.openInstagram", caption, schedule.ImageUrl);
+    }
+
+    private async Task TriggerTwitterShare(BannerScheduleDTO schedule)
+    {
+        var text = $"{schedule.BannerHeading}\n\n{schedule.Caption}";
+        await JSRuntime.InvokeVoidAsync("cyhSocial.openTwitterShare", text, schedule.ImageUrl);
     }
 
     private async Task CopyCaptionText()

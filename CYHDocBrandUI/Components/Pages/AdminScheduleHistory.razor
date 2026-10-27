@@ -354,6 +354,14 @@
                                         <i class="bi bi-whatsapp"></i>
                                     </button>
 
+                                    <button type="button" class="btn btn-outline-primary btn-sm px-2 py-1" @onclick="() => ShareToFacebook(item)" title="Share to Facebook (1-Click)">
+                                        <i class="bi bi-facebook"></i>
+                                    </button>
+
+                                    <button type="button" class="btn btn-outline-danger btn-sm px-2 py-1" @onclick="() => ShareToInstagram(item)" title="Download &amp; Copy for Instagram">
+                                        <i class="bi bi-instagram"></i>
+                                    </button>
+
                                     <button type="button" class="btn btn-outline-info btn-sm px-2 py-1" @onclick="() => OpenImagePreview(item)" title="Preview Banner Photo">
                                         <i class="bi bi-eye"></i>
                                     </button>
@@ -543,6 +551,24 @@
         await JSRuntime.InvokeVoidAsync("cyhSocial.openWhatsApp", "", message);
         await ScheduleRepo.UpdateScheduleStatusAsync(item.Id, "Success", null);
         ShowSuccess("Opened WhatsApp", "Banner details have been sent to WhatsApp!");
+        await RefreshDataAsync();
+    }
+
+    private async Task ShareToFacebook(BannerScheduleDTO item)
+    {
+        var quote = $"{item.BannerHeading}\n\n{item.Caption}";
+        await JSRuntime.InvokeVoidAsync("cyhSocial.openFacebookShare", item.ImageUrl, quote);
+        await ScheduleRepo.UpdateScheduleStatusAsync(item.Id, "Success", null);
+        ShowSuccess("Opened Facebook", "Facebook share window opened!");
+        await RefreshDataAsync();
+    }
+
+    private async Task ShareToInstagram(BannerScheduleDTO item)
+    {
+        var text = $"{item.BannerHeading}\n\n{item.Caption}";
+        await JSRuntime.InvokeVoidAsync("cyhSocial.openInstagram", text, item.ImageUrl);
+        await ScheduleRepo.UpdateScheduleStatusAsync(item.Id, "Success", null);
+        ShowSuccess("Opened Instagram", "Caption copied and banner downloading for Instagram!");
         await RefreshDataAsync();
     }
 

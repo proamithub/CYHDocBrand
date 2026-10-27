@@ -37,7 +37,6 @@ builder.Services.AddMemoryCache();
 builder.Services.AddScoped<ISMSService, SMSService>();
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 builder.Services.AddScoped<IBannerAiService, BannerAiService>();
-builder.Services.AddScoped<ISocialMediaPublisherService, SocialMediaPublisherService>();
 builder.Services.AddHostedService<BannerPublishBackgroundWorker>();
 
 // 5. Performance Optimizations (Compression & SignalR Speed)

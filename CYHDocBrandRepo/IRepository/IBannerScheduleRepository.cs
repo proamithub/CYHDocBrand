@@ -4,7 +4,8 @@ namespace CYHDocBrandRepo.IRepository;
 
 public interface IBannerScheduleRepository
 {
-    Task<int> CreateScheduleAsync(CreateBannerScheduleRequest request, List<DoctorSocialAccountDTO> targetAccounts, string? createdBy);
+    Task<int> CreateScheduleAsync(CreateBannerScheduleRequest request, string? createdBy);
+    Task<int> CreateScheduleAsync(CreateBannerScheduleRequest request, List<DoctorSocialAccountDTO>? targetAccounts, string? createdBy);
     Task<List<BannerScheduleDTO>> GetDueSchedulesAsync();
     Task<bool> UpdateDetailStatusAsync(int detailId, string status, string? platformPostId, string? postUrl, string? errorMessage);
     Task<bool> UpdateScheduleStatusAsync(int scheduleId, string status, string? errorMessage);

@@ -19,7 +19,12 @@ public class BannerScheduleRepository : IBannerScheduleRepository
         _logger = logger;
     }
 
-    public async Task<int> CreateScheduleAsync(CreateBannerScheduleRequest request, List<DoctorSocialAccountDTO> targetAccounts, string? createdBy)
+    public async Task<int> CreateScheduleAsync(CreateBannerScheduleRequest request, string? createdBy)
+    {
+        return await CreateScheduleAsync(request, null, createdBy);
+    }
+
+    public async Task<int> CreateScheduleAsync(CreateBannerScheduleRequest request, List<DoctorSocialAccountDTO>? targetAccounts, string? createdBy)
     {
         try
         {
@@ -53,7 +58,7 @@ public class BannerScheduleRepository : IBannerScheduleRepository
             // 2. Insert schedule detail for each targeted platform
             foreach (var platform in request.SelectedPlatforms)
             {
-                var account = targetAccounts.FirstOrDefault(a => a.Platform.Equals(platform, StringComparison.OrdinalIgnoreCase));
+                var account = targetAccounts?.FirstOrDefault(a => a.Platform.Equals(platform, StringComparison.OrdinalIgnoreCase));
                 
                 await using var cmdDetail = new SqlCommand("ManageBannerSchedules_CYH", con);
                 cmdDetail.CommandType = CommandType.StoredProcedure;

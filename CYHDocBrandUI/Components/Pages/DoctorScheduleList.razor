@@ -34,10 +34,6 @@
         </div>
 
         <div class="d-flex flex-wrap gap-2">
-            <NavLink href="doctor/social-connections" class="btn btn-outline-info d-flex align-items-center gap-2 px-3 py-2" style="border-radius: 10px;">
-                <i class="bi bi-gear-fill"></i>
-                <span>Social Accounts</span>
-            </NavLink>
             <NavLink href="banner-designs" class="btn btn-info d-flex align-items-center gap-2 px-4 py-2 fw-bold" style="background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); border: none; border-radius: 10px; color: #070d1e;">
                 <i class="bi bi-plus-lg fs-6"></i>
                 <span>Schedule New Banner</span>
@@ -278,25 +274,35 @@
                             </div>
                         </div>
 
-                        <!-- 5. Actions (WhatsApp, Delete, Links) -->
+                        <!-- 5. Actions (WhatsApp, Facebook, Instagram, Delete) -->
                         <div class="col-12 col-xl-auto d-flex flex-wrap flex-md-column align-items-stretch justify-content-center gap-2 ms-xl-auto">
                             <!-- Send on WhatsApp (1-Click) -->
                             <button type="button" class="btn btn-success btn-sm py-2 px-3 fw-bold d-flex align-items-center justify-content-center gap-2 shadow-sm"
                                     @onclick="() => SendDirectWhatsApp(item)" 
                                     style="background: linear-gradient(135deg, #25d366 0%, #128c7e 100%); border: none; color: #ffffff; border-radius: 9px;"
-                                    title="WhatsApp Web / App popup me turant send karein">
+                                    title="WhatsApp popup me turant share karein">
                                 <i class="bi bi-whatsapp fs-6"></i>
-                                <span>Send WhatsApp</span>
+                                <span>WhatsApp</span>
                             </button>
 
-                            <!-- View Post Links if available -->
-                            @foreach (var d in item.Details.Where(d => !string.IsNullOrEmpty(d.PostUrl)))
-                            {
-                                <a href="@d.PostUrl" target="_blank" class="btn btn-outline-info btn-sm py-1 px-2 d-flex align-items-center justify-content-center gap-1" style="font-size: 0.78rem; border-radius: 8px;">
-                                    <i class="bi bi-box-arrow-up-right"></i>
-                                    <span>View on @d.Platform</span>
-                                </a>
-                            }
+                            <div class="d-flex gap-1">
+                                <!-- Facebook 1-Click -->
+                                <button type="button" class="btn btn-primary btn-sm flex-grow-1 py-1 px-2 fw-semibold d-flex align-items-center justify-content-center gap-1"
+                                        @onclick="() => ShareToFacebook(item)" style="background: #1877f2; border: none; border-radius: 8px; font-size: 0.8rem;"
+                                        title="Facebook par share karein">
+                                    <i class="bi bi-facebook"></i>
+                                    <span>Facebook</span>
+                                </button>
+
+                                <!-- Instagram 1-Click -->
+                                <button type="button" class="btn btn-sm flex-grow-1 py-1 px-2 fw-semibold text-white d-flex align-items-center justify-content-center gap-1"
+                                        @onclick="() => ShareToInstagram(item)" 
+                                        style="background: linear-gradient(45deg, #f09433 0%, #dc2743 50%, #bc1888 100%); border: none; border-radius: 8px; font-size: 0.8rem;"
+                                        title="Download & Copy for Instagram">
+                                    <i class="bi bi-instagram"></i>
+                                    <span>Instagram</span>
+                                </button>
+                            </div>
 
                             <!-- Retry if Failed -->
                             @if (item.Status == "Failed")
@@ -304,14 +310,14 @@
                                 <button type="button" class="btn btn-warning btn-sm py-1 px-3 fw-semibold d-flex align-items-center justify-content-center gap-1" 
                                         @onclick="() => RetrySchedule(item.Id)" style="border-radius: 8px;">
                                     <i class="bi bi-arrow-clockwise"></i>
-                                    <span>Retry Publish</span>
+                                    <span>Retry</span>
                                 </button>
                             }
 
                             <!-- DELETE SCHEDULE BUTTON (Send se pehle ya kabhi bhi delete karein) -->
-                            <button type="button" class="btn btn-outline-danger btn-sm py-2 px-3 fw-semibold d-flex align-items-center justify-content-center gap-2"
+                            <button type="button" class="btn btn-outline-danger btn-sm py-1 px-3 fw-semibold d-flex align-items-center justify-content-center gap-2"
                                     @onclick="() => PromptDelete(item)" 
-                                    style="border-color: rgba(239, 68, 68, 0.45); border-radius: 9px; background: rgba(239, 68, 68, 0.08);"
+                                    style="border-color: rgba(239, 68, 68, 0.45); border-radius: 8px; background: rgba(239, 68, 68, 0.08); font-size: 0.82rem;"
                                     title="Send hone se pehle schedule ko queue se delete karein">
                                 <i class="bi bi-trash3-fill"></i>
                                 <span>Delete Schedule</span>
@@ -543,6 +549,24 @@
         await JSRuntime.InvokeVoidAsync("cyhSocial.openWhatsApp", "", message);
         await ScheduleRepo.UpdateScheduleStatusAsync(item.Id, "Success", null);
         ShowSuccess("Opened WhatsApp", "Banner details WhatsApp par send karne ke liye taiyaar hain!");
+        await LoadSchedulesAsync();
+    }
+
+    private async Task ShareToFacebook(BannerScheduleDTO item)
+    {
+        var quote = $"{item.BannerHeading}\n\n{item.Caption}";
+        await JSRuntime.InvokeVoidAsync("cyhSocial.openFacebookShare", item.ImageUrl, quote);
+        await ScheduleRepo.UpdateScheduleStatusAsync(item.Id, "Success", null);
+        ShowSuccess("Opened Facebook", "Facebook share window khul gaya hai!");
+        await LoadSchedulesAsync();
+    }
+
+    private async Task ShareToInstagram(BannerScheduleDTO item)
+    {
+        var text = $"{item.BannerHeading}\n\n{item.Caption}";
+        await JSRuntime.InvokeVoidAsync("cyhSocial.openInstagram", text, item.ImageUrl);
+        await ScheduleRepo.UpdateScheduleStatusAsync(item.Id, "Success", null);
+        ShowSuccess("Opened Instagram", "Caption copy ho gaya hai aur banner download ho raha hai!");
         await LoadSchedulesAsync();
     }
 
