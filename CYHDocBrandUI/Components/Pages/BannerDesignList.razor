@@ -532,14 +532,143 @@
                             </div>
                         </div>
 
-                        <!-- Date & Time Picker -->
-                        <div class="mb-4">
-                            <label class="form-label text-white fw-bold small mb-2">
-                                <i class="bi bi-clock-fill me-1 text-info"></i> Schedule Date &amp; Time
-                            </label>
-                            <input type="datetime-local" class="form-control bg-dark text-white border-secondary" @bind="scheduleDateTime" />
-                            <div class="text-secondary small mt-1">
-                                System background worker is time par automatically banner post karega.
+                        <!-- Modern Schedule Date & Time Picker Card -->
+                        <div class="mb-4 p-3 rounded-3" style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(0, 242, 254, 0.25);">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label text-white fw-bold small mb-0 d-flex align-items-center gap-2">
+                                    <i class="bi bi-calendar2-week-fill text-info fs-5"></i>
+                                    <span>Schedule Date &amp; Time</span>
+                                </label>
+                                <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-2 py-1" style="font-size: 0.7rem;">
+                                    Auto-Publish Timer
+                                </span>
+                            </div>
+
+                            <!-- Quick 1-Click Smart Presets -->
+                            <div class="mb-3">
+                                <span class="text-secondary small d-block mb-1 fw-semibold" style="font-size: 0.72rem; letter-spacing: 0.4px;">
+                                    ⚡ QUICK PRESETS (1-Click me chunein)
+                                </span>
+                                <div class="d-flex flex-wrap gap-1">
+                                    <button type="button" class="btn btn-sm @(selectedPreset == "+1h" ? "btn-info text-dark fw-bold" : "btn-outline-secondary text-light") py-1 px-2" style="font-size: 0.78rem; border-radius: 6px;" @onclick='() => SetPreset("+1h")'>
+                                        <i class="bi bi-lightning-charge-fill text-warning me-1"></i>+1 Ghanta
+                                    </button>
+                                    <button type="button" class="btn btn-sm @(selectedPreset == "today_evening" ? "btn-info text-dark fw-bold" : "btn-outline-secondary text-light") py-1 px-2" style="font-size: 0.78rem; border-radius: 6px;" @onclick='() => SetPreset("today_evening")'>
+                                        <i class="bi bi-sunset-fill text-warning me-1"></i>Aaj Sham 6 PM
+                                    </button>
+                                    <button type="button" class="btn btn-sm @(selectedPreset == "today_night" ? "btn-info text-dark fw-bold" : "btn-outline-secondary text-light") py-1 px-2" style="font-size: 0.78rem; border-radius: 6px;" @onclick='() => SetPreset("today_night")'>
+                                        <i class="bi bi-moon-stars-fill text-info me-1"></i>Aaj Raat 9 PM
+                                    </button>
+                                    <button type="button" class="btn btn-sm @(selectedPreset == "tomorrow_morning" ? "btn-info text-dark fw-bold" : "btn-outline-secondary text-light") py-1 px-2" style="font-size: 0.78rem; border-radius: 6px;" @onclick='() => SetPreset("tomorrow_morning")'>
+                                        <i class="bi bi-sunrise-fill text-warning me-1"></i>Kal Subah 9 AM
+                                    </button>
+                                    <button type="button" class="btn btn-sm @(selectedPreset == "tomorrow_evening" ? "btn-info text-dark fw-bold" : "btn-outline-secondary text-light") py-1 px-2" style="font-size: 0.78rem; border-radius: 6px;" @onclick='() => SetPreset("tomorrow_evening")'>
+                                        <i class="bi bi-sunset-fill text-danger me-1"></i>Kal Sham 7 PM
+                                    </button>
+                                    <button type="button" class="btn btn-sm @(selectedPreset == "day_after_morning" ? "btn-info text-dark fw-bold" : "btn-outline-secondary text-light") py-1 px-2" style="font-size: 0.78rem; border-radius: 6px;" @onclick='() => SetPreset("day_after_morning")'>
+                                        <i class="bi bi-calendar-event me-1"></i>Parso 10 AM
+                                    </button>
+                                    <button type="button" class="btn btn-sm @(selectedPreset == "sunday_morning" ? "btn-info text-dark fw-bold" : "btn-outline-secondary text-light") py-1 px-2" style="font-size: 0.78rem; border-radius: 6px;" @onclick='() => SetPreset("sunday_morning")'>
+                                        <i class="bi bi-stars text-warning me-1"></i>Sunday 10 AM
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Interactive Visual Date & Time Selector -->
+                            <div class="row g-2 mb-3">
+                                <!-- Date Column -->
+                                <div class="col-12 col-md-6">
+                                    <label class="text-secondary small fw-semibold mb-1 d-flex justify-content-between">
+                                        <span><i class="bi bi-calendar-date me-1 text-info"></i>Select Date</span>
+                                        <span class="text-info fw-bold">@scheduleDateTime.ToString("ddd, dd MMM yyyy")</span>
+                                    </label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-dark border-secondary text-info"><i class="bi bi-calendar3"></i></span>
+                                        <input type="date" class="form-control bg-dark text-white border-secondary fw-semibold" 
+                                               min="@DateTime.Today.ToString("yyyy-MM-dd")" 
+                                               value="@scheduleDateTime.ToString("yyyy-MM-dd")" 
+                                               @onchange="OnDateInputChanged" />
+                                    </div>
+                                    <!-- Quick Date Chips -->
+                                    <div class="d-flex gap-1 mt-1">
+                                        <button type="button" class="btn btn-sm py-0 px-2 small @(scheduleDateTime.Date == DateTime.Today ? "btn-info text-dark fw-bold" : "btn-outline-secondary text-muted")" style="font-size: 0.7rem;" @onclick="SetDateToday">Aaj</button>
+                                        <button type="button" class="btn btn-sm py-0 px-2 small @(scheduleDateTime.Date == DateTime.Today.AddDays(1) ? "btn-info text-dark fw-bold" : "btn-outline-secondary text-muted")" style="font-size: 0.7rem;" @onclick="SetDateTomorrow">Kal</button>
+                                        <button type="button" class="btn btn-sm py-0 px-2 small @(scheduleDateTime.Date == DateTime.Today.AddDays(2) ? "btn-info text-dark fw-bold" : "btn-outline-secondary text-muted")" style="font-size: 0.7rem;" @onclick="SetDateDayAfter">Parso</button>
+                                    </div>
+                                </div>
+
+                                <!-- Time Column (Hour, Minute, AM/PM) -->
+                                <div class="col-12 col-md-6">
+                                    <label class="text-secondary small fw-semibold mb-1 d-flex justify-content-between">
+                                        <span><i class="bi bi-clock me-1 text-warning"></i>Select Time</span>
+                                        <span class="text-warning fw-bold">@scheduleDateTime.ToString("hh:mm tt")</span>
+                                    </label>
+                                    <div class="d-flex gap-1">
+                                        <!-- Hour -->
+                                        <select class="form-select form-select-sm bg-dark text-white border-secondary fw-bold text-center" 
+                                                value="@scheduleHour12" @onchange="OnHourChanged">
+                                            @for (int h = 1; h <= 12; h++)
+                                            {
+                                                <option value="@h">@(h.ToString("D2"))</option>
+                                            }
+                                        </select>
+                                        <span class="text-white align-self-center fw-bold">:</span>
+                                        <!-- Minute -->
+                                        <select class="form-select form-select-sm bg-dark text-white border-secondary fw-bold text-center" 
+                                                value="@scheduleMinute" @onchange="OnMinuteChanged">
+                                            <option value="0">00</option>
+                                            <option value="15">15</option>
+                                            <option value="30">30</option>
+                                            <option value="45">45</option>
+                                            @if (scheduleMinute != 0 && scheduleMinute != 15 && scheduleMinute != 30 && scheduleMinute != 45)
+                                            {
+                                                <option value="@scheduleMinute">@(scheduleMinute.ToString("D2"))</option>
+                                            }
+                                        </select>
+                                        <!-- AM / PM Switch -->
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button type="button" class="btn @(scheduleAmPm == "AM" ? "btn-warning text-dark fw-bold" : "btn-outline-secondary text-light")" @onclick='() => SetAmPm("AM")'>AM</button>
+                                            <button type="button" class="btn @(scheduleAmPm == "PM" ? "btn-warning text-dark fw-bold" : "btn-outline-secondary text-light")" @onclick='() => SetAmPm("PM")'>PM</button>
+                                        </div>
+                                    </div>
+                                    <!-- Quick Time Slot Pills -->
+                                    <div class="d-flex flex-wrap gap-1 mt-1">
+                                        <button type="button" class="btn btn-sm py-0 px-1 text-muted" style="font-size: 0.68rem; border: 1px solid rgba(255,255,255,0.1);" @onclick='() => SetQuickTime(9, 0, "AM")'>9 AM</button>
+                                        <button type="button" class="btn btn-sm py-0 px-1 text-muted" style="font-size: 0.68rem; border: 1px solid rgba(255,255,255,0.1);" @onclick='() => SetQuickTime(11, 0, "AM")'>11 AM</button>
+                                        <button type="button" class="btn btn-sm py-0 px-1 text-muted" style="font-size: 0.68rem; border: 1px solid rgba(255,255,255,0.1);" @onclick='() => SetQuickTime(2, 0, "PM")'>2 PM</button>
+                                        <button type="button" class="btn btn-sm py-0 px-1 text-muted" style="font-size: 0.68rem; border: 1px solid rgba(255,255,255,0.1);" @onclick='() => SetQuickTime(6, 0, "PM")'>6 PM</button>
+                                        <button type="button" class="btn btn-sm py-0 px-1 text-muted" style="font-size: 0.68rem; border: 1px solid rgba(255,255,255,0.1);" @onclick='() => SetQuickTime(8, 0, "PM")'>8 PM</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Live Scheduled Time Summary Banner (Neon Glass Card) -->
+                            <div class="p-2 rounded-2 d-flex align-items-center justify-content-between @(IsScheduleTimeValid() ? "bg-dark border border-info border-opacity-50" : "bg-danger bg-opacity-10 border border-danger")" style="font-size: 0.82rem;">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="rounded-circle p-1 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px; background: rgba(0, 242, 254, 0.15); color: #00f2fe;">
+                                        <i class="bi bi-clock-history"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-white fw-bold">
+                                            @scheduleDateTime.ToString("dddd, dd MMM yyyy — hh:mm tt")
+                                        </div>
+                                        <div class="@(IsScheduleTimeValid() ? "text-info" : "text-danger") small" style="font-size: 0.75rem;">
+                                            @GetHumanFriendlyScheduleSummary()
+                                        </div>
+                                    </div>
+                                </div>
+                                @if (IsScheduleTimeValid())
+                                {
+                                    <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50 px-2 py-1">
+                                        <i class="bi bi-check-circle me-1"></i>Valid Time
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-50 px-2 py-1">
+                                        <i class="bi bi-exclamation-triangle me-1"></i>Invalid
+                                    </span>
+                                }
                             </div>
                         </div>
 
@@ -829,8 +958,164 @@
     private bool scheduleInstagram = true;
     private bool scheduleTwitter = false;
     private DateTime scheduleDateTime = DateTime.Now.AddHours(1);
+    private string selectedPreset = "+1h";
+    private int scheduleHour12 = 10;
+    private int scheduleMinute = 0;
+    private string scheduleAmPm = "AM";
     private string scheduleCaption = string.Empty;
     private bool isSubmittingSchedule = false;
+
+    private void SyncPartsFromDateTime()
+    {
+        var h = scheduleDateTime.Hour;
+        scheduleAmPm = h >= 12 ? "PM" : "AM";
+        scheduleHour12 = h % 12;
+        if (scheduleHour12 == 0) scheduleHour12 = 12;
+        scheduleMinute = scheduleDateTime.Minute;
+    }
+
+    private void UpdateFromParts()
+    {
+        int hour24 = scheduleHour12 % 12;
+        if (scheduleAmPm == "PM") hour24 += 12;
+        scheduleDateTime = new DateTime(scheduleDateTime.Year, scheduleDateTime.Month, scheduleDateTime.Day, hour24, scheduleMinute, 0);
+    }
+
+    private void SetPreset(string preset)
+    {
+        var now = DateTime.Now;
+        selectedPreset = preset;
+        switch (preset)
+        {
+            case "+1h":
+                scheduleDateTime = now.AddHours(1);
+                break;
+            case "today_evening":
+                scheduleDateTime = new DateTime(now.Year, now.Month, now.Day, 18, 0, 0);
+                if (scheduleDateTime <= now) scheduleDateTime = scheduleDateTime.AddDays(1);
+                break;
+            case "today_night":
+                scheduleDateTime = new DateTime(now.Year, now.Month, now.Day, 21, 0, 0);
+                if (scheduleDateTime <= now) scheduleDateTime = scheduleDateTime.AddDays(1);
+                break;
+            case "tomorrow_morning":
+                var tm = now.AddDays(1);
+                scheduleDateTime = new DateTime(tm.Year, tm.Month, tm.Day, 9, 0, 0);
+                break;
+            case "tomorrow_evening":
+                var te = now.AddDays(1);
+                scheduleDateTime = new DateTime(te.Year, te.Month, te.Day, 19, 0, 0);
+                break;
+            case "day_after_morning":
+                var da = now.AddDays(2);
+                scheduleDateTime = new DateTime(da.Year, da.Month, da.Day, 10, 0, 0);
+                break;
+            case "sunday_morning":
+                var daysUntilSunday = ((int)DayOfWeek.Sunday - (int)now.DayOfWeek + 7) % 7;
+                if (daysUntilSunday == 0) daysUntilSunday = 7;
+                var sun = now.AddDays(daysUntilSunday);
+                scheduleDateTime = new DateTime(sun.Year, sun.Month, sun.Day, 10, 0, 0);
+                break;
+        }
+        SyncPartsFromDateTime();
+    }
+
+    private void OnDateInputChanged(ChangeEventArgs e)
+    {
+        if (DateTime.TryParse(e.Value?.ToString(), out var parsedDate))
+        {
+            int hour24 = scheduleHour12 % 12;
+            if (scheduleAmPm == "PM") hour24 += 12;
+            scheduleDateTime = new DateTime(parsedDate.Year, parsedDate.Month, parsedDate.Day, hour24, scheduleMinute, 0);
+            selectedPreset = "custom";
+        }
+    }
+
+    private void SetDateToday()
+    {
+        int hour24 = scheduleHour12 % 12;
+        if (scheduleAmPm == "PM") hour24 += 12;
+        scheduleDateTime = new DateTime(DateTime.Today.Year, DateTime.Today.Month, DateTime.Today.Day, hour24, scheduleMinute, 0);
+        selectedPreset = "custom";
+    }
+
+    private void SetDateTomorrow()
+    {
+        var tm = DateTime.Today.AddDays(1);
+        int hour24 = scheduleHour12 % 12;
+        if (scheduleAmPm == "PM") hour24 += 12;
+        scheduleDateTime = new DateTime(tm.Year, tm.Month, tm.Day, hour24, scheduleMinute, 0);
+        selectedPreset = "custom";
+    }
+
+    private void SetDateDayAfter()
+    {
+        var da = DateTime.Today.AddDays(2);
+        int hour24 = scheduleHour12 % 12;
+        if (scheduleAmPm == "PM") hour24 += 12;
+        scheduleDateTime = new DateTime(da.Year, da.Month, da.Day, hour24, scheduleMinute, 0);
+        selectedPreset = "custom";
+    }
+
+    private void OnHourChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var h))
+        {
+            scheduleHour12 = h;
+            UpdateFromParts();
+            selectedPreset = "custom";
+        }
+    }
+
+    private void OnMinuteChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var m))
+        {
+            scheduleMinute = m;
+            UpdateFromParts();
+            selectedPreset = "custom";
+        }
+    }
+
+    private void SetAmPm(string ampm)
+    {
+        scheduleAmPm = ampm;
+        UpdateFromParts();
+        selectedPreset = "custom";
+    }
+
+    private void SetQuickTime(int h, int m, string ampm)
+    {
+        scheduleHour12 = h;
+        scheduleMinute = m;
+        scheduleAmPm = ampm;
+        UpdateFromParts();
+        selectedPreset = "custom";
+    }
+
+    private bool IsScheduleTimeValid()
+    {
+        return scheduleDateTime > DateTime.Now.AddMinutes(1);
+    }
+
+    private string GetHumanFriendlyScheduleSummary()
+    {
+        var diff = scheduleDateTime - DateTime.Now;
+        if (diff.TotalMinutes < 2)
+        {
+            return "⚠️ Samay bit chuka hai ya 2 minute se kam hai. Kripya future time chunein.";
+        }
+
+        string relativeText;
+        if (diff.TotalMinutes < 60)
+            relativeText = $"lagbhag {(int)Math.Ceiling(diff.TotalMinutes)} minute baad";
+        else if (diff.TotalHours < 24)
+            relativeText = $"lagbhag {(int)Math.Floor(diff.TotalHours)} ghante {diff.Minutes} min baad";
+        else
+            relativeText = $"{(int)Math.Floor(diff.TotalDays)} din aur {diff.Hours} ghante baad";
+
+        return $"{relativeText} trigger hoga.";
+    }
 
     private void OpenScheduleModal(BannerDesignRecordDTO item)
     {
@@ -838,7 +1123,8 @@
         var state = item.GetConfigState();
 
         scheduleCaption = $"{item.Heading}\n\n{(state.Subtitle ?? "")}\n\nFor expert consultations, visit {item.HospitalName ?? "CYH Hospital"} or contact {state.ContactPhone}.\n\n#Healthcare #Doctor #{item.DoctorName.Replace(" ", "")} #Wellness";
-        scheduleDateTime = DateTime.Now.AddHours(1);
+        
+        SetPreset("+1h");
 
         scheduleWhatsApp = true;
         scheduleFacebook = true;
