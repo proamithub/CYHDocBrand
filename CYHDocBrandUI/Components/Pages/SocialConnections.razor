@@ -1,0 +1,666 @@
+@page "/social-connections"
+@page "/doctor/social-connections"
+@page "/admin/social-connections"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+@using CYHDocBrandModel.DTO
+@using CYHDocBrandRepo.IRepository
+@using CYHDocBrandUI.Services
+@using CYHDocBrandUI.Components.Common
+
+@inject ISocialAccountRepository SocialRepo
+@inject ISocialMediaPublisherService PublisherService
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+
+<!-- Animated Floating Toast Popup -->
+<ToastPopup Notification="activePopup" OnDismiss="DismissPopup" />
+
+<div class="container-fluid px-3 px-md-4 py-4 fade-in" style="max-width: 1350px;">
+    <!-- Page Header -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge px-3 py-2" style="background: rgba(0, 242, 254, 0.15); border: 1px solid rgba(0, 242, 254, 0.4); color: #00f2fe; border-radius: 8px; font-weight: 700;">
+                    <i class="bi bi-share-fill me-1"></i> SOCIAL &amp; WHATSAPP INTEGRATION CENTER
+                </span>
+                <span class="text-secondary" style="font-size: 0.85rem;">Official Meta &amp; WhatsApp Cloud APIs</span>
+            </div>
+            <h2 class="mt-2 mb-1 fw-bold text-white" style="letter-spacing: -0.5px;">
+                Social Media &amp; WhatsApp Accounts Connection
+            </h2>
+            <p class="text-secondary mb-0" style="font-size: 0.92rem;">
+                Connect your clinic's Facebook Page, Instagram Business, and WhatsApp Business API to auto-publish scheduled branding banners on time.
+            </p>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2">
+            <NavLink href="@(IsAdmin ? "/admin/schedules" : "/doctor/schedules")" class="btn btn-outline-info d-flex align-items-center gap-2 px-3 py-2" style="border-radius: 10px;">
+                <i class="bi bi-clock-history"></i>
+                <span>View Scheduled Posts</span>
+            </NavLink>
+            <button type="button" class="btn btn-primary d-flex align-items-center gap-2 px-4 py-2 fw-semibold" @onclick="InitiateRealFacebookOAuth" style="background: linear-gradient(135deg, #1877f2 0%, #0d6efd 100%); border: none; border-radius: 10px; box-shadow: 0 4px 15px rgba(24, 119, 242, 0.35);">
+                <i class="bi bi-facebook fs-5"></i>
+                <span>Connect via Meta OAuth</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Meta App ID / Secret Configuration Card -->
+    <div class="card glass-panel rounded-4 border-0 mb-4" style="background: rgba(14, 25, 48, 0.65); border: 1px solid rgba(24, 119, 242, 0.25);">
+        <div class="card-header bg-transparent p-3 d-flex align-items-center justify-content-between cursor-pointer" @onclick="() => showMetaConfig = !showMetaConfig" style="cursor: pointer;">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-gear-fill text-info"></i>
+                <span class="text-white fw-semibold">Meta Developer App Credentials (App ID &amp; App Secret)</span>
+                @if (!string.IsNullOrEmpty(metaAppId) && metaAppId != "123456789012345")
+                {
+                    <span class="badge bg-success bg-opacity-25 text-success small">Configured</span>
+                }
+                else
+                {
+                    <span class="badge bg-warning bg-opacity-25 text-warning small">Setup Required for OAuth</span>
+                }
+            </div>
+            <i class="bi @(showMetaConfig ? "bi-chevron-up" : "bi-chevron-down") text-secondary"></i>
+        </div>
+
+        @if (showMetaConfig)
+        {
+            <div class="card-body p-4 pt-2">
+                <p class="text-secondary small mb-3">
+                    Official Meta OAuth login ke liye aapke Meta Developer App (`developers.facebook.com`) ka App ID aur App Secret yahan enter karein.
+                    Aapka Valid OAuth Redirect URI hoga: <code class="text-warning">@GetOAuthRedirectUri()</code>
+                </p>
+
+                <div class="row g-3">
+                    <div class="col-md-5 col-12">
+                        <label class="form-label text-secondary small fw-bold">Facebook App ID</label>
+                        <input type="text" class="form-control bg-dark text-white border-secondary" placeholder="e.g. 582910482910482" @bind="metaAppId" />
+                    </div>
+                    <div class="col-md-5 col-12">
+                        <label class="form-label text-secondary small fw-bold">Facebook App Secret</label>
+                        <input type="password" class="form-control bg-dark text-white border-secondary" placeholder="e.g. 9b8a7c6d5e4f3a2b1c..." @bind="metaAppSecret" />
+                    </div>
+                    <div class="col-md-2 col-12 d-flex align-items-end">
+                        <button type="button" class="btn btn-info w-100 py-2 fw-semibold" @onclick="SaveMetaCredentials">
+                            <i class="bi bi-save me-1"></i> Save
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Active Connections Overview (Facebook, Instagram, WhatsApp) -->
+    <div class="row g-4 mb-4">
+        <!-- 1. Facebook Page Card -->
+        <div class="col-lg-4 col-md-6 col-12">
+            <div class="p-4 rounded-4 position-relative overflow-hidden h-100 d-flex flex-column justify-content-between" style="background: linear-gradient(145deg, rgba(14, 25, 48, 0.85) 0%, rgba(8, 15, 30, 0.95) 100%); border: 1px solid @(facebookAccount != null && facebookAccount.IsActive ? "rgba(24, 119, 242, 0.4)" : "rgba(255, 255, 255, 0.08)"); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);">
+                <div>
+                    <div class="d-flex align-items-start justify-content-between mb-3">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="d-flex align-items-center justify-content-center rounded-3" style="width: 50px; height: 50px; background: rgba(24, 119, 242, 0.15); border: 1px solid rgba(24, 119, 242, 0.4); color: #1877f2;">
+                                <i class="bi bi-facebook fs-2"></i>
+                            </div>
+                            <div>
+                                <h5 class="text-white fw-bold mb-0">Facebook Page</h5>
+                                <div class="text-secondary small">Meta Page Publisher</div>
+                            </div>
+                        </div>
+                        @if (facebookAccount != null && facebookAccount.IsActive)
+                        {
+                            <span class="badge px-3 py-1 bg-success bg-opacity-25 text-success border border-success border-opacity-50 rounded-pill small">
+                                🟢 Connected
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge px-3 py-1 bg-secondary bg-opacity-25 text-secondary border border-secondary border-opacity-50 rounded-pill small">
+                                Not Connected
+                            </span>
+                        }
+                    </div>
+
+                    @if (facebookAccount != null)
+                    {
+                        <div class="p-3 rounded-3 mb-3" style="background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(255, 255, 255, 0.05);">
+                            <div class="d-flex justify-content-between py-1 border-bottom border-secondary border-opacity-25">
+                                <span class="text-secondary small">Clinic Page:</span>
+                                <span class="text-white fw-semibold small text-truncate" style="max-width: 140px;">@facebookAccount.AccountName</span>
+                            </div>
+                            <div class="d-flex justify-content-between py-1 border-bottom border-secondary border-opacity-25">
+                                <span class="text-secondary small">Page ID:</span>
+                                <span class="text-info font-monospace small">@facebookAccount.PageOrAccountId</span>
+                            </div>
+                            @if (!string.IsNullOrEmpty(facebookAccount.LastTestStatus))
+                            {
+                                <div class="py-1">
+                                    <span class="@(facebookAccount.LastTestStatus == "Success" ? "text-success" : "text-danger") small fw-semibold">
+                                        <i class="bi @(facebookAccount.LastTestStatus == "Success" ? "bi-check-circle" : "bi-exclamation-triangle")"></i>
+                                        @facebookAccount.LastTestMessage
+                                    </span>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-secondary small mb-3">
+                            Connect your clinic's Facebook Page using Meta OAuth or paste Page Token directly below.
+                        </p>
+                    }
+                </div>
+
+                <div class="pt-2 border-top border-secondary border-opacity-15">
+                    @if (facebookAccount != null)
+                    {
+                        <div class="d-flex flex-wrap gap-2">
+                            <button type="button" class="btn btn-outline-info btn-sm px-3 py-1" @onclick="() => TestAccountConnection(facebookAccount)" disabled="@isTesting">
+                                <i class="bi bi-arrow-repeat @(isTesting ? "spin-animation" : "")"></i> Test
+                            </button>
+                            <button type="button" class="btn btn-outline-danger btn-sm px-3 py-1 ms-auto" @onclick="() => DisconnectAccount(facebookAccount.Id)">
+                                <i class="bi bi-trash"></i> Disconnect
+                            </button>
+                        </div>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-primary btn-sm w-100 py-2 fw-semibold" @onclick="InitiateRealFacebookOAuth" style="background: #1877f2; border: none;">
+                            <i class="bi bi-facebook me-1"></i> Connect Facebook
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Instagram Business Card -->
+        <div class="col-lg-4 col-md-6 col-12">
+            <div class="p-4 rounded-4 position-relative overflow-hidden h-100 d-flex flex-column justify-content-between" style="background: linear-gradient(145deg, rgba(14, 25, 48, 0.85) 0%, rgba(8, 15, 30, 0.95) 100%); border: 1px solid @(instagramAccount != null && instagramAccount.IsActive ? "rgba(225, 48, 108, 0.4)" : "rgba(255, 255, 255, 0.08)"); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);">
+                <div>
+                    <div class="d-flex align-items-start justify-content-between mb-3">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="d-flex align-items-center justify-content-center rounded-3" style="width: 50px; height: 50px; background: rgba(225, 48, 108, 0.15); border: 1px solid rgba(225, 48, 108, 0.4); color: #e1306c;">
+                                <i class="bi bi-instagram fs-2"></i>
+                            </div>
+                            <div>
+                                <h5 class="text-white fw-bold mb-0">Instagram</h5>
+                                <div class="text-secondary small">Business Account Post</div>
+                            </div>
+                        </div>
+                        @if (instagramAccount != null && instagramAccount.IsActive)
+                        {
+                            <span class="badge px-3 py-1 bg-success bg-opacity-25 text-success border border-success border-opacity-50 rounded-pill small">
+                                🟢 Connected
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge px-3 py-1 bg-secondary bg-opacity-25 text-secondary border border-secondary border-opacity-50 rounded-pill small">
+                                Not Connected
+                            </span>
+                        }
+                    </div>
+
+                    @if (instagramAccount != null)
+                    {
+                        <div class="p-3 rounded-3 mb-3" style="background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(255, 255, 255, 0.05);">
+                            <div class="d-flex justify-content-between py-1 border-bottom border-secondary border-opacity-25">
+                                <span class="text-secondary small">Handle:</span>
+                                <span class="text-white fw-semibold small text-truncate" style="max-width: 140px;">@instagramAccount.AccountName</span>
+                            </div>
+                            <div class="d-flex justify-content-between py-1 border-bottom border-secondary border-opacity-25">
+                                <span class="text-secondary small">Account ID:</span>
+                                <span class="text-info font-monospace small">@instagramAccount.PageOrAccountId</span>
+                            </div>
+                            @if (!string.IsNullOrEmpty(instagramAccount.LastTestStatus))
+                            {
+                                <div class="py-1">
+                                    <span class="@(instagramAccount.LastTestStatus == "Success" ? "text-success" : "text-danger") small fw-semibold">
+                                        <i class="bi @(instagramAccount.LastTestStatus == "Success" ? "bi-check-circle" : "bi-exclamation-triangle")"></i>
+                                        @instagramAccount.LastTestMessage
+                                    </span>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-secondary small mb-3">
+                            Connect your Instagram Business account linked to Facebook Page for automated banner sharing.
+                        </p>
+                    }
+                </div>
+
+                <div class="pt-2 border-top border-secondary border-opacity-15">
+                    @if (instagramAccount != null)
+                    {
+                        <div class="d-flex flex-wrap gap-2">
+                            <button type="button" class="btn btn-outline-info btn-sm px-3 py-1" @onclick="() => TestAccountConnection(instagramAccount)" disabled="@isTesting">
+                                <i class="bi bi-arrow-repeat @(isTesting ? "spin-animation" : "")"></i> Test
+                            </button>
+                            <button type="button" class="btn btn-outline-danger btn-sm px-3 py-1 ms-auto" @onclick="() => DisconnectAccount(instagramAccount.Id)">
+                                <i class="bi bi-trash"></i> Disconnect
+                            </button>
+                        </div>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-outline-light btn-sm w-100 py-2 fw-semibold" @onclick="InitiateRealFacebookOAuth" style="border-color: rgba(225, 48, 108, 0.5); color: #f472b6;">
+                            <i class="bi bi-instagram me-1"></i> Connect via Meta
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. WhatsApp Business Cloud API Card -->
+        <div class="col-lg-4 col-md-12 col-12">
+            <div class="p-4 rounded-4 position-relative overflow-hidden h-100 d-flex flex-column justify-content-between" style="background: linear-gradient(145deg, rgba(14, 25, 48, 0.85) 0%, rgba(8, 15, 30, 0.95) 100%); border: 1px solid @(whatsAppAccount != null && whatsAppAccount.IsActive ? "rgba(37, 211, 102, 0.4)" : "rgba(255, 255, 255, 0.08)"); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);">
+                <div>
+                    <div class="d-flex align-items-start justify-content-between mb-3">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="d-flex align-items-center justify-content-center rounded-3" style="width: 50px; height: 50px; background: rgba(37, 211, 102, 0.15); border: 1px solid rgba(37, 211, 102, 0.4); color: #25d366;">
+                                <i class="bi bi-whatsapp fs-2"></i>
+                            </div>
+                            <div>
+                                <h5 class="text-white fw-bold mb-0">WhatsApp Business</h5>
+                                <div class="text-secondary small">Meta Cloud API Broadcast</div>
+                            </div>
+                        </div>
+                        @if (whatsAppAccount != null && whatsAppAccount.IsActive)
+                        {
+                            <span class="badge px-3 py-1 bg-success bg-opacity-25 text-success border border-success border-opacity-50 rounded-pill small">
+                                🟢 Connected
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge px-3 py-1 bg-secondary bg-opacity-25 text-secondary border border-secondary border-opacity-50 rounded-pill small">
+                                Not Connected
+                            </span>
+                        }
+                    </div>
+
+                    @if (whatsAppAccount != null)
+                    {
+                        <div class="p-3 rounded-3 mb-3" style="background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(255, 255, 255, 0.05);">
+                            <div class="d-flex justify-content-between py-1 border-bottom border-secondary border-opacity-25">
+                                <span class="text-secondary small">WhatsApp Number:</span>
+                                <span class="text-white fw-semibold small text-truncate" style="max-width: 140px;">@whatsAppAccount.AccountName</span>
+                            </div>
+                            <div class="d-flex justify-content-between py-1 border-bottom border-secondary border-opacity-25">
+                                <span class="text-secondary small">Phone Number ID:</span>
+                                <span class="text-info font-monospace small">@whatsAppAccount.PageOrAccountId</span>
+                            </div>
+                            @if (!string.IsNullOrEmpty(whatsAppAccount.RefreshToken))
+                            {
+                                <div class="d-flex justify-content-between py-1 border-bottom border-secondary border-opacity-25">
+                                    <span class="text-secondary small">Default Recipient:</span>
+                                    <span class="text-light font-monospace small">@whatsAppAccount.RefreshToken</span>
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(whatsAppAccount.LastTestStatus))
+                            {
+                                <div class="py-1">
+                                    <span class="@(whatsAppAccount.LastTestStatus == "Success" ? "text-success" : "text-danger") small fw-semibold">
+                                        <i class="bi @(whatsAppAccount.LastTestStatus == "Success" ? "bi-check-circle" : "bi-exclamation-triangle")"></i>
+                                        @whatsAppAccount.LastTestMessage
+                                    </span>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-secondary small mb-3">
+                            Connect your WhatsApp Business Cloud API to broadcast scheduled banners directly to patient numbers.
+                        </p>
+                    }
+                </div>
+
+                <div class="pt-2 border-top border-secondary border-opacity-15">
+                    @if (whatsAppAccount != null)
+                    {
+                        <div class="d-flex flex-wrap gap-2">
+                            <button type="button" class="btn btn-outline-success btn-sm px-3 py-1" @onclick="() => TestAccountConnection(whatsAppAccount)" disabled="@isTesting">
+                                <i class="bi bi-arrow-repeat @(isTesting ? "spin-animation" : "")"></i> Test
+                            </button>
+                            <button type="button" class="btn btn-outline-danger btn-sm px-3 py-1 ms-auto" @onclick="() => DisconnectAccount(whatsAppAccount.Id)">
+                                <i class="bi bi-trash"></i> Disconnect
+                            </button>
+                        </div>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-success btn-sm w-100 py-2 fw-semibold" @onclick="OpenWhatsAppSetupModal" style="background: #25d366; border: none; color: #070d1e;">
+                            <i class="bi bi-whatsapp me-1"></i> Connect WhatsApp API
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Direct Credentials / Token Entry (For Permanent Page Token, Instagram, or WhatsApp) -->
+    <div class="card glass-panel rounded-4 border-0 mb-4" style="background: rgba(14, 25, 48, 0.65); border: 1px solid rgba(255, 255, 255, 0.08);">
+        <div class="card-header bg-transparent p-3 d-flex align-items-center justify-content-between cursor-pointer" @onclick="() => showManualPanel = !showManualPanel" style="cursor: pointer;">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-key-fill text-warning"></i>
+                <span class="text-white fw-semibold">Direct Token Entry (Facebook Page Token / Instagram / WhatsApp Cloud API)</span>
+                <span class="badge bg-secondary bg-opacity-25 text-warning small">Permanent Setup</span>
+            </div>
+            <i class="bi @(showManualPanel ? "bi-chevron-up" : "bi-chevron-down") text-secondary"></i>
+        </div>
+
+        @if (showManualPanel)
+        {
+            <div class="card-body p-4 pt-2">
+                <p class="text-secondary small mb-3">
+                    Agar aapke paas permanent Meta Graph Page Token ya WhatsApp Cloud API token hai, toh direct credentials enter karein:
+                </p>
+
+                <div class="row g-3">
+                    <div class="col-md-3 col-12">
+                        <label class="form-label text-secondary small fw-bold">Platform</label>
+                        <select class="form-select bg-dark text-white border-secondary" @bind="manualPlatform">
+                            <option value="Facebook">Facebook Page</option>
+                            <option value="Instagram">Instagram Business</option>
+                            <option value="WhatsApp">WhatsApp Business API</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 col-12">
+                        <label class="form-label text-secondary small fw-bold">Clinic / Account Name</label>
+                        <input type="text" class="form-control bg-dark text-white border-secondary" placeholder="@(manualPlatform == "WhatsApp" ? "e.g. +91 98765 43210" : "e.g. City Dental Care")" @bind="manualAccountName" />
+                    </div>
+                    <div class="col-md-5 col-12">
+                        <label class="form-label text-secondary small fw-bold">
+                            @(manualPlatform == "WhatsApp" ? "WhatsApp Phone Number ID" : "Page ID or Instagram ID")
+                        </label>
+                        <input type="text" class="form-control bg-dark text-white border-secondary" placeholder="e.g. 1092837465019" @bind="manualPageId" />
+                    </div>
+                    @if (manualPlatform == "WhatsApp")
+                    {
+                        <div class="col-md-6 col-12">
+                            <label class="form-label text-secondary small fw-bold">Default Broadcast Recipient Number</label>
+                            <input type="text" class="form-control bg-dark text-white border-secondary" placeholder="e.g. 919876543210 (with country code)" @bind="manualWhatsAppRecipient" />
+                        </div>
+                    }
+                    <div class="@(manualPlatform == "WhatsApp" ? "col-md-6" : "col-12") col-12">
+                        <label class="form-label text-secondary small fw-bold">Permanent Access Token</label>
+                        <div class="input-group">
+                            <input type="@(showToken ? "text" : "password")" class="form-control bg-dark text-white border-secondary font-monospace small" placeholder="EAAB..." @bind="manualAccessToken" />
+                            <button class="btn btn-outline-secondary" type="button" @onclick="() => showToken = !showToken">
+                                <i class="bi @(showToken ? "bi-eye-slash" : "bi-eye")"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-12 text-end">
+                        <button type="button" class="btn btn-success px-4 py-2 fw-semibold" @onclick="SaveManualConnection">
+                            <i class="bi bi-save me-1"></i> Save Connection
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- WhatsApp Setup Modal -->
+@if (showWhatsAppModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); z-index: 1060;">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content glass-panel" style="background: rgba(14, 25, 48, 0.98); border: 1px solid rgba(37, 211, 102, 0.4); border-radius: 18px;">
+                <div class="modal-header border-bottom border-secondary border-opacity-25 px-4 py-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-whatsapp fs-4" style="color: #25d366;"></i>
+                        <h5 class="modal-title text-white fw-bold mb-0">Connect WhatsApp Business Cloud API</h5>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" @onclick="() => showWhatsAppModal = false"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="text-secondary small mb-3">
+                        Enter your official Meta WhatsApp Business Cloud API credentials from Meta Developer Portal (<span class="text-info">developers.facebook.com &gt; WhatsApp &gt; API Setup</span>):
+                    </p>
+
+                    <div class="row g-3">
+                        <div class="col-md-6 col-12">
+                            <label class="form-label text-white small fw-bold">WhatsApp Business Phone Number</label>
+                            <input type="text" class="form-control bg-dark text-white border-secondary" placeholder="e.g. +91 98765 43210" @bind="waBusinessNumber" />
+                        </div>
+                        <div class="col-md-6 col-12">
+                            <label class="form-label text-white small fw-bold">Phone Number ID</label>
+                            <input type="text" class="form-control bg-dark text-white border-secondary" placeholder="e.g. 1092837465019" @bind="waPhoneNumberId" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label text-white small fw-bold">Permanent System User Token</label>
+                            <input type="password" class="form-control bg-dark text-white border-secondary font-monospace small" placeholder="EAAB..." @bind="waAccessToken" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label text-white small fw-bold">Default Recipient / Test Phone Number (with Country Code)</label>
+                            <input type="text" class="form-control bg-dark text-white border-secondary" placeholder="e.g. 919876543210" @bind="waDefaultRecipient" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top border-secondary border-opacity-25 px-4 py-3">
+                    <button type="button" class="btn btn-outline-secondary px-4 py-2" @onclick="() => showWhatsAppModal = false">Cancel</button>
+                    <button type="button" class="btn btn-success px-4 py-2 fw-semibold" @onclick="SaveWhatsAppConnection" style="background: #25d366; border: none; color: #070d1e;">
+                        <i class="bi bi-check2-circle me-1"></i> Save &amp; Connect WhatsApp
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .spin-animation {
+        animation: spin 1s linear infinite;
+        display: inline-block;
+    }
+    @@keyframes spin {
+        100% { transform: rotate(360deg); }
+    }
+</style>
+
+@code {
+    private CurrentUserDTO? currentUser;
+    private bool IsAdmin => currentUser?.Role == "Admin";
+
+    private List<DoctorSocialAccountDTO> accounts = new();
+    private DoctorSocialAccountDTO? facebookAccount => accounts.FirstOrDefault(a => a.Platform.Equals("Facebook", StringComparison.OrdinalIgnoreCase));
+    private DoctorSocialAccountDTO? instagramAccount => accounts.FirstOrDefault(a => a.Platform.Equals("Instagram", StringComparison.OrdinalIgnoreCase));
+    private DoctorSocialAccountDTO? whatsAppAccount => accounts.FirstOrDefault(a => a.Platform.Equals("WhatsApp", StringComparison.OrdinalIgnoreCase));
+
+    private bool showMetaConfig = false;
+    private bool showManualPanel = false;
+    private bool showWhatsAppModal = false;
+    private bool showToken = false;
+    private bool isTesting = false;
+
+    private string metaAppId = string.Empty;
+    private string metaAppSecret = string.Empty;
+
+    private string manualPlatform = "Facebook";
+    private string manualAccountName = string.Empty;
+    private string manualPageId = string.Empty;
+    private string manualAccessToken = string.Empty;
+    private string manualWhatsAppRecipient = string.Empty;
+
+    private string waBusinessNumber = string.Empty;
+    private string waPhoneNumberId = string.Empty;
+    private string waAccessToken = string.Empty;
+    private string waDefaultRecipient = string.Empty;
+
+    private ToastNotificationDTO? activePopup;
+
+    protected override async Task OnInitializedAsync()
+    {
+        currentUser = await AuthService.GetOrRestoreCurrentUserAsync();
+        metaAppId = PublisherService.GetMetaAppId();
+        metaAppSecret = PublisherService.GetMetaAppSecret();
+        await LoadAccountsAsync();
+    }
+
+    private async Task LoadAccountsAsync()
+    {
+        accounts = await SocialRepo.GetByDoctorAsync(currentUser?.DoctorProfileId, currentUser?.UserId);
+    }
+
+    private string GetOAuthRedirectUri()
+    {
+        return NavigationManager.BaseUri + "facebook-callback";
+    }
+
+    private void SaveMetaCredentials()
+    {
+        if (string.IsNullOrWhiteSpace(metaAppId) || string.IsNullOrWhiteSpace(metaAppSecret))
+        {
+            ShowError("Missing Fields", "Please enter both Facebook App ID and App Secret.");
+            return;
+        }
+
+        PublisherService.UpdateMetaApiSettings(metaAppId, metaAppSecret);
+        ShowSuccess("Saved Meta Credentials", "Meta App ID & Secret have been saved.");
+        showMetaConfig = false;
+    }
+
+    private void InitiateRealFacebookOAuth()
+    {
+        if (string.IsNullOrWhiteSpace(metaAppId) || metaAppId == "123456789012345")
+        {
+            showMetaConfig = true;
+            ShowError("Meta App ID Required", "Kripya upar Meta App ID aur Secret enter karein taaki official Meta login dialog open ho sake.");
+            return;
+        }
+
+        var redirectUri = GetOAuthRedirectUri();
+        var state = $"{currentUser?.UserId ?? "user"}_{currentUser?.DoctorProfileId ?? 0}";
+        var oauthUrl = PublisherService.GetFacebookOAuthUrl(redirectUri, state);
+
+        // Redirect browser to official Meta Facebook dialog
+        NavigationManager.NavigateTo(oauthUrl, forceLoad: true);
+    }
+
+    private void OpenWhatsAppSetupModal()
+    {
+        showWhatsAppModal = true;
+    }
+
+    private async Task SaveWhatsAppConnection()
+    {
+        if (string.IsNullOrWhiteSpace(waPhoneNumberId) || string.IsNullOrWhiteSpace(waAccessToken))
+        {
+            ShowError("Missing Fields", "Phone Number ID and Access Token are required.");
+            return;
+        }
+
+        await SocialRepo.SaveAccountAsync(new SocialAccountSaveRequest
+        {
+            DoctorId = currentUser?.DoctorProfileId,
+            UserId = currentUser?.UserId,
+            DoctorName = currentUser?.FullName,
+            Platform = "WhatsApp",
+            AccountName = string.IsNullOrWhiteSpace(waBusinessNumber) ? "WhatsApp Business" : waBusinessNumber.Trim(),
+            PageOrAccountId = waPhoneNumberId.Trim(),
+            AccessToken = waAccessToken.Trim(),
+            RefreshToken = string.IsNullOrWhiteSpace(waDefaultRecipient) ? null : waDefaultRecipient.Trim(),
+            IsActive = true
+        });
+
+        showWhatsAppModal = false;
+        await LoadAccountsAsync();
+        ShowSuccess("WhatsApp Connected", "WhatsApp Business Cloud API connection saved successfully.");
+    }
+
+    private async Task SaveManualConnection()
+    {
+        if (string.IsNullOrWhiteSpace(manualAccountName) || string.IsNullOrWhiteSpace(manualPageId) || string.IsNullOrWhiteSpace(manualAccessToken))
+        {
+            ShowError("Missing Fields", "Please provide Account Name, ID, and Access Token.");
+            return;
+        }
+
+        await SocialRepo.SaveAccountAsync(new SocialAccountSaveRequest
+        {
+            DoctorId = currentUser?.DoctorProfileId,
+            UserId = currentUser?.UserId,
+            DoctorName = currentUser?.FullName,
+            Platform = manualPlatform,
+            AccountName = manualAccountName.Trim(),
+            PageOrAccountId = manualPageId.Trim(),
+            AccessToken = manualAccessToken.Trim(),
+            RefreshToken = manualPlatform == "WhatsApp" && !string.IsNullOrWhiteSpace(manualWhatsAppRecipient) ? manualWhatsAppRecipient.Trim() : null,
+            IsActive = true
+        });
+
+        manualAccountName = string.Empty;
+        manualPageId = string.Empty;
+        manualAccessToken = string.Empty;
+        manualWhatsAppRecipient = string.Empty;
+        showManualPanel = false;
+
+        await LoadAccountsAsync();
+        ShowSuccess("Connected Successfully", $"{manualPlatform} connection saved.");
+    }
+
+    private async Task TestAccountConnection(DoctorSocialAccountDTO account)
+    {
+        isTesting = true;
+        StateHasChanged();
+
+        try
+        {
+            var result = await PublisherService.TestConnectionAsync(account);
+            await SocialRepo.UpdateTestStatusAsync(account.Id, result.IsSuccess ? "Success" : "Failed", result.Message);
+            await LoadAccountsAsync();
+
+            if (result.IsSuccess)
+            {
+                ShowSuccess("Connection Verified", result.Message);
+            }
+            else
+            {
+                ShowError("Verification Failed", result.Message);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowError("Test Error", ex.Message);
+        }
+        finally
+        {
+            isTesting = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task DisconnectAccount(int accountId)
+    {
+        await SocialRepo.DeleteAccountAsync(accountId);
+        await LoadAccountsAsync();
+        ShowSuccess("Account Disconnected", "Account connection removed.");
+    }
+
+    private void ShowSuccess(string title, string msg)
+    {
+        activePopup = new ToastNotificationDTO
+        {
+            Title = title,
+            Message = msg,
+            Type = "save"
+        };
+    }
+
+    private void ShowError(string title, string msg)
+    {
+        activePopup = new ToastNotificationDTO
+        {
+            Title = title,
+            Message = msg,
+            Type = "error"
+        };
+    }
+
+    private void DismissPopup() => activePopup = null;
+}

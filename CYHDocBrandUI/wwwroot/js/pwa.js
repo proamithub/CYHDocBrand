@@ -83,5 +83,70 @@
         }
     };
 
+    // Global Project Cache Reset Functionality for Admin
+    window.cyhResetProjectCache = async function () {
+        let result = {
+            cachesCleared: 0,
+            swUnregistered: false,
+            storageItemsCleared: 0
+        };
+
+        // 1. Purge CacheStorage (All Service Worker static caches)
+        if ('caches' in window) {
+            try {
+                const cacheNames = await caches.keys();
+                for (const name of cacheNames) {
+                    await caches.delete(name);
+                    result.cachesCleared++;
+                }
+            } catch (e) {
+                console.warn('CacheStorage purge warning:', e);
+            }
+        }
+
+        // 2. Unregister Active Service Workers
+        if ('serviceWorker' in navigator) {
+            try {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for (const reg of registrations) {
+                    await reg.unregister();
+                    result.swUnregistered = true;
+                }
+            } catch (e) {
+                console.warn('ServiceWorker unregister warning:', e);
+            }
+        }
+
+        // 3. Purge sessionStorage
+        try {
+            sessionStorage.clear();
+        } catch (e) {
+            console.warn('SessionStorage clear warning:', e);
+        }
+
+        // 4. Purge cached items in localStorage while preserving essentials
+        try {
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && (key.includes('cache') || key.includes('template') || key.includes('banner_temp') || key.includes('cyh_cache'))) {
+                    keysToRemove.push(key);
+                }
+            }
+            keysToRemove.forEach(k => {
+                localStorage.removeItem(k);
+                result.storageItemsCleared++;
+            });
+        } catch (e) {
+            console.warn('LocalStorage clear warning:', e);
+        }
+
+        return result;
+    };
+
+    window.cyhHardReload = function () {
+        window.location.reload();
+    };
+
     window.cyhPwa.init();
 })();

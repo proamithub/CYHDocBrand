@@ -1,0 +1,279 @@
+@page "/doctor/schedules"
+@page "/schedules"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+@using CYHDocBrandModel.DTO
+@using CYHDocBrandRepo.IRepository
+@using CYHDocBrandUI.Services
+@using CYHDocBrandUI.Components.Common
+
+@inject IBannerScheduleRepository ScheduleRepo
+@inject IAuthService AuthService
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+
+<!-- Animated Floating Toast Popup -->
+<ToastPopup Notification="activePopup" OnDismiss="DismissPopup" />
+
+<div class="container-fluid px-3 px-md-4 py-4 fade-in" style="max-width: 1300px;">
+    <!-- Page Header -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge px-3 py-2" style="background: rgba(0, 242, 254, 0.15); border: 1px solid rgba(0, 242, 254, 0.4); color: #00f2fe; border-radius: 8px; font-weight: 700;">
+                    <i class="bi bi-calendar2-check-fill me-1"></i> AUTOMATED POSTING QUEUE
+                </span>
+                <span class="text-secondary" style="font-size: 0.85rem;">CYH Smart Scheduler</span>
+            </div>
+            <h2 class="mt-2 mb-1 fw-bold text-white" style="letter-spacing: -0.5px;">
+                My Scheduled Banners
+            </h2>
+            <p class="text-secondary mb-0" style="font-size: 0.92rem;">
+                Track your upcoming and published social media banners across Facebook &amp; Instagram.
+            </p>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2">
+            <NavLink href="doctor/social-connections" class="btn btn-outline-info d-flex align-items-center gap-2 px-3 py-2" style="border-radius: 10px;">
+                <i class="bi bi-gear-fill"></i>
+                <span>Social Accounts</span>
+            </NavLink>
+            <NavLink href="banner-designs" class="btn btn-info d-flex align-items-center gap-2 px-4 py-2 fw-bold" style="background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); border: none; border-radius: 10px; color: #070d1e;">
+                <i class="bi bi-plus-lg fs-6"></i>
+                <span>Schedule New Banner</span>
+            </NavLink>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3 col-6">
+            <div class="p-3 rounded-4 glass-panel" style="background: rgba(14, 25, 48, 0.65); border: 1px solid rgba(255, 255, 255, 0.08);">
+                <div class="text-secondary small fw-semibold">TOTAL SCHEDULED</div>
+                <h3 class="fw-bold text-white mb-0 mt-1">@mySchedules.Count</h3>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="p-3 rounded-4 glass-panel" style="background: rgba(14, 25, 48, 0.65); border: 1px solid rgba(245, 158, 11, 0.25);">
+                <div class="text-warning small fw-semibold">PENDING</div>
+                <h3 class="fw-bold text-warning mb-0 mt-1">@mySchedules.Count(s => s.Status == "Pending")</h3>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="p-3 rounded-4 glass-panel" style="background: rgba(14, 25, 48, 0.65); border: 1px solid rgba(16, 185, 129, 0.25);">
+                <div class="text-success small fw-semibold">PUBLISHED</div>
+                <h3 class="fw-bold text-success mb-0 mt-1">@mySchedules.Count(s => s.Status == "Success")</h3>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="p-3 rounded-4 glass-panel" style="background: rgba(14, 25, 48, 0.65); border: 1px solid rgba(239, 68, 68, 0.25);">
+                <div class="text-danger small fw-semibold">FAILED</div>
+                <h3 class="fw-bold text-danger mb-0 mt-1">@mySchedules.Count(s => s.Status == "Failed")</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- Schedules List -->
+    @if (mySchedules.Count == 0)
+    {
+        <div class="text-center py-5 glass-panel rounded-4" style="background: rgba(14, 25, 48, 0.5); border: 1px dashed rgba(255, 255, 255, 0.15);">
+            <i class="bi bi-calendar2-plus text-secondary" style="font-size: 3.5rem;"></i>
+            <h5 class="text-white mt-3 fw-bold">Aapke Paas Abhi Koi Scheduled Banner Nahi Hai</h5>
+            <p class="text-secondary small mb-3">Apne designed banners ko Facebook aur Instagram par share karne ke liye schedule karein.</p>
+            <NavLink href="banner-designs" class="btn btn-outline-info px-4 py-2">
+                Go to Banner Library
+            </NavLink>
+        </div>
+    }
+    else
+    {
+        <div class="row g-3">
+            @foreach (var item in mySchedules)
+            {
+                <div class="col-lg-6 col-12">
+                    <div class="p-3 rounded-4 glass-panel h-100 d-flex flex-column justify-content-between" style="background: rgba(14, 25, 48, 0.75); border: 1px solid rgba(255, 255, 255, 0.08);">
+                        <div class="d-flex gap-3 mb-3">
+                            <!-- Image Thumbnail -->
+                            @if (!string.IsNullOrEmpty(item.ImageUrl))
+                            {
+                                <img src="@item.ImageUrl" alt="Banner" class="rounded-3 border border-secondary border-opacity-50" style="width: 80px; height: 80px; object-fit: cover;" />
+                            }
+                            else
+                            {
+                                <div class="rounded-3 d-flex align-items-center justify-content-center bg-dark border border-secondary border-opacity-25" style="width: 80px; height: 80px; color: #00f2fe;">
+                                    <i class="bi bi-image fs-3"></i>
+                                </div>
+                            }
+
+                            <!-- Info -->
+                            <div class="flex-grow-1 min-w-0">
+                                <div class="d-flex align-items-center justify-content-between gap-2">
+                                    <h6 class="text-white fw-bold mb-0 text-truncate" title="@item.BannerHeading">
+                                        @(item.BannerHeading ?? "Healthcare Banner")
+                                    </h6>
+                                    @if (item.Status == "Pending")
+                                    {
+                                        <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50 rounded-pill small">⏳ Pending</span>
+                                    }
+                                    else if (item.Status == "Processing")
+                                    {
+                                        <span class="badge bg-info bg-opacity-25 text-info rounded-pill small">🔄 Publishing...</span>
+                                    }
+                                    else if (item.Status == "Success")
+                                    {
+                                        <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50 rounded-pill small">✅ Published</span>
+                                    }
+                                    else if (item.Status == "Failed")
+                                    {
+                                        <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-50 rounded-pill small">❌ Failed</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary rounded-pill small">@item.Status</span>
+                                    }
+                                </div>
+
+                                <div class="text-secondary small mt-1 text-truncate" title="@item.Caption">
+                                    <i class="bi bi-chat-left-quote me-1"></i>@(string.IsNullOrWhiteSpace(item.Caption) ? "(No caption)" : item.Caption)
+                                </div>
+
+                                <div class="d-flex align-items-center gap-3 mt-2">
+                                    <div class="text-info small fw-semibold">
+                                        <i class="bi bi-clock me-1"></i>@item.ScheduledAt.ToLocalTime().ToString("dd MMM yyyy, hh:mm tt")
+                                    </div>
+                                    <div class="d-flex gap-1">
+                                        @foreach (var p in item.PlatformList)
+                                        {
+                                            @if (p.Equals("WhatsApp", StringComparison.OrdinalIgnoreCase))
+                                            {
+                                                <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-40 small">
+                                                    <i class="bi bi-whatsapp me-1"></i>WA
+                                                </span>
+                                            }
+                                            else if (p.Equals("Facebook", StringComparison.OrdinalIgnoreCase))
+                                            {
+                                                <span class="badge bg-primary bg-opacity-25 text-primary border border-primary border-opacity-40 small">
+                                                    <i class="bi bi-facebook me-1"></i>FB
+                                                </span>
+                                            }
+                                            else if (p.Equals("Instagram", StringComparison.OrdinalIgnoreCase))
+                                            {
+                                                <span class="badge text-pink border small" style="background: rgba(225, 48, 108, 0.2); border-color: rgba(225, 48, 108, 0.4) !important; color: #f472b6;">
+                                                    <i class="bi bi-instagram me-1"></i>IG
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-dark border border-secondary border-opacity-50 text-light small">@p</span>
+                                            }
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Error or Live Link Footer -->
+                        @if (!string.IsNullOrEmpty(item.ErrorMessage))
+                        {
+                            <div class="alert alert-danger py-1 px-2 small mb-2" style="font-size: 0.78rem;">
+                                <i class="bi bi-exclamation-triangle me-1"></i>@item.ErrorMessage
+                            </div>
+                        }
+
+                        <div class="d-flex align-items-center justify-content-between pt-2 border-top border-secondary border-opacity-10">
+                            <div>
+                                @foreach (var d in item.Details.Where(d => !string.IsNullOrEmpty(d.PostUrl)))
+                                {
+                                    <a href="@d.PostUrl" target="_blank" class="btn btn-outline-info btn-sm py-1 px-2 me-1" style="font-size: 0.75rem;">
+                                        <i class="bi bi-box-arrow-up-right me-1"></i> View on @d.Platform
+                                    </a>
+                                }
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-success btn-sm py-1 px-3 fw-bold d-flex align-items-center gap-1"
+                                        @onclick="() => SendDirectWhatsApp(item)" style="background: #25d366; border: none; color: #070d1e;">
+                                    <i class="bi bi-whatsapp"></i>
+                                    <span>Send WhatsApp</span>
+                                </button>
+                                @if (item.Status == "Failed")
+                                {
+                                    <button type="button" class="btn btn-warning btn-sm py-1 px-3 fw-semibold" @onclick="() => RetrySchedule(item.Id)">
+                                        <i class="bi bi-arrow-clockwise me-1"></i> Retry
+                                    </button>
+                                }
+                                @if (item.Status == "Pending")
+                                {
+                                    <button type="button" class="btn btn-outline-danger btn-sm py-1 px-3" @onclick="() => CancelSchedule(item.Id)">
+                                        <i class="bi bi-x-circle me-1"></i> Cancel
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private CurrentUserDTO? currentUser;
+    private List<BannerScheduleDTO> mySchedules = new();
+    private ToastNotificationDTO? activePopup;
+
+    protected override async Task OnInitializedAsync()
+    {
+        currentUser = await AuthService.GetOrRestoreCurrentUserAsync();
+        await LoadSchedulesAsync();
+    }
+
+    private async Task LoadSchedulesAsync()
+    {
+        mySchedules = await ScheduleRepo.GetByDoctorAsync(currentUser?.DoctorProfileId, currentUser?.UserId);
+    }
+
+    private async Task SendDirectWhatsApp(BannerScheduleDTO item)
+    {
+        var message = $"{item.BannerHeading}\n\n{item.Caption}";
+        if (!string.IsNullOrEmpty(item.ImageUrl))
+        {
+            message += $"\n\n📷 Banner Link: {item.ImageUrl}";
+        }
+        await JSRuntime.InvokeVoidAsync("cyhSocial.openWhatsApp", "", message);
+        await ScheduleRepo.UpdateScheduleStatusAsync(item.Id, "Success", null);
+        ShowSuccess("Opened WhatsApp", "Banner details have been sent to WhatsApp!");
+        await LoadSchedulesAsync();
+    }
+
+    private async Task RetrySchedule(int id)
+    {
+        var ok = await ScheduleRepo.RetryScheduleAsync(id);
+        if (ok)
+        {
+            ShowSuccess("Schedule Re-Queued", "Banner has been re-queued for publishing.");
+            await LoadSchedulesAsync();
+        }
+    }
+
+    private async Task CancelSchedule(int id)
+    {
+        var ok = await ScheduleRepo.CancelScheduleAsync(id);
+        if (ok)
+        {
+            ShowSuccess("Cancelled", "Schedule has been cancelled.");
+            await LoadSchedulesAsync();
+        }
+    }
+
+    private void ShowSuccess(string title, string msg)
+    {
+        activePopup = new ToastNotificationDTO
+        {
+            Title = title,
+            Message = msg,
+            Type = "save"
+        };
+    }
+
+    private void DismissPopup() => activePopup = null;
+}

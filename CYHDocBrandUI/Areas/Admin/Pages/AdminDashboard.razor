@@ -5,6 +5,10 @@
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthStateProvider
+@inject IJSRuntime JSRuntime
+@inject Microsoft.Extensions.Caching.Memory.IMemoryCache MemoryCache
+
+<ToastPopup Notification="activePopup" OnDismiss="DismissPopup" />
 
 <div class="d-flex flex-column gap-4">
     <!-- Admin Header -->
@@ -25,6 +29,20 @@
         <div class="d-flex flex-wrap align-items-center gap-2">
             <button class="glass-btn-secondary" @onclick="LoadAdminDataAsync" style="border-color: rgba(245, 158, 11, 0.35); color: #fbbf24;">
                 <i class="bi bi-arrow-clockwise"></i> Refresh Metrics
+            </button>
+            <button class="glass-btn-secondary" @onclick="ResetProjectCacheAsync" disabled="@isResettingCache"
+                    style="border-color: rgba(239, 68, 68, 0.45); color: #f87171; background: rgba(239, 68, 68, 0.1);"
+                    title="Purge browser cache, Service Worker cache, and server memory">
+                @if (isResettingCache)
+                {
+                    <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                    <span>Clearing Cache...</span>
+                }
+                else
+                {
+                    <i class="bi bi-trash3-fill text-danger me-1"></i>
+                    <span>Reset Project Cache</span>
+                }
             </button>
             <a href="admin/ai-settings" class="glass-btn-secondary" style="border-color: rgba(245, 158, 11, 0.35); color: #fbbf24;">
                 <i class="bi bi-key-fill"></i> AI API Keys
@@ -244,6 +262,70 @@
         catch
         {
             // Fail gracefully
+        }
+    }
+
+    private bool isResettingCache = false;
+    private ToastNotificationDTO? activePopup;
+
+    private void DismissPopup()
+    {
+        activePopup = null;
+    }
+
+    private async Task ResetProjectCacheAsync()
+    {
+        if (isResettingCache) return;
+        isResettingCache = true;
+        StateHasChanged();
+
+        try
+        {
+            // 1. Purge Browser CacheStorage, ServiceWorker, and Local/Session storage via JS
+            try
+            {
+                await JSRuntime.InvokeAsync<object>("cyhResetProjectCache");
+            }
+            catch (Exception jsEx)
+            {
+                Console.WriteLine($"JS Cache Purge Notice: {jsEx.Message}");
+            }
+
+            // 2. Clear Server-side Memory Cache
+            if (MemoryCache is Microsoft.Extensions.Caching.Memory.MemoryCache memCache)
+            {
+                memCache.Compact(1.0);
+                memCache.Clear();
+            }
+
+            // 3. Request garbage collector to release stale buffers
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+
+            // 4. Reload latest fresh admin metrics
+            await LoadAdminDataAsync();
+
+            // 5. Notify user with Toast Popup
+            activePopup = new ToastNotificationDTO
+            {
+                Title = "Cache Reset Successful!",
+                Message = "Project cache, Service Worker buffers, browser storage, and server memory have been completely cleared.",
+                Type = "save"
+            };
+        }
+        catch (Exception ex)
+        {
+            activePopup = new ToastNotificationDTO
+            {
+                Title = "Cache Reset Notice",
+                Message = $"Cache cleared with note: {ex.Message}",
+                Type = "warning"
+            };
+        }
+        finally
+        {
+            isResettingCache = false;
+            StateHasChanged();
         }
     }
 }

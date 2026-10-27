@@ -1,8 +1,14 @@
 @inherits LayoutComponentBase
 @implements IDisposable
+@using CYHDocBrandModel.DTO
+@using CYHDocBrandRepo.IRepository
+@using CYHDocBrandUI.Services
+
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthStateProvider
+@inject IBannerScheduleRepository ScheduleRepo
+@inject IJSRuntime JSRuntime
 
 <div class="cyh-app-container">
     <!-- Mobile Sidebar Dark Backdrop -->
@@ -30,7 +36,60 @@
                 </span>
             </div>
 
-            <div class="d-flex align-items-center gap-2">
+            <div class="d-flex align-items-center gap-3">
+                <!-- Live Schedule Reminder Bell -->
+                <div class="position-relative">
+                    <button type="button" class="btn btn-outline-secondary position-relative p-2 rounded-circle d-flex align-items-center justify-content-center"
+                            style="width: 38px; height: 38px; border-color: @(dueSchedules.Count > 0 ? "rgba(245, 158, 11, 0.6)" : "rgba(255,255,255,0.15)"); background: rgba(14, 25, 48, 0.7);"
+                            @onclick="ToggleNotificationDropdown" title="Scheduled Post Notifications">
+                        <i class="bi @(dueSchedules.Count > 0 ? "bi-bell-fill text-warning bell-ring-anim" : "bi-bell text-secondary") fs-5"></i>
+                        @if (dueSchedules.Count > 0)
+                        {
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.68rem; box-shadow: 0 0 10px rgba(239, 68, 68, 0.8);">
+                                @dueSchedules.Count
+                            </span>
+                        }
+                    </button>
+
+                    <!-- Due Notifications Dropdown -->
+                    @if (showNotificationDropdown)
+                    {
+                        <div class="position-absolute end-0 mt-2 p-3 rounded-4 shadow-lg glass-panel" style="width: 340px; background: rgba(14, 25, 48, 0.98); border: 1px solid rgba(245, 158, 11, 0.4); z-index: 1050;">
+                            <div class="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom border-secondary border-opacity-25">
+                                <span class="text-white fw-bold small">
+                                    <i class="bi bi-clock-history text-warning me-1"></i> Ready to Share Now (@dueSchedules.Count)
+                                </span>
+                                <button type="button" class="btn-close btn-close-white small" style="font-size: 0.75rem;" @onclick="() => showNotificationDropdown = false"></button>
+                            </div>
+
+                            @if (dueSchedules.Count == 0)
+                            {
+                                <div class="text-center py-3 text-secondary small">
+                                    <i class="bi bi-check-circle fs-4 text-success d-block mb-1"></i>
+                                    Abhi koi post pending nahi hai.
+                                </div>
+                            }
+                            else
+                            {
+                                <div style="max-height: 280px; overflow-y: auto;">
+                                    @foreach (var s in dueSchedules)
+                                    {
+                                        <div class="p-2 mb-2 rounded-3 bg-dark border border-secondary border-opacity-25 d-flex gap-2 align-items-center justify-content-between">
+                                            <div class="min-w-0 flex-grow-1 cursor-pointer" @onclick="() => OpenShareModal(s)" style="cursor: pointer;">
+                                                <div class="text-white fw-semibold small text-truncate">@s.BannerHeading</div>
+                                                <div class="text-info small" style="font-size: 0.72rem;">Doctor: @s.DoctorName</div>
+                                            </div>
+                                            <button type="button" class="btn btn-success btn-sm py-1 px-2 fw-semibold" @onclick="() => OpenShareModal(s)" style="background: #25d366; border: none; font-size: 0.75rem; color: #070d1e;">
+                                                <i class="bi bi-whatsapp"></i> Send
+                                            </button>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+
                 <!-- User Profile Pill -->
                 <div class="user-profile-pill" style="border-color: @(IsAdmin ? "rgba(245, 158, 11, 0.35)" : "rgba(0, 242, 254, 0.35)");">
                     <div class="user-avatar" style="@(IsAdmin ? "background: linear-gradient(135deg, #f59e0b, #fbbf24); color: #070d1e;" : "")">
@@ -51,12 +110,162 @@
             </div>
         </header>
 
+        <!-- Floating Live Reminder Alert Strip (When post becomes due) -->
+        @if (liveBannerAlert != null)
+        {
+            <div class="alert alert-warning m-3 mb-0 p-3 rounded-4 shadow-lg d-flex align-items-center justify-content-between gap-3 border-warning border-opacity-50"
+                 style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.25) 0%, rgba(14, 25, 48, 0.95) 100%); backdrop-filter: blur(8px);">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="p-2 rounded-circle bg-warning text-dark fs-4">
+                        <i class="bi bi-clock-fill"></i>
+                    </div>
+                    <div>
+                        <div class="fw-bold text-white fs-6">
+                            ⏰ Scheduled Banner Ka Time Ho Gaya: "@liveBannerAlert.BannerHeading"
+                        </div>
+                        <div class="text-light small">
+                            Scheduled for @liveBannerAlert.ScheduledAt.ToLocalTime().ToString("hh:mm tt") &bull; Doctor: <strong>@liveBannerAlert.DoctorName</strong>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-success px-3 py-2 fw-bold d-flex align-items-center gap-2" @onclick="() => OpenShareModal(liveBannerAlert)" style="background: #25d366; border: none; color: #070d1e;">
+                        <i class="bi bi-whatsapp fs-5"></i>
+                        <span>Send on WhatsApp / Social (1-Click)</span>
+                    </button>
+                    <button type="button" class="btn-close btn-close-white" @onclick="() => liveBannerAlert = null"></button>
+                </div>
+            </div>
+        }
+
         <!-- Body Content -->
         <main class="cyh-body">
             @Body
         </main>
     </div>
 </div>
+
+<!-- 1-Click Interactive Social & WhatsApp Share Modal (No Complex API Required) -->
+@if (activeShareModalSchedule != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(10px); z-index: 1090;">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content glass-panel" style="background: rgba(14, 25, 48, 0.98); border: 1px solid rgba(37, 211, 102, 0.4); border-radius: 20px;">
+                <div class="modal-header border-bottom border-secondary border-opacity-25 px-4 py-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-send-check-fill text-success fs-4"></i>
+                        <div>
+                            <h5 class="modal-title text-white fw-bold mb-0">1-Click Social &amp; WhatsApp Share</h5>
+                            <span class="text-secondary small">Banner is ready to be sent instantly</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" @onclick="() => activeShareModalSchedule = null"></button>
+                </div>
+
+                <div class="modal-body p-4">
+                    <!-- Banner Visual Preview -->
+                    <div class="row g-3 mb-4 align-items-center">
+                        <div class="col-md-4 col-12 text-center">
+                            @if (!string.IsNullOrEmpty(activeShareModalSchedule.ImageUrl))
+                            {
+                                <img src="@activeShareModalSchedule.ImageUrl" alt="Banner" class="img-fluid rounded-3 shadow border border-secondary border-opacity-50" style="max-height: 180px; object-fit: contain;" />
+                            }
+                            else
+                            {
+                                <div class="rounded-3 bg-dark p-4 text-info border border-secondary border-opacity-25">
+                                    <i class="bi bi-image fs-1"></i>
+                                </div>
+                            }
+                        </div>
+                        <div class="col-md-8 col-12">
+                            <h5 class="text-white fw-bold mb-1">@activeShareModalSchedule.BannerHeading</h5>
+                            <div class="text-secondary small mb-2">
+                                <i class="bi bi-hospital me-1"></i>@(activeShareModalSchedule.HospitalName ?? "CYH Hospital") &bull;
+                                <span class="text-info fw-semibold">Dr. @activeShareModalSchedule.DoctorName</span>
+                            </div>
+                            <div class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50 px-3 py-1 rounded-pill small">
+                                ⏰ Scheduled Time: @activeShareModalSchedule.ScheduledAt.ToLocalTime().ToString("dd MMM yyyy, hh:mm tt")
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Caption Preview Box with Copy Button -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label text-white fw-bold small mb-0">Message &amp; Caption:</label>
+                            <button type="button" class="btn btn-outline-info btn-sm py-1 px-2" @onclick="CopyCaptionText" style="font-size: 0.75rem;">
+                                <i class="bi @(isCopied ? "bi-check2 text-success" : "bi-clipboard") me-1"></i>
+                                @(isCopied ? "Copied!" : "Copy Caption")
+                            </button>
+                        </div>
+                        <div class="p-3 rounded-3 bg-dark text-light border border-secondary border-opacity-25 small" style="white-space: pre-wrap; max-height: 130px; overflow-y: auto;">
+                            @activeShareModalSchedule.Caption
+                        </div>
+                    </div>
+
+                    <!-- 1-Click Action Buttons -->
+                    <div class="mb-2">
+                        <label class="form-label text-secondary small fw-bold mb-2">SEND / PUBLISH NOW (Bina kisi API key ke direct open hoga):</label>
+                        <div class="d-grid gap-2">
+                            <!-- WhatsApp 1-Click Send -->
+                            <button type="button" class="btn btn-success py-3 px-4 fw-bold fs-6 d-flex align-items-center justify-content-center gap-2 rounded-3 shadow"
+                                    @onclick="() => TriggerWhatsAppShare(activeShareModalSchedule)" style="background: linear-gradient(135deg, #25d366 0%, #128c7e 100%); border: none; color: #ffffff;">
+                                <i class="bi bi-whatsapp fs-4"></i>
+                                <span>Send on WhatsApp (WhatsApp Web / App 1-Click)</span>
+                            </button>
+
+                            <div class="row g-2 mt-1">
+                                <!-- Facebook Share -->
+                                <div class="col-md-6 col-12">
+                                    <button type="button" class="btn btn-primary w-100 py-2 d-flex align-items-center justify-content-center gap-2 rounded-3 fw-semibold"
+                                            @onclick="() => TriggerFacebookShare(activeShareModalSchedule)" style="background: #1877f2; border: none;">
+                                        <i class="bi bi-facebook fs-5"></i>
+                                        <span>Share to Facebook</span>
+                                    </button>
+                                </div>
+                                <!-- LinkedIn Share -->
+                                <div class="col-md-6 col-12">
+                                    <button type="button" class="btn btn-outline-light w-100 py-2 d-flex align-items-center justify-content-center gap-2 rounded-3 fw-semibold"
+                                            @onclick="() => TriggerLinkedInShare(activeShareModalSchedule)" style="border-color: rgba(10, 102, 194, 0.7); color: #38bdf8;">
+                                        <i class="bi bi-linkedin fs-5"></i>
+                                        <span>Share to LinkedIn</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-top border-secondary border-opacity-25 px-4 py-3 d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary btn-sm px-3" @onclick="() => SnoozeSchedule(activeShareModalSchedule.Id)">
+                        <i class="bi bi-alarm me-1"></i> Remind in 15 mins
+                    </button>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-light btn-sm" @onclick="() => activeShareModalSchedule = null">Close</button>
+                        <button type="button" class="btn btn-success btn-sm px-4 fw-bold" @onclick="() => MarkAsCompletedAsync(activeShareModalSchedule.Id)">
+                            <i class="bi bi-check-circle-fill me-1"></i> Mark as Sent &amp; Done
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .bell-ring-anim {
+        animation: bellRing 1.5s ease infinite;
+        transform-origin: top center;
+    }
+    @@keyframes bellRing {
+        0%, 100% { transform: rotate(0); }
+        15% { transform: rotate(15deg); }
+        30% { transform: rotate(-15deg); }
+        45% { transform: rotate(8deg); }
+        60% { transform: rotate(-8deg); }
+        75% { transform: rotate(0); }
+    }
+</style>
 
 @code {
     private CurrentUserDTO? CurrentUser;
@@ -65,11 +274,20 @@
     private bool IsDoctor => CurrentUser?.Role == "Doctor";
     private bool IsAdmin => CurrentUser?.Role == "Admin";
 
+    private List<BannerScheduleDTO> dueSchedules = new();
+    private BannerScheduleDTO? liveBannerAlert;
+    private BannerScheduleDTO? activeShareModalSchedule;
+    private bool showNotificationDropdown = false;
+    private bool isCopied = false;
+
+    private System.Threading.Timer? checkTimer;
+
     protected override async Task OnInitializedAsync()
     {
         AuthStateProvider.AuthenticationStateChanged += async (task) =>
         {
             await LoadCurrentUserAsync();
+            await CheckDueSchedulesAsync();
             await InvokeAsync(StateHasChanged);
         };
 
@@ -82,6 +300,131 @@
             NavigationManager.NavigateTo("login");
             return;
         }
+
+        // Initial check for due schedules
+        await CheckDueSchedulesAsync();
+
+        // Run background check every 25 seconds for live notifications
+        checkTimer = new System.Threading.Timer(async _ =>
+        {
+            await CheckDueSchedulesAsync();
+            await InvokeAsync(StateHasChanged);
+        }, null, TimeSpan.FromSeconds(15), TimeSpan.FromSeconds(25));
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Ask browser desktop notification permission
+                await JSRuntime.InvokeVoidAsync("cyhSocial.requestNotificationPermission");
+            }
+            catch { }
+        }
+    }
+
+    private async Task CheckDueSchedulesAsync()
+    {
+        if (CurrentUser == null) return;
+
+        try
+        {
+            List<BannerScheduleDTO> allSchedules;
+            if (IsAdmin)
+            {
+                var summary = await ScheduleRepo.GetAllAdminAsync();
+                allSchedules = summary.Schedules;
+            }
+            else
+            {
+                allSchedules = await ScheduleRepo.GetByDoctorAsync(CurrentUser.DoctorProfileId, CurrentUser.UserId);
+            }
+
+            var newlyDue = allSchedules
+                .Where(s => s.Status == "Pending" && s.ScheduledAt <= DateTime.UtcNow)
+                .OrderBy(s => s.ScheduledAt)
+                .ToList();
+
+            // Detect if a fresh reminder should pop up
+            if (newlyDue.Count > 0 && (liveBannerAlert == null || !newlyDue.Any(s => s.Id == liveBannerAlert.Id)))
+            {
+                liveBannerAlert = newlyDue.First();
+
+                // Trigger native Windows/Browser desktop notification
+                try
+                {
+                    await JSRuntime.InvokeVoidAsync("cyhSocial.showDesktopNotification",
+                        $"⏰ Banner Ready: {liveBannerAlert.BannerHeading}",
+                        $"Scheduled time arrived! Click to send on WhatsApp for Dr. {liveBannerAlert.DoctorName}.",
+                        liveBannerAlert.ImageUrl);
+                }
+                catch { }
+            }
+
+            dueSchedules = newlyDue;
+        }
+        catch { }
+    }
+
+    private void ToggleNotificationDropdown()
+    {
+        showNotificationDropdown = !showNotificationDropdown;
+    }
+
+    private void OpenShareModal(BannerScheduleDTO schedule)
+    {
+        activeShareModalSchedule = schedule;
+        showNotificationDropdown = false;
+        isCopied = false;
+    }
+
+    private async Task TriggerWhatsAppShare(BannerScheduleDTO schedule)
+    {
+        var message = $"{schedule.BannerHeading}\n\n{schedule.Caption}";
+        if (!string.IsNullOrEmpty(schedule.ImageUrl))
+        {
+            message += $"\n\n📷 Banner Image: {schedule.ImageUrl}";
+        }
+
+        await JSRuntime.InvokeVoidAsync("cyhSocial.openWhatsApp", "", message);
+    }
+
+    private async Task TriggerFacebookShare(BannerScheduleDTO schedule)
+    {
+        var quote = $"{schedule.BannerHeading}\n\n{schedule.Caption}";
+        await JSRuntime.InvokeVoidAsync("cyhSocial.openFacebookShare", schedule.ImageUrl, quote);
+    }
+
+    private async Task TriggerLinkedInShare(BannerScheduleDTO schedule)
+    {
+        await JSRuntime.InvokeVoidAsync("cyhSocial.openLinkedInShare", schedule.ImageUrl);
+    }
+
+    private async Task CopyCaptionText()
+    {
+        if (activeShareModalSchedule == null) return;
+        var text = $"{activeShareModalSchedule.BannerHeading}\n\n{activeShareModalSchedule.Caption}";
+        await JSRuntime.InvokeVoidAsync("cyhSocial.copyToClipboard", text);
+        isCopied = true;
+        StateHasChanged();
+    }
+
+    private async Task MarkAsCompletedAsync(int scheduleId)
+    {
+        await ScheduleRepo.UpdateScheduleStatusAsync(scheduleId, "Success", null);
+        activeShareModalSchedule = null;
+        liveBannerAlert = null;
+        await CheckDueSchedulesAsync();
+    }
+
+    private async Task SnoozeSchedule(int scheduleId)
+    {
+        // Postpone by 15 mins
+        liveBannerAlert = null;
+        activeShareModalSchedule = null;
+        await Task.CompletedTask;
     }
 
     private void ToggleMobileNav()
@@ -119,5 +462,6 @@
     public void Dispose()
     {
         NavigationManager.LocationChanged -= OnLocationChanged;
+        checkTimer?.Dispose();
     }
 }

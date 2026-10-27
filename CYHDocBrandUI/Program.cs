@@ -28,12 +28,17 @@ builder.Services.AddScoped<IBannerRepository, BannerRepository>();
 builder.Services.AddScoped<IBannerTemplateRepository, BannerTemplateRepository>();
 builder.Services.AddScoped<IDoctorAiSettingRepository, DoctorAiSettingRepository>();
 builder.Services.AddScoped<ICreditRepository, CreditRepository>();
+builder.Services.AddScoped<ISocialAccountRepository, SocialAccountRepository>();
+builder.Services.AddScoped<IBannerScheduleRepository, BannerScheduleRepository>();
 
 // 4. Application & Notification Services
 builder.Services.AddHttpClient();
+builder.Services.AddMemoryCache();
 builder.Services.AddScoped<ISMSService, SMSService>();
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 builder.Services.AddScoped<IBannerAiService, BannerAiService>();
+builder.Services.AddScoped<ISocialMediaPublisherService, SocialMediaPublisherService>();
+builder.Services.AddHostedService<BannerPublishBackgroundWorker>();
 
 // 5. Performance Optimizations (Compression & SignalR Speed)
 builder.Services.AddResponseCompression(options =>

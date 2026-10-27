@@ -208,6 +208,78 @@ public static class DbInitializer
                     );
                     CREATE NONCLUSTERED INDEX [IX_PasswordChangeHistory_UserId] ON [dbo].[PasswordChangeHistory_CYH]([UserId]);
                     CREATE NONCLUSTERED INDEX [IX_PasswordChangeHistory_ChangedAt] ON [dbo].[PasswordChangeHistory_CYH]([ChangedAt] DESC);
+                END
+
+                -- Social Accounts Table (Doctor Connections for OAuth & Tokens)
+                IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[DoctorSocialAccounts_CYH]') AND type in (N'U'))
+                BEGIN
+                    CREATE TABLE [dbo].[DoctorSocialAccounts_CYH] (
+                        [Id]               INT IDENTITY(1,1) NOT NULL,
+                        [DoctorId]         INT NULL,
+                        [UserId]           NVARCHAR(450) NULL,
+                        [DoctorName]       NVARCHAR(200) NULL,
+                        [Platform]         NVARCHAR(50)  NOT NULL,
+                        [AccountName]      NVARCHAR(200) NOT NULL,
+                        [PageOrAccountId]  NVARCHAR(200) NOT NULL,
+                        [AccessToken]      NVARCHAR(MAX) NOT NULL,
+                        [RefreshToken]     NVARCHAR(MAX) NULL,
+                        [TokenExpiresAt]   DATETIME2(7)  NULL,
+                        [IsActive]         BIT           NOT NULL DEFAULT (1),
+                        [ConnectedAt]      DATETIME2(7)  NOT NULL DEFAULT (SYSUTCDATETIME()),
+                        [LastTestedAt]     DATETIME2(7)  NULL,
+                        [LastTestStatus]   NVARCHAR(50)  NULL,
+                        [LastTestMessage]  NVARCHAR(MAX) NULL,
+                        CONSTRAINT [PK_DoctorSocialAccounts_CYH] PRIMARY KEY CLUSTERED ([Id] ASC)
+                    );
+                    CREATE NONCLUSTERED INDEX [IX_DoctorSocialAccounts_DoctorId] ON [dbo].[DoctorSocialAccounts_CYH]([DoctorId]);
+                    CREATE NONCLUSTERED INDEX [IX_DoctorSocialAccounts_UserId] ON [dbo].[DoctorSocialAccounts_CYH]([UserId]);
+                END
+
+                -- Banner Schedules Master Table
+                IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[BannerSchedules_CYH]') AND type in (N'U'))
+                BEGIN
+                    CREATE TABLE [dbo].[BannerSchedules_CYH] (
+                        [Id]                 INT IDENTITY(1,1) NOT NULL,
+                        [BannerDesignId]     INT NOT NULL,
+                        [DoctorId]           INT NULL,
+                        [UserId]             NVARCHAR(450) NULL,
+                        [DoctorName]         NVARCHAR(200) NOT NULL,
+                        [HospitalName]       NVARCHAR(200) NULL,
+                        [BannerHeading]      NVARCHAR(500) NULL,
+                        [ImageUrl]           NVARCHAR(MAX) NULL,
+                        [Caption]            NVARCHAR(MAX) NULL,
+                        [Platforms]          NVARCHAR(200) NOT NULL,
+                        [ScheduledAt]        DATETIME2(7) NOT NULL,
+                        [Status]             NVARCHAR(50) NOT NULL DEFAULT ('Pending'),
+                        [ExecutionAttempts]  INT NOT NULL DEFAULT (0),
+                        [LastExecutedAt]     DATETIME2(7) NULL,
+                        [ErrorMessage]       NVARCHAR(MAX) NULL,
+                        [CreatedAt]          DATETIME2(7) NOT NULL DEFAULT (SYSUTCDATETIME()),
+                        [CreatedBy]          NVARCHAR(200) NULL,
+                        CONSTRAINT [PK_BannerSchedules_CYH] PRIMARY KEY CLUSTERED ([Id] ASC)
+                    );
+                    CREATE NONCLUSTERED INDEX [IX_BannerSchedules_ScheduledAt_Status] ON [dbo].[BannerSchedules_CYH]([ScheduledAt], [Status]);
+                    CREATE NONCLUSTERED INDEX [IX_BannerSchedules_DoctorId] ON [dbo].[BannerSchedules_CYH]([DoctorId]);
+                END
+
+                -- Banner Schedule Details (Per-Platform Breakdown)
+                IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[BannerScheduleDetails_CYH]') AND type in (N'U'))
+                BEGIN
+                    CREATE TABLE [dbo].[BannerScheduleDetails_CYH] (
+                        [Id]                INT IDENTITY(1,1) NOT NULL,
+                        [BannerScheduleId]  INT NOT NULL,
+                        [Platform]          NVARCHAR(50) NOT NULL,
+                        [TargetAccountName] NVARCHAR(200) NULL,
+                        [TargetPageId]      NVARCHAR(200) NULL,
+                        [Status]            NVARCHAR(50) NOT NULL DEFAULT ('Pending'),
+                        [PlatformPostId]    NVARCHAR(200) NULL,
+                        [PostUrl]           NVARCHAR(MAX) NULL,
+                        [ErrorMessage]      NVARCHAR(MAX) NULL,
+                        [PublishedAt]       DATETIME2(7) NULL,
+                        CONSTRAINT [PK_BannerScheduleDetails_CYH] PRIMARY KEY CLUSTERED ([Id] ASC),
+                        CONSTRAINT [FK_BannerScheduleDetails_Master] FOREIGN KEY ([BannerScheduleId]) REFERENCES [dbo].[BannerSchedules_CYH]([Id]) ON DELETE CASCADE
+                    );
+                    CREATE NONCLUSTERED INDEX [IX_BannerScheduleDetails_ScheduleId] ON [dbo].[BannerScheduleDetails_CYH]([BannerScheduleId]);
                 END";
 
             await using (var cmdTable = new SqlCommand(createTableSql, con))
@@ -1402,6 +1474,295 @@ public static class DbInitializer
             await using (var cmdCredits = new SqlCommand(spCreditsSql, con))
             {
                 await cmdCredits.ExecuteNonQueryAsync();
+            }
+
+            // 7.2. Ensure ManageDoctorSocialAccounts_CYH Stored Procedure exists & updated
+            var spSocialAccountsSql = @"
+                CREATE OR ALTER PROCEDURE dbo.ManageDoctorSocialAccounts_CYH
+                    @Flag NVARCHAR(50),
+                    @Id INT = NULL,
+                    @DoctorId INT = NULL,
+                    @UserId NVARCHAR(450) = NULL,
+                    @DoctorName NVARCHAR(200) = NULL,
+                    @Platform NVARCHAR(50) = NULL,
+                    @AccountName NVARCHAR(200) = NULL,
+                    @PageOrAccountId NVARCHAR(200) = NULL,
+                    @AccessToken NVARCHAR(MAX) = NULL,
+                    @RefreshToken NVARCHAR(MAX) = NULL,
+                    @TokenExpiresAt DATETIME2(7) = NULL,
+                    @IsActive BIT = NULL,
+                    @LastTestStatus NVARCHAR(50) = NULL,
+                    @LastTestMessage NVARCHAR(MAX) = NULL
+                AS
+                BEGIN
+                    SET NOCOUNT ON;
+
+                    IF @Flag = 'GET_BY_DOCTOR'
+                    BEGIN
+                        SELECT Id, DoctorId, UserId, DoctorName, Platform, AccountName, PageOrAccountId,
+                               AccessToken, RefreshToken, TokenExpiresAt, IsActive, ConnectedAt,
+                               LastTestedAt, LastTestStatus, LastTestMessage
+                        FROM [dbo].[DoctorSocialAccounts_CYH]
+                        WHERE (@DoctorId IS NOT NULL AND DoctorId = @DoctorId)
+                           OR (@UserId IS NOT NULL AND UserId = @UserId)
+                        ORDER BY ConnectedAt DESC, Id DESC;
+                    END
+                    ELSE IF @Flag = 'GET_BY_ID'
+                    BEGIN
+                        SELECT Id, DoctorId, UserId, DoctorName, Platform, AccountName, PageOrAccountId,
+                               AccessToken, RefreshToken, TokenExpiresAt, IsActive, ConnectedAt,
+                               LastTestedAt, LastTestStatus, LastTestMessage
+                        FROM [dbo].[DoctorSocialAccounts_CYH]
+                        WHERE Id = @Id;
+                    END
+                    ELSE IF @Flag = 'SAVE_ACCOUNT'
+                    BEGIN
+                        DECLARE @ExistingId INT = NULL;
+                        IF @Id IS NOT NULL AND @Id > 0
+                        BEGIN
+                            SET @ExistingId = @Id;
+                        END
+                        ELSE
+                        BEGIN
+                            SELECT TOP 1 @ExistingId = Id
+                            FROM [dbo].[DoctorSocialAccounts_CYH]
+                            WHERE ((@DoctorId IS NOT NULL AND DoctorId = @DoctorId) OR (@UserId IS NOT NULL AND UserId = @UserId))
+                              AND Platform = @Platform
+                              AND PageOrAccountId = @PageOrAccountId;
+                        END
+
+                        IF @ExistingId IS NOT NULL
+                        BEGIN
+                            UPDATE [dbo].[DoctorSocialAccounts_CYH]
+                            SET AccountName = ISNULL(@AccountName, AccountName),
+                                AccessToken = ISNULL(@AccessToken, AccessToken),
+                                RefreshToken = ISNULL(@RefreshToken, RefreshToken),
+                                TokenExpiresAt = ISNULL(@TokenExpiresAt, TokenExpiresAt),
+                                IsActive = ISNULL(@IsActive, 1),
+                                LastTestedAt = SYSUTCDATETIME(),
+                                LastTestStatus = 'Success',
+                                LastTestMessage = 'Connected successfully'
+                            WHERE Id = @ExistingId;
+
+                            SELECT @ExistingId AS ResultId;
+                        END
+                        ELSE
+                        BEGIN
+                            INSERT INTO [dbo].[DoctorSocialAccounts_CYH]
+                            (DoctorId, UserId, DoctorName, Platform, AccountName, PageOrAccountId, AccessToken, RefreshToken, TokenExpiresAt, IsActive, ConnectedAt, LastTestedAt, LastTestStatus, LastTestMessage)
+                            VALUES
+                            (@DoctorId, @UserId, @DoctorName, @Platform, @AccountName, @PageOrAccountId, @AccessToken, @RefreshToken, @TokenExpiresAt, ISNULL(@IsActive, 1), SYSUTCDATETIME(), SYSUTCDATETIME(), 'Success', 'Connected successfully');
+
+                            SELECT SCOPE_IDENTITY() AS ResultId;
+                        END
+                    END
+                    ELSE IF @Flag = 'UPDATE_TEST_STATUS'
+                    BEGIN
+                        UPDATE [dbo].[DoctorSocialAccounts_CYH]
+                        SET LastTestedAt = SYSUTCDATETIME(),
+                            LastTestStatus = @LastTestStatus,
+                            LastTestMessage = @LastTestMessage
+                        WHERE Id = @Id;
+                        SELECT @@ROWCOUNT AS RowsAffected;
+                    END
+                    ELSE IF @Flag = 'DELETE'
+                    BEGIN
+                        DELETE FROM [dbo].[DoctorSocialAccounts_CYH] WHERE Id = @Id;
+                        SELECT @@ROWCOUNT AS RowsAffected;
+                    END
+                    ELSE IF @Flag = 'TOGGLE_ACTIVE'
+                    BEGIN
+                        UPDATE [dbo].[DoctorSocialAccounts_CYH]
+                        SET IsActive = CASE WHEN IsActive = 1 THEN 0 ELSE 1 END
+                        WHERE Id = @Id;
+                        SELECT @@ROWCOUNT AS RowsAffected;
+                    END
+                END";
+
+            await using (var cmdSocial = new SqlCommand(spSocialAccountsSql, con))
+            {
+                await cmdSocial.ExecuteNonQueryAsync();
+            }
+
+            // 7.3. Ensure ManageBannerSchedules_CYH Stored Procedure exists & updated
+            var spBannerSchedulesSql = @"
+                CREATE OR ALTER PROCEDURE dbo.ManageBannerSchedules_CYH
+                    @Flag NVARCHAR(50),
+                    @Id INT = NULL,
+                    @BannerDesignId INT = NULL,
+                    @DoctorId INT = NULL,
+                    @UserId NVARCHAR(450) = NULL,
+                    @DoctorName NVARCHAR(200) = NULL,
+                    @HospitalName NVARCHAR(200) = NULL,
+                    @BannerHeading NVARCHAR(500) = NULL,
+                    @ImageUrl NVARCHAR(MAX) = NULL,
+                    @Caption NVARCHAR(MAX) = NULL,
+                    @Platforms NVARCHAR(200) = NULL,
+                    @ScheduledAt DATETIME2(7) = NULL,
+                    @Status NVARCHAR(50) = NULL,
+                    @ErrorMessage NVARCHAR(MAX) = NULL,
+                    @CreatedBy NVARCHAR(200) = NULL,
+                    @ScheduleDetailId INT = NULL,
+                    @Platform NVARCHAR(50) = NULL,
+                    @TargetAccountName NVARCHAR(200) = NULL,
+                    @TargetPageId NVARCHAR(200) = NULL,
+                    @PlatformPostId NVARCHAR(200) = NULL,
+                    @PostUrl NVARCHAR(MAX) = NULL,
+                    @Search NVARCHAR(200) = NULL
+                AS
+                BEGIN
+                    SET NOCOUNT ON;
+
+                    -- 1. Create schedule entry with initial details
+                    IF @Flag = 'CREATE'
+                    BEGIN
+                        INSERT INTO [dbo].[BannerSchedules_CYH]
+                        (BannerDesignId, DoctorId, UserId, DoctorName, HospitalName, BannerHeading, ImageUrl, Caption, Platforms, ScheduledAt, Status, ExecutionAttempts, CreatedAt, CreatedBy)
+                        VALUES
+                        (@BannerDesignId, @DoctorId, @UserId, @DoctorName, @HospitalName, @BannerHeading, @ImageUrl, @Caption, @Platforms, @ScheduledAt, 'Pending', 0, SYSUTCDATETIME(), @CreatedBy);
+
+                        DECLARE @NewScheduleId INT = SCOPE_IDENTITY();
+                        SELECT @NewScheduleId AS ResultId;
+                    END
+
+                    -- 2. Add Detail for Platform
+                    ELSE IF @Flag = 'ADD_DETAIL'
+                    BEGIN
+                        INSERT INTO [dbo].[BannerScheduleDetails_CYH]
+                        (BannerScheduleId, Platform, TargetAccountName, TargetPageId, Status)
+                        VALUES
+                        (@Id, @Platform, @TargetAccountName, @TargetPageId, 'Pending');
+
+                        SELECT SCOPE_IDENTITY() AS ResultId;
+                    END
+
+                    -- 3. Get Due Schedules for Background Worker (Locking with 'Processing')
+                    ELSE IF @Flag = 'GET_DUE_SCHEDULES'
+                    BEGIN
+                        DECLARE @DueList TABLE (Id INT);
+
+                        UPDATE TOP (10) [dbo].[BannerSchedules_CYH]
+                        SET Status = 'Processing',
+                            LastExecutedAt = SYSUTCDATETIME(),
+                            ExecutionAttempts = ExecutionAttempts + 1
+                        OUTPUT inserted.Id INTO @DueList
+                        WHERE Status = 'Pending' 
+                          AND ScheduledAt <= SYSUTCDATETIME();
+
+                        -- Return the main schedule records
+                        SELECT s.Id, s.BannerDesignId, s.DoctorId, s.UserId, s.DoctorName, s.HospitalName,
+                               s.BannerHeading, s.ImageUrl, s.Caption, s.Platforms, s.ScheduledAt,
+                               s.Status, s.ExecutionAttempts, s.LastExecutedAt, s.ErrorMessage, s.CreatedAt, s.CreatedBy
+                        FROM [dbo].[BannerSchedules_CYH] s
+                        INNER JOIN @DueList d ON s.Id = d.Id;
+
+                        -- Return details for those schedules
+                        SELECT d.Id, d.BannerScheduleId, d.Platform, d.TargetAccountName, d.TargetPageId,
+                               d.Status, d.PlatformPostId, d.PostUrl, d.ErrorMessage, d.PublishedAt
+                        FROM [dbo].[BannerScheduleDetails_CYH] d
+                        INNER JOIN @DueList dl ON d.BannerScheduleId = dl.Id;
+                    END
+
+                    -- 4. Update Detail Status (from publisher service)
+                    ELSE IF @Flag = 'UPDATE_DETAIL_STATUS'
+                    BEGIN
+                        UPDATE [dbo].[BannerScheduleDetails_CYH]
+                        SET Status = @Status,
+                            PlatformPostId = ISNULL(@PlatformPostId, PlatformPostId),
+                            PostUrl = ISNULL(@PostUrl, PostUrl),
+                            ErrorMessage = @ErrorMessage,
+                            PublishedAt = CASE WHEN @Status = 'Success' THEN SYSUTCDATETIME() ELSE PublishedAt END
+                        WHERE Id = @ScheduleDetailId;
+
+                        SELECT @@ROWCOUNT AS RowsAffected;
+                    END
+
+                    -- 5. Mark Schedule Master Status
+                    ELSE IF @Flag = 'UPDATE_SCHEDULE_STATUS'
+                    BEGIN
+                        UPDATE [dbo].[BannerSchedules_CYH]
+                        SET Status = @Status,
+                            ErrorMessage = @ErrorMessage,
+                            LastExecutedAt = SYSUTCDATETIME()
+                        WHERE Id = @Id;
+
+                        SELECT @@ROWCOUNT AS RowsAffected;
+                    END
+
+                    -- 6. Get All Schedules for Admin (with search & filters)
+                    ELSE IF @Flag = 'GET_ALL_ADMIN'
+                    BEGIN
+                        SELECT s.Id, s.BannerDesignId, s.DoctorId, s.UserId, s.DoctorName, s.HospitalName,
+                               s.BannerHeading, s.ImageUrl, s.Caption, s.Platforms, s.ScheduledAt,
+                               s.Status, s.ExecutionAttempts, s.LastExecutedAt, s.ErrorMessage, s.CreatedAt, s.CreatedBy
+                        FROM [dbo].[BannerSchedules_CYH] s
+                        WHERE (@DoctorId IS NULL OR s.DoctorId = @DoctorId)
+                          AND (@Status IS NULL OR @Status = 'All' OR s.Status = @Status)
+                          AND (@Search IS NULL OR s.DoctorName LIKE '%' + @Search + '%' OR s.BannerHeading LIKE '%' + @Search + '%' OR s.Caption LIKE '%' + @Search + '%')
+                        ORDER BY s.ScheduledAt DESC, s.Id DESC;
+
+                        SELECT d.Id, d.BannerScheduleId, d.Platform, d.TargetAccountName, d.TargetPageId,
+                               d.Status, d.PlatformPostId, d.PostUrl, d.ErrorMessage, d.PublishedAt
+                        FROM [dbo].[BannerScheduleDetails_CYH] d
+                        ORDER BY d.Id ASC;
+                    END
+
+                    -- 7. Get Schedules by Doctor
+                    ELSE IF @Flag = 'GET_BY_DOCTOR'
+                    BEGIN
+                        SELECT s.Id, s.BannerDesignId, s.DoctorId, s.UserId, s.DoctorName, s.HospitalName,
+                               s.BannerHeading, s.ImageUrl, s.Caption, s.Platforms, s.ScheduledAt,
+                               s.Status, s.ExecutionAttempts, s.LastExecutedAt, s.ErrorMessage, s.CreatedAt, s.CreatedBy
+                        FROM [dbo].[BannerSchedules_CYH] s
+                        WHERE (@DoctorId IS NOT NULL AND s.DoctorId = @DoctorId)
+                           OR (@UserId IS NOT NULL AND s.UserId = @UserId)
+                        ORDER BY s.ScheduledAt DESC, s.Id DESC;
+
+                        SELECT d.Id, d.BannerScheduleId, d.Platform, d.TargetAccountName, d.TargetPageId,
+                               d.Status, d.PlatformPostId, d.PostUrl, d.ErrorMessage, d.PublishedAt
+                        FROM [dbo].[BannerScheduleDetails_CYH] d
+                        INNER JOIN [dbo].[BannerSchedules_CYH] s ON d.BannerScheduleId = s.Id
+                        WHERE (@DoctorId IS NOT NULL AND s.DoctorId = @DoctorId)
+                           OR (@UserId IS NOT NULL AND s.UserId = @UserId)
+                        ORDER BY d.Id ASC;
+                    END
+
+                    -- 8. Cancel Schedule
+                    ELSE IF @Flag = 'CANCEL_SCHEDULE'
+                    BEGIN
+                        UPDATE [dbo].[BannerSchedules_CYH]
+                        SET Status = 'Cancelled',
+                            ErrorMessage = 'Cancelled by user/admin'
+                        WHERE Id = @Id AND Status = 'Pending';
+
+                        UPDATE [dbo].[BannerScheduleDetails_CYH]
+                        SET Status = 'Cancelled'
+                        WHERE BannerScheduleId = @Id AND Status = 'Pending';
+
+                        SELECT @@ROWCOUNT AS RowsAffected;
+                    END
+
+                    -- 9. Retry Schedule
+                    ELSE IF @Flag = 'RETRY_SCHEDULE'
+                    BEGIN
+                        UPDATE [dbo].[BannerSchedules_CYH]
+                        SET Status = 'Pending',
+                            ScheduledAt = SYSUTCDATETIME(),
+                            ErrorMessage = NULL
+                        WHERE Id = @Id;
+
+                        UPDATE [dbo].[BannerScheduleDetails_CYH]
+                        SET Status = 'Pending',
+                            ErrorMessage = NULL
+                        WHERE BannerScheduleId = @Id AND Status IN ('Failed', 'Cancelled');
+
+                        SELECT @@ROWCOUNT AS RowsAffected;
+                    END
+                END";
+
+            await using (var cmdSched = new SqlCommand(spBannerSchedulesSql, con))
+            {
+                await cmdSched.ExecuteNonQueryAsync();
             }
 
             // 8.1. Seed Credit System Types and Doctor Credits
