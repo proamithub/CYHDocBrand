@@ -304,17 +304,58 @@ public class BannerScheduleRepository : IBannerScheduleRepository
             await using var con = new SqlConnection(_conn);
             await con.OpenAsync();
 
-            await using var cmd = new SqlCommand("ManageBannerSchedules_CYH", con);
-            cmd.CommandType = CommandType.StoredProcedure;
-            cmd.Parameters.AddWithValue("@Flag", "CANCEL_SCHEDULE");
+            const string sql = @"
+                UPDATE [dbo].[BannerSchedules_CYH]
+                SET Status = 'Cancelled',
+                    ErrorMessage = 'Cancelled by user'
+                WHERE Id = @Id;
+
+                UPDATE [dbo].[BannerScheduleDetails_CYH]
+                SET Status = 'Cancelled'
+                WHERE BannerScheduleId = @Id;";
+
+            await using var cmd = new SqlCommand(sql, con);
             cmd.Parameters.AddWithValue("@Id", scheduleId);
 
-            var rows = await cmd.ExecuteNonQueryAsync();
-            return rows > 0;
+            await cmd.ExecuteNonQueryAsync();
+            return true;
         }
         catch (Exception ex)
         {
             _logger?.LogError(ex, "Error cancelling schedule Id {ScheduleId}", scheduleId);
+            return false;
+        }
+    }
+
+    public async Task<bool> SnoozeScheduleAsync(int scheduleId, int minutes = 5)
+    {
+        try
+        {
+            await using var con = new SqlConnection(_conn);
+            await con.OpenAsync();
+
+            const string sql = @"
+                UPDATE [dbo].[BannerSchedules_CYH]
+                SET Status = 'Pending',
+                    ScheduledAt = DATEADD(minute, @Minutes, SYSUTCDATETIME()),
+                    ErrorMessage = NULL
+                WHERE Id = @Id;
+
+                UPDATE [dbo].[BannerScheduleDetails_CYH]
+                SET Status = 'Pending',
+                    ErrorMessage = NULL
+                WHERE BannerScheduleId = @Id;";
+
+            await using var cmd = new SqlCommand(sql, con);
+            cmd.Parameters.AddWithValue("@Id", scheduleId);
+            cmd.Parameters.AddWithValue("@Minutes", minutes);
+
+            await cmd.ExecuteNonQueryAsync();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Error snoozing schedule Id {ScheduleId}", scheduleId);
             return false;
         }
     }

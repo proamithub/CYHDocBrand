@@ -36,7 +36,15 @@
                 </span>
             </div>
 
-            <div class="d-flex align-items-center gap-3">
+            <div class="d-flex align-items-center gap-2 gap-sm-3">
+                <!-- Sound Alert Choice Toggle (Sound ON / OFF) -->
+                <button type="button" class="btn btn-outline-secondary p-2 rounded-circle d-flex align-items-center justify-content-center"
+                        style="width: 38px; height: 38px; border-color: @(isSoundEnabled ? "rgba(0, 242, 254, 0.5)" : "rgba(255,255,255,0.15)"); background: rgba(14, 25, 48, 0.7);"
+                        @onclick="ToggleSoundChoice" 
+                        title="@(isSoundEnabled ? "Sound Alert: ON (Click to Mute)" : "Sound Alert: OFF (Click to Unmute)")">
+                    <i class="bi @(isSoundEnabled ? "bi-volume-up-fill text-info" : "bi-volume-mute text-secondary") fs-5"></i>
+                </button>
+
                 <!-- Live Schedule Reminder Bell -->
                 <div class="position-relative">
                     <button type="button" class="btn btn-outline-secondary position-relative p-2 rounded-circle d-flex align-items-center justify-content-center"
@@ -157,15 +165,25 @@
     <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(10px); z-index: 1090;">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content glass-panel" style="background: rgba(14, 25, 48, 0.98); border: 1px solid rgba(37, 211, 102, 0.4); border-radius: 20px;">
-                <div class="modal-header border-bottom border-secondary border-opacity-25 px-4 py-3">
+                <div class="modal-header border-bottom border-secondary border-opacity-25 px-4 py-3 d-flex align-items-center justify-content-between">
                     <div class="d-flex align-items-center gap-2">
                         <i class="bi bi-send-check-fill text-success fs-4"></i>
                         <div>
                             <h5 class="modal-title text-white fw-bold mb-0">1-Click Social &amp; WhatsApp Share</h5>
-                            <span class="text-secondary small">Banner is ready to be sent instantly</span>
+                            <span class="text-secondary small">Scheduled post share karne ke liye ready hai</span>
                         </div>
                     </div>
-                    <button type="button" class="btn-close btn-close-white" @onclick="() => activeShareModalSchedule = null"></button>
+                    <div class="d-flex align-items-center gap-2">
+                        <!-- Sound Choice Button in Modal -->
+                        <button type="button" class="btn btn-sm @(isSoundEnabled ? "btn-outline-info text-info" : "btn-outline-secondary text-muted") py-1 px-2 d-flex align-items-center gap-1" 
+                                @onclick="ToggleSoundChoice" 
+                                style="font-size: 0.76rem; border-radius: 8px;" 
+                                title="@(isSoundEnabled ? "Sound Alert is ON - Click to Mute" : "Sound Alert is OFF - Click to Unmute")">
+                            <i class="bi @(isSoundEnabled ? "bi-volume-up-fill text-info" : "bi-volume-mute-fill text-secondary")"></i>
+                            <span>Sound: @(isSoundEnabled ? "ON" : "OFF")</span>
+                        </button>
+                        <button type="button" class="btn-close btn-close-white" @onclick="() => activeShareModalSchedule = null"></button>
+                    </div>
                 </div>
 
                 <div class="modal-body p-4">
@@ -251,14 +269,49 @@
                     </div>
                 </div>
 
-                <div class="modal-footer border-top border-secondary border-opacity-25 px-4 py-3 d-flex justify-content-between">
-                    <button type="button" class="btn btn-outline-secondary btn-sm px-3" @onclick="() => SnoozeSchedule(activeShareModalSchedule.Id)">
-                        <i class="bi bi-alarm me-1"></i> Remind in 15 mins
-                    </button>
-                    <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-outline-light btn-sm" @onclick="() => activeShareModalSchedule = null">Close</button>
-                        <button type="button" class="btn btn-success btn-sm px-4 fw-bold" @onclick="() => MarkAsCompletedAsync(activeShareModalSchedule.Id)">
-                            <i class="bi bi-check-circle-fill me-1"></i> Mark as Sent &amp; Done
+                <div class="modal-footer border-top border-secondary border-opacity-25 px-4 py-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <!-- Snooze (5 min gap, up to 3 times) -->
+                        @{
+                            int currentSnooze = scheduleSnoozeCounts.GetValueOrDefault(activeShareModalSchedule.Id, 0);
+                        }
+                        @if (currentSnooze < 3)
+                        {
+                            <button type="button" class="btn btn-outline-warning btn-sm px-3 fw-bold d-flex align-items-center gap-1" 
+                                    @onclick="() => SnoozeSchedule(activeShareModalSchedule.Id)" 
+                                    style="border-color: #f59e0b; color: #fbbf24; border-radius: 8px;"
+                                    title="Is alert ko 5 minute ke liye postpone karein (Maximum 3 baar)">
+                                <i class="bi bi-alarm-fill text-warning"></i>
+                                <span>Snooze 5 Min (@(currentSnooze + 1)/3)</span>
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="button" class="btn btn-outline-secondary btn-sm px-3 disabled" disabled style="opacity: 0.55; border-radius: 8px;" title="Max 3 snoozes ho chuke hain">
+                                <i class="bi bi-alarm"></i>
+                                <span>Max Snoozes (3/3) Reached</span>
+                            </button>
+                        }
+
+                        <!-- Cancel Post Button -->
+                        <button type="button" class="btn btn-outline-danger btn-sm px-3 fw-semibold d-flex align-items-center gap-1"
+                                @onclick="() => CancelScheduleAsync(activeShareModalSchedule.Id)"
+                                style="border-color: rgba(239, 68, 68, 0.5); border-radius: 8px;"
+                                title="Is post ko cancel karein taaki ye dobara share alert na de">
+                            <i class="bi bi-x-circle-fill text-danger"></i>
+                            <span>Cancel Post</span>
+                        </button>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2 ms-auto">
+                        <button type="button" class="btn btn-outline-secondary btn-sm px-3" @onclick="() => activeShareModalSchedule = null" style="border-radius: 8px;">
+                            Close
+                        </button>
+                        <button type="button" class="btn btn-success btn-sm px-4 fw-bold d-flex align-items-center gap-2" 
+                                @onclick="() => MarkAsCompletedAsync(activeShareModalSchedule.Id)" 
+                                style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; border-radius: 8px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);">
+                            <i class="bi bi-check-circle-fill"></i>
+                            <span>Mark as Shared &amp; Done</span>
                         </button>
                     </div>
                 </div>
@@ -294,7 +347,9 @@
     private BannerScheduleDTO? activeShareModalSchedule;
     private bool showNotificationDropdown = false;
     private bool isCopied = false;
+    private bool isSoundEnabled = true;
     private readonly HashSet<int> notifiedScheduleIds = new();
+    private readonly Dictionary<int, int> scheduleSnoozeCounts = new();
 
     private System.Threading.Timer? checkTimer;
 
@@ -334,6 +389,13 @@
         {
             try
             {
+                var soundPref = await JSRuntime.InvokeAsync<string?>("localStorage.getItem", "cyh_alert_sound");
+                if (soundPref == "0")
+                {
+                    isSoundEnabled = false;
+                    StateHasChanged();
+                }
+
                 // Ask browser desktop notification permission
                 await JSRuntime.InvokeVoidAsync("cyhSocial.requestNotificationPermission");
             }
@@ -384,12 +446,15 @@
                 notifiedScheduleIds.Add(topAlert.Id);
                 liveBannerAlert = topAlert;
 
-                // 1. Play audible sound chime (Ding-Dong)
-                try
+                // 1. Play audible sound chime (Ding-Dong) only if sound is enabled by user
+                if (isSoundEnabled)
                 {
-                    await JSRuntime.InvokeVoidAsync("cyhSocial.playAlertSound");
+                    try
+                    {
+                        await JSRuntime.InvokeVoidAsync("cyhSocial.playAlertSound");
+                    }
+                    catch { }
                 }
-                catch { }
 
                 // 2. Trigger native Windows / Browser desktop notification
                 try
@@ -492,12 +557,42 @@
         await CheckDueSchedulesAsync();
     }
 
+    private async Task ToggleSoundChoice()
+    {
+        isSoundEnabled = !isSoundEnabled;
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "cyh_alert_sound", isSoundEnabled ? "1" : "0");
+            if (isSoundEnabled)
+            {
+                await JSRuntime.InvokeVoidAsync("cyhSocial.playAlertSound");
+            }
+        }
+        catch { }
+        StateHasChanged();
+    }
+
     private async Task SnoozeSchedule(int scheduleId)
     {
-        // Postpone by 15 mins
-        liveBannerAlert = null;
+        int currentCount = scheduleSnoozeCounts.GetValueOrDefault(scheduleId, 0);
+        if (currentCount < 3)
+        {
+            scheduleSnoozeCounts[scheduleId] = currentCount + 1;
+            await ScheduleRepo.SnoozeScheduleAsync(scheduleId, 5);
+            notifiedScheduleIds.Remove(scheduleId); // Allow notifying again when 5 mins elapse!
+            activeShareModalSchedule = null;
+            liveBannerAlert = null;
+            await CheckDueSchedulesAsync();
+        }
+    }
+
+    private async Task CancelScheduleAsync(int scheduleId)
+    {
+        await ScheduleRepo.CancelScheduleAsync(scheduleId);
         activeShareModalSchedule = null;
-        await Task.CompletedTask;
+        liveBannerAlert = null;
+        notifiedScheduleIds.Add(scheduleId);
+        await CheckDueSchedulesAsync();
     }
 
     private void ToggleMobileNav()
