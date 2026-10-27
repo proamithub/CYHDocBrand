@@ -119,6 +119,10 @@
                                     {
                                         <span class="badge bg-info bg-opacity-25 text-info rounded-pill small">🔄 Publishing...</span>
                                     }
+                                    else if (item.Status == "ReadyToShare")
+                                    {
+                                        <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50 rounded-pill small">🟢 Ready to Share</span>
+                                    }
                                     else if (item.Status == "Success")
                                     {
                                         <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50 rounded-pill small">✅ Published</span>

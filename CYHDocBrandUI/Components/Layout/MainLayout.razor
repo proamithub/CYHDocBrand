@@ -343,7 +343,7 @@
             }
 
             var newlyDue = allSchedules
-                .Where(s => s.Status == "Pending" && s.ScheduledAt <= DateTime.UtcNow)
+                .Where(s => (s.Status == "Pending" || s.Status == "ReadyToShare") && s.ScheduledAt <= DateTime.UtcNow)
                 .OrderBy(s => s.ScheduledAt)
                 .ToList();
 

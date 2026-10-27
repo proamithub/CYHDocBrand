@@ -78,10 +78,12 @@ public class BannerPublishBackgroundWorker : BackgroundService
 
                 if (account == null)
                 {
-                    var msg = $"No active {detail.Platform} connection found for {schedule.DoctorName}.";
-                    await scheduleRepo.UpdateDetailStatusAsync(detail.Id, "Failed", null, null, msg);
-                    failedCount++;
-                    failureMessages.Add(msg);
+                    // 1-Click Reminder Mode (WhatsApp / Popup without direct API token)
+                    // Notification & 1-click sharing are handled by MainLayout for the doctor.
+                    var msg = $"{detail.Platform}: 1-Click popup reminder ready.";
+                    await scheduleRepo.UpdateDetailStatusAsync(detail.Id, "ReadyToShare", null, null, msg);
+                    successCount++;
+                    _logger.LogInformation("Schedule #{Id} platform {Platform} queued for 1-Click Reminder.", schedule.Id, detail.Platform);
                     continue;
                 }
 
@@ -110,7 +112,8 @@ public class BannerPublishBackgroundWorker : BackgroundService
 
             if (failedCount == 0 && successCount > 0)
             {
-                finalStatus = "Success";
+                var allDirectApi = schedule.Details.All(d => doctorAccounts.Any(a => a.IsActive && a.Platform.Equals(d.Platform, StringComparison.OrdinalIgnoreCase)));
+                finalStatus = allDirectApi ? "Success" : "ReadyToShare";
             }
             else if (successCount > 0 && failedCount > 0)
             {

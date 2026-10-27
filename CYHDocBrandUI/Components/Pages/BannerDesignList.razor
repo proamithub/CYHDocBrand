@@ -449,50 +449,98 @@
 
                         <!-- Target Platforms -->
                         <div class="mb-4">
-                            <label class="form-label text-white fw-bold small mb-2">
-                                <i class="bi bi-share-fill me-1 text-info"></i> Target Platforms
+                            <label class="form-label text-white fw-bold small mb-2 d-flex justify-content-between align-items-center">
+                                <span><i class="bi bi-share-fill me-1 text-info"></i> Target Platforms</span>
+                                <span class="text-secondary small fw-normal">Select platforms to publish / share</span>
                             </label>
                             
-                            @if (doctorSocialAccounts.Count == 0)
-                            {
-                                <div class="alert alert-warning py-2 px-3 small d-flex align-items-center justify-content-between mb-0">
-                                    <span><i class="bi bi-exclamation-triangle-fill me-2"></i>Aapka koi Facebook ya Instagram account connected nahi hai.</span>
-                                    <NavLink href="doctor/social-connections" class="btn btn-warning btn-sm fw-bold">Connect Now</NavLink>
+                            <div class="d-flex flex-column gap-2">
+                                <!-- 1. WhatsApp Card -->
+                                <div class="p-3 rounded-3 border @(scheduleWhatsApp ? "border-success bg-success bg-opacity-10" : "border-secondary border-opacity-25 bg-dark") d-flex align-items-center justify-content-between" 
+                                     style="cursor: pointer; transition: all 0.2s ease;" 
+                                     @onclick="() => scheduleWhatsApp = !scheduleWhatsApp">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <input class="form-check-input mt-0" type="checkbox" id="chkWa" @bind="scheduleWhatsApp" @onclick:stopPropagation="true" style="width: 1.25rem; height: 1.25rem;" />
+                                        <div>
+                                            <div class="text-white fw-bold d-flex align-items-center gap-2">
+                                                <i class="bi bi-whatsapp text-success fs-5"></i> WhatsApp
+                                                @if (hasWhatsApp)
+                                                {
+                                                    <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50" style="font-size: 0.68rem;">Cloud API</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50" style="font-size: 0.68rem;">1-Click Web &amp; App</span>
+                                                }
+                                            </div>
+                                            <div class="text-secondary small">
+                                                @(hasWhatsApp ? $"Direct Cloud API: {whatsAppAccountName}" : "Desktop notification + 1-Click WhatsApp Web/App popup at scheduled time (No API needed)")
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <i class="bi @(scheduleWhatsApp ? "bi-check-circle-fill text-success" : "bi-circle text-secondary") fs-5"></i>
                                 </div>
-                            }
-                            else
+
+                                <!-- 2. Facebook Card -->
+                                <div class="p-3 rounded-3 border @(scheduleFacebook ? "border-primary bg-primary bg-opacity-10" : "border-secondary border-opacity-25 bg-dark") d-flex align-items-center justify-content-between" 
+                                     style="cursor: pointer; transition: all 0.2s ease;" 
+                                     @onclick="() => scheduleFacebook = !scheduleFacebook">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <input class="form-check-input mt-0" type="checkbox" id="chkFb" @bind="scheduleFacebook" @onclick:stopPropagation="true" style="width: 1.25rem; height: 1.25rem;" />
+                                        <div>
+                                            <div class="text-white fw-bold d-flex align-items-center gap-2">
+                                                <i class="bi bi-facebook text-primary fs-5"></i> Facebook Page
+                                                @if (hasFacebook)
+                                                {
+                                                    <span class="badge bg-primary bg-opacity-25 text-primary border border-primary border-opacity-50" style="font-size: 0.68rem;">Auto-Publish</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary bg-opacity-25 text-light border border-secondary" style="font-size: 0.68rem;">1-Click Share &amp; Alert</span>
+                                                }
+                                            </div>
+                                            <div class="text-secondary small">
+                                                @(hasFacebook ? $"Page Connected: {facebookAccountName}" : "1-Click Facebook Popup share & reminder alert")
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <i class="bi @(scheduleFacebook ? "bi-check-circle-fill text-primary" : "bi-circle text-secondary") fs-5"></i>
+                                </div>
+
+                                <!-- 3. Instagram Card -->
+                                <div class="p-3 rounded-3 border @(scheduleInstagram ? "border-danger bg-danger bg-opacity-10" : "border-secondary border-opacity-25 bg-dark") d-flex align-items-center justify-content-between" 
+                                     style="cursor: pointer; transition: all 0.2s ease;" 
+                                     @onclick="() => scheduleInstagram = !scheduleInstagram">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <input class="form-check-input mt-0" type="checkbox" id="chkIg" @bind="scheduleInstagram" @onclick:stopPropagation="true" style="width: 1.25rem; height: 1.25rem;" />
+                                        <div>
+                                            <div class="text-white fw-bold d-flex align-items-center gap-2">
+                                                <i class="bi bi-instagram text-danger fs-5"></i> Instagram
+                                                @if (hasInstagram)
+                                                {
+                                                    <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-50" style="font-size: 0.68rem;">Auto-Publish</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary bg-opacity-25 text-light border border-secondary" style="font-size: 0.68rem;">Post Reminder</span>
+                                                }
+                                            </div>
+                                            <div class="text-secondary small">
+                                                @(hasInstagram ? $"Connected: {instagramAccountName}" : "Banner post reminder with image download")
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <i class="bi @(scheduleInstagram ? "bi-check-circle-fill text-danger" : "bi-circle text-secondary") fs-5"></i>
+                                </div>
+                            </div>
+
+                            @if (!hasFacebook && !hasInstagram && !hasWhatsApp)
                             {
-                                <div class="d-flex flex-wrap gap-3">
-                                    @if (hasFacebook)
-                                    {
-                                        <div class="form-check p-3 rounded-3 border @(scheduleFacebook ? "border-primary bg-primary bg-opacity-10" : "border-secondary border-opacity-25 bg-dark") flex-grow-1" style="cursor: pointer;" @onclick="() => scheduleFacebook = !scheduleFacebook">
-                                            <input class="form-check-input" type="checkbox" id="chkFb" @bind="scheduleFacebook" @onclick:stopPropagation="true" />
-                                            <label class="form-check-label text-white fw-semibold ms-2" for="chkFb">
-                                                <i class="bi bi-facebook text-primary me-1 fs-5"></i> Facebook Page
-                                                <div class="text-secondary small fw-normal">@facebookAccountName</div>
-                                            </label>
-                                        </div>
-                                    }
-                                    @if (hasInstagram)
-                                    {
-                                        <div class="form-check p-3 rounded-3 border @(scheduleInstagram ? "border-danger bg-danger bg-opacity-10" : "border-secondary border-opacity-25 bg-dark") flex-grow-1" style="cursor: pointer;" @onclick="() => scheduleInstagram = !scheduleInstagram">
-                                            <input class="form-check-input" type="checkbox" id="chkIg" @bind="scheduleInstagram" @onclick:stopPropagation="true" />
-                                            <label class="form-check-label text-white fw-semibold ms-2" for="chkIg">
-                                                <i class="bi bi-instagram text-danger me-1 fs-5"></i> Instagram
-                                                <div class="text-secondary small fw-normal">@instagramAccountName</div>
-                                            </label>
-                                        </div>
-                                    }
-                                    @if (hasWhatsApp)
-                                    {
-                                        <div class="form-check p-3 rounded-3 border @(scheduleWhatsApp ? "border-success bg-success bg-opacity-10" : "border-secondary border-opacity-25 bg-dark") flex-grow-1" style="cursor: pointer;" @onclick="() => scheduleWhatsApp = !scheduleWhatsApp">
-                                            <input class="form-check-input" type="checkbox" id="chkWa" @bind="scheduleWhatsApp" @onclick:stopPropagation="true" />
-                                            <label class="form-check-label text-white fw-semibold ms-2" for="chkWa">
-                                                <i class="bi bi-whatsapp text-success me-1 fs-5"></i> WhatsApp API
-                                                <div class="text-secondary small fw-normal">@whatsAppAccountName</div>
-                                            </label>
-                                        </div>
-                                    }
+                                <div class="d-flex align-items-center justify-content-between mt-2 p-2 rounded-2" style="background: rgba(0, 242, 254, 0.08); border: 1px dashed rgba(0, 242, 254, 0.3);">
+                                    <small class="text-info" style="font-size: 0.76rem;">
+                                        <i class="bi bi-info-circle-fill me-1"></i> WhatsApp &amp; Social sharing 1-click popup me direct available hai. Automatic posting ke liye Facebook page connect karein.
+                                    </small>
+                                    <NavLink href="doctor/social-connections" class="btn btn-outline-info btn-sm py-0 px-2 ms-2 fw-semibold" style="font-size: 0.72rem; white-space: nowrap;">Connect Accounts</NavLink>
                                 </div>
                             }
                         </div>
@@ -814,9 +862,9 @@
         scheduleDateTime = DateTime.Now.AddHours(1);
 
         doctorSocialAccounts = await SocialRepo.GetByDoctorAsync(currentUser?.DoctorProfileId, currentUser?.UserId);
+        scheduleWhatsApp = true; // WhatsApp is always enabled by default
         scheduleFacebook = hasFacebook;
         scheduleInstagram = hasInstagram;
-        scheduleWhatsApp = hasWhatsApp;
         StateHasChanged();
     }
 
@@ -840,13 +888,13 @@
         if (schedulingBanner == null) return;
 
         var selected = new List<string>();
-        if (scheduleFacebook && hasFacebook) selected.Add("Facebook");
-        if (scheduleInstagram && hasInstagram) selected.Add("Instagram");
-        if (scheduleWhatsApp && hasWhatsApp) selected.Add("WhatsApp");
+        if (scheduleWhatsApp) selected.Add("WhatsApp");
+        if (scheduleFacebook) selected.Add("Facebook");
+        if (scheduleInstagram) selected.Add("Instagram");
 
         if (selected.Count == 0)
         {
-            ShowPopup("Select Platform", "Kam se kam ek platform (Facebook, Instagram, ya WhatsApp) select karein jisme connection active ho.", "error");
+            ShowPopup("Select Platform", "Kam se kam ek platform (WhatsApp, Facebook, ya Instagram) select karein.", "warning");
             return;
         }
 
