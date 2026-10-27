@@ -1762,8 +1762,8 @@ public static class DbInitializer
                     -- 10. Delete Schedule
                     ELSE IF @Flag = 'DELETE'
                     BEGIN
-                        DELETE FROM [dbo].[BannerSchedules_CYH]
-                        WHERE Id = @Id;
+                        DELETE FROM [dbo].[BannerScheduleDetails_CYH] WHERE BannerScheduleId = @Id;
+                        DELETE FROM [dbo].[BannerSchedules_CYH] WHERE Id = @Id;
 
                         SELECT @@ROWCOUNT AS RowsAffected;
                     END

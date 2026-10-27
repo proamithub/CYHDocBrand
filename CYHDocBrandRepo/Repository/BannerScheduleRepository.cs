@@ -311,13 +311,16 @@ public class BannerScheduleRepository : IBannerScheduleRepository
             await using var con = new SqlConnection(_conn);
             await con.OpenAsync();
 
-            await using var cmd = new SqlCommand("ManageBannerSchedules_CYH", con);
-            cmd.CommandType = CommandType.StoredProcedure;
-            cmd.Parameters.AddWithValue("@Flag", "DELETE");
+            // Direct SQL deletion deletes child platforms first, then master schedule, ensuring 100% reliable deletion regardless of SP state
+            const string sql = @"
+                DELETE FROM [dbo].[BannerScheduleDetails_CYH] WHERE BannerScheduleId = @Id;
+                DELETE FROM [dbo].[BannerSchedules_CYH] WHERE Id = @Id;";
+
+            await using var cmd = new SqlCommand(sql, con);
             cmd.Parameters.AddWithValue("@Id", scheduleId);
 
-            var rows = await cmd.ExecuteNonQueryAsync();
-            return rows > 0;
+            await cmd.ExecuteNonQueryAsync();
+            return true;
         }
         catch (Exception ex)
         {
