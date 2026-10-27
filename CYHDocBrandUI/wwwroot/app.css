@@ -58,3 +58,16 @@ h1:focus {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+
+
+.bell-ring-anim {
+    animation: bellRing 1.5s ease infinite;
+    transform-origin: top center;
+}
+@keyframes bellRing {
+    0%, 100% { transform: rotate(0); }
+    15% { transform: rotate(15deg); }
+    30% { transform: rotate(-15deg); }
+    45% { transform: rotate(8deg); }
+    60% { transform: rotate(-8deg); }
+}
