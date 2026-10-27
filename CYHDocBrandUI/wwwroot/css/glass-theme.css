@@ -902,3 +902,93 @@ html, body {
   top: 0.5rem;
   color: #cbd5e1 !important;
 }
+
+/* Modern Dark Flatpickr Popup Styling */
+.flatpickr-calendar {
+  background: #0b1329 !important;
+  border: 1px solid rgba(0, 242, 254, 0.45) !important;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.8), 0 0 25px rgba(0, 242, 254, 0.2) !important;
+  border-radius: 16px !important;
+  z-index: 999999 !important;
+  font-family: 'Inter', sans-serif !important;
+  overflow: hidden !important;
+}
+
+.flatpickr-months {
+  background: rgba(0, 242, 254, 0.08) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  padding: 8px 0 !important;
+}
+
+.flatpickr-months .flatpickr-month {
+  color: #ffffff !important;
+  fill: #ffffff !important;
+}
+
+.flatpickr-current-month .flatpickr-monthDropdown-months,
+.flatpickr-current-month input.cur-year {
+  color: #00f2fe !important;
+  font-weight: 700 !important;
+}
+
+.flatpickr-months .flatpickr-prev-month,
+.flatpickr-months .flatpickr-next-month {
+  color: #00f2fe !important;
+  fill: #00f2fe !important;
+}
+
+span.flatpickr-weekday {
+  color: #94a3b8 !important;
+  font-weight: 600 !important;
+  font-size: 0.78rem !important;
+}
+
+.flatpickr-day {
+  color: #e2e8f0 !important;
+  border-radius: 8px !important;
+  transition: all 0.15s ease !important;
+}
+
+.flatpickr-day.today {
+  border-color: #00f2fe !important;
+  color: #00f2fe !important;
+  font-weight: bold !important;
+}
+
+.flatpickr-day.selected,
+.flatpickr-day.startRange,
+.flatpickr-day.endRange {
+  background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%) !important;
+  color: #070d1e !important;
+  font-weight: 800 !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(0, 242, 254, 0.4) !important;
+}
+
+.flatpickr-day:hover:not(.selected) {
+  background: rgba(0, 242, 254, 0.2) !important;
+  color: #ffffff !important;
+}
+
+.flatpickr-time {
+  background: #070c1b !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+  height: 48px !important;
+  line-height: 48px !important;
+}
+
+.flatpickr-time input {
+  color: #00f2fe !important;
+  font-weight: 800 !important;
+  font-size: 1.05rem !important;
+}
+
+.flatpickr-time .flatpickr-am-pm {
+  color: #fbbf24 !important;
+  font-weight: 800 !important;
+}
+
+.flatpickr-time input:hover,
+.flatpickr-time .flatpickr-am-pm:hover {
+  background: rgba(0, 242, 254, 0.15) !important;
+}

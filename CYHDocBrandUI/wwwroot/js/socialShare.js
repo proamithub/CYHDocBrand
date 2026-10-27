@@ -114,3 +114,60 @@ window.cyhSocial = {
         }
     }
 };
+
+// Modern On-Click DateTime Picker Helper using Flatpickr
+window.cyhDatePicker = {
+    instances: {},
+    init: function (elementId, initialDate, dotNetHelper) {
+        var el = document.getElementById(elementId);
+        if (!el || typeof flatpickr === 'undefined') return;
+
+        if (window.cyhDatePicker.instances[elementId]) {
+            try { window.cyhDatePicker.instances[elementId].destroy(); } catch (e) { }
+        }
+
+        var defaultVal = initialDate || new Date(Date.now() + 3600000);
+
+        var fp = flatpickr(el, {
+            enableTime: true,
+            dateFormat: "Y-m-d H:i",
+            altInput: true,
+            altFormat: "D, d M Y — h:i K",
+            altInputClass: "form-control bg-dark text-white border-secondary fw-bold py-2 px-3",
+            minDate: "today",
+            defaultDate: defaultVal,
+            time_24hr: false,
+            minuteIncrement: 5,
+            theme: "dark",
+            disableMobile: "true",
+            onChange: function (selectedDates, dateStr, instance) {
+                if (selectedDates && selectedDates.length > 0) {
+                    var d = selectedDates[0];
+                    var year = d.getFullYear();
+                    var month = String(d.getMonth() + 1).padStart(2, '0');
+                    var day = String(d.getDate()).padStart(2, '0');
+                    var hours = String(d.getHours()).padStart(2, '0');
+                    var minutes = String(d.getMinutes()).padStart(2, '0');
+                    var iso = `${year}-${month}-${day}T${hours}:${minutes}:00`;
+
+                    if (dotNetHelper) {
+                        dotNetHelper.invokeMethodAsync('OnDateSelectedFromPicker', iso);
+                    }
+                }
+            }
+        });
+
+        window.cyhDatePicker.instances[elementId] = fp;
+    },
+
+    open: function (elementId) {
+        if (window.cyhDatePicker.instances[elementId]) {
+            window.cyhDatePicker.instances[elementId].open();
+        } else {
+            var el = document.getElementById(elementId);
+            if (el && el._flatpickr) {
+                el._flatpickr.open();
+            }
+        }
+    }
+};
