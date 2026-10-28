@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.JSInterop;
 using CYHDocBrandData.Entities;
@@ -72,6 +72,7 @@ public class LoginResult
 public interface IAuthService
 {
     Task<LoginResult> LoginAsync(string email, string password);
+    Task<LoginResult> LoginWithPhoneOtpAsync(string phoneNumber, string otp);
     Task LogoutAsync();
     CurrentUserDTO? GetCurrentUser();
     Task<CurrentUserDTO?> GetOrRestoreCurrentUserAsync();
@@ -80,17 +81,53 @@ public interface IAuthService
 public class AuthService : IAuthService
 {
     private readonly IDoctorRepository _doctorRepo;
+    private readonly IOtpService _otpService;
     private readonly CustomAuthenticationStateProvider _authStateProvider;
     private readonly IJSRuntime _js;
 
     public AuthService(
         IDoctorRepository doctorRepo,
+        IOtpService otpService,
         CustomAuthenticationStateProvider authStateProvider,
         IJSRuntime js)
     {
         _doctorRepo = doctorRepo;
+        _otpService = otpService;
         _authStateProvider = authStateProvider;
         _js = js;
+    }
+
+    public async Task<LoginResult> LoginWithPhoneOtpAsync(string phoneNumber, string otp)
+    {
+        var verifyResult = await _otpService.VerifyOtpAsync(phoneNumber, otp);
+        if (!verifyResult.Success || verifyResult.User == null)
+        {
+            return new LoginResult
+            {
+                Success = false,
+                ErrorMessage = verifyResult.ErrorMessage ?? "OTP verification failed."
+            };
+        }
+
+        var user = verifyResult.User;
+        _authStateProvider.SetUser(user);
+
+        try
+        {
+            await _js.InvokeVoidAsync("localStorage.setItem", "cyh_active_user_id", user.UserId);
+            await _js.InvokeVoidAsync("localStorage.setItem", "cyh_active_user_email", user.Email);
+            await _js.InvokeVoidAsync("localStorage.setItem", "cyh_active_user_role", user.Role);
+        }
+        catch
+        {
+            // Ignore
+        }
+
+        return new LoginResult
+        {
+            Success = true,
+            User = user
+        };
     }
 
     public async Task<LoginResult> LoginAsync(string email, string password)

@@ -20,7 +20,9 @@ public static class DbInitializer
                 var existingCount = Convert.ToInt32(await checkCmd.ExecuteScalarAsync());
                 if (existingCount >= 6)
                 {
-                    logger?.LogInformation("⚡ Fast-Path: Core database tables already verified in {Db}. Skipping repetitive DDL scripts for ultra-fast startup.", con.Database);
+                    logger?.LogInformation("[Fast-Path] Core database tables already verified in {Db}. Verifying seed data...", con.Database);
+                    await SeedCreditSystemIfEmptyAsync(con, logger);
+                    await SeedBannerTemplatesIfEmptyAsync(con, logger);
                     return;
                 }
             }

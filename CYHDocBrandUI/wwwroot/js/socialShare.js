@@ -1,4 +1,4 @@
-// CYH Doctor Brand - 100% Without-API Social Sharing Engine
+﻿// CYH Doctor Brand - 100% Without-API Social Sharing Engine
 window.cyhSocial = {
     // 1. WhatsApp 1-Click (WhatsApp Web or Mobile WhatsApp App)
     openWhatsApp: function (phone, text) {
@@ -240,20 +240,10 @@ window.cyhLiveClock = {
                     second: '2-digit',
                     hour12: true
                 });
-                var dateStr = now.toLocaleDateString('en-IN', {
-                    timeZone: 'Asia/Kolkata',
-                    day: '2-digit',
-                    month: 'short',
-                    year: 'numeric'
-                });
 
                 var timeEls = document.querySelectorAll('.cyh-live-time-display');
                 for (var i = 0; i < timeEls.length; i++) {
                     timeEls[i].textContent = timeStr;
-                }
-                var dateEls = document.querySelectorAll('.cyh-live-date-display');
-                for (var j = 0; j < dateEls.length; j++) {
-                    dateEls[j].textContent = dateStr;
                 }
             } catch (e) { }
         }

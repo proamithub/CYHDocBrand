@@ -7,6 +7,8 @@ public interface IDoctorRepository
 {
     // Auth via Stored Procedure
     Task<CurrentUserDTO?> AuthenticateAsync(string email, string password);
+    Task<CurrentUserDTO?> GetByPhoneAsync(string phoneNumber);
+    Task<CurrentUserDTO?> GetByEmailAsync(string email);
 
     Task<List<DoctorProfile>> GetAllWithUsersAsync();
     Task<DoctorProfile?> GetByIdAsync(int doctorId);

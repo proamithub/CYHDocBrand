@@ -1,4 +1,4 @@
--- ============================================================================
+﻿-- ============================================================================
 -- CYH DoctorHub — Complete Production Database Setup Script
 -- Target: SQL Server (VPS Server: https://vps2.clickyourhospital.com)
 -- Database: CYHDocBrandBD
@@ -38,7 +38,7 @@ BEGIN
         [PasswordHash]         NVARCHAR (MAX)     NULL,
         [SecurityStamp]        NVARCHAR (MAX)     NULL,
         [ConcurrencyStamp]     NVARCHAR (MAX)     NULL,
-        [PhoneNumber]          NVARCHAR (MAX)     NULL,
+                [PhoneNumber]          NVARCHAR (50)      NULL,
         [PhoneNumberConfirmed] BIT                NOT NULL DEFAULT (0),
         [TwoFactorEnabled]     BIT                NOT NULL DEFAULT (0),
         [LockoutEnd]           DATETIMEOFFSET (7) NULL,
@@ -47,6 +47,19 @@ BEGIN
         [Password]             NVARCHAR (500)     NULL,
         CONSTRAINT [PK_AspNetUsers] PRIMARY KEY CLUSTERED ([Id] ASC)
     );
+END
+GO
+
+-- Unique indexes on Email and PhoneNumber to prevent duplicate user registrations
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'UQ_AspNetUsers_Email' AND object_id = OBJECT_ID('AspNetUsers'))
+BEGIN
+    CREATE UNIQUE NONCLUSTERED INDEX [UQ_AspNetUsers_Email] ON [dbo].[AspNetUsers] ([Email]) WHERE [Email] IS NOT NULL;
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'UQ_AspNetUsers_PhoneNumber' AND object_id = OBJECT_ID('AspNetUsers'))
+BEGIN
+    CREATE UNIQUE NONCLUSTERED INDEX [UQ_AspNetUsers_PhoneNumber] ON [dbo].[AspNetUsers] ([PhoneNumber]) WHERE [PhoneNumber] IS NOT NULL;
 END
 GO
 

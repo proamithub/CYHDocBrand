@@ -1,4 +1,4 @@
-using System.Data;
+﻿using System.Data;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -60,9 +60,98 @@ public class DoctorRepository : IDoctorRepository
 
             return null;
         }
-        catch (Exception ex)
+                catch (Exception ex)
         {
             _logger?.LogError(ex, "AuthenticateAsync failed via AuthenticateDoctor_CYH for {Email}", email);
+            return null;
+        }
+    }
+
+    public async Task<CurrentUserDTO?> GetByPhoneAsync(string phoneNumber)
+    {
+        if (string.IsNullOrWhiteSpace(phoneNumber)) return null;
+
+        try
+        {
+            await using var con = new SqlConnection(_conn);
+            await con.OpenAsync();
+
+            var cleanPhone = new string(phoneNumber.Where(char.IsDigit).ToArray());
+            if (cleanPhone.Length > 10) cleanPhone = cleanPhone.Substring(cleanPhone.Length - 10);
+
+            await using var cmd = new SqlCommand("AuthenticateDoctor_CYH", con);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@Flag", "GET_BY_PHONE");
+            cmd.Parameters.AddWithValue("@PhoneNumber", cleanPhone);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                var avatarCol = -1;
+                try { avatarCol = reader.GetOrdinal("AvatarUrl"); } catch { }
+                var activeCol = -1;
+                try { activeCol = reader.GetOrdinal("IsActive"); } catch { }
+
+                return new CurrentUserDTO
+                {
+                    UserId = reader["UserId"]?.ToString() ?? string.Empty,
+                    Email = reader["Email"]?.ToString() ?? string.Empty,
+                    FullName = reader["FullName"]?.ToString() ?? string.Empty,
+                    Role = reader["Role"]?.ToString() ?? "Doctor",
+                    Department = reader["Department"] != DBNull.Value ? reader["Department"]?.ToString() : null,
+                    DoctorProfileId = reader["DoctorProfileId"] != DBNull.Value ? Convert.ToInt32(reader["DoctorProfileId"]) : null,
+                    AvatarUrl = avatarCol >= 0 && !reader.IsDBNull(avatarCol) ? reader.GetString(avatarCol) : null,
+                    IsActive = activeCol >= 0 && !reader.IsDBNull(activeCol) ? Convert.ToBoolean(reader.GetValue(activeCol)) : true
+                };
+            }
+
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "GetByPhoneAsync failed via AuthenticateDoctor_CYH for {Phone}", phoneNumber);
+            return null;
+        }
+    }
+
+    public async Task<CurrentUserDTO?> GetByEmailAsync(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email)) return null;
+
+        try
+        {
+            await using var con = new SqlConnection(_conn);
+            await con.OpenAsync();
+
+            await using var cmd = new SqlCommand("SELECT TOP 1 u.Id AS UserId, u.Email, u.FullName, u.Role, u.Department, u.IsActive, u.AvatarUrl, d.Id AS DoctorProfileId FROM AspNetUsers u LEFT JOIN DoctorProfiles d ON u.Id = d.UserId WHERE u.Email = @Email OR u.UserName = @Email", con);
+            cmd.Parameters.AddWithValue("@Email", email.Trim());
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                var avatarCol = -1;
+                try { avatarCol = reader.GetOrdinal("AvatarUrl"); } catch { }
+                var activeCol = -1;
+                try { activeCol = reader.GetOrdinal("IsActive"); } catch { }
+
+                return new CurrentUserDTO
+                {
+                    UserId = reader["UserId"]?.ToString() ?? string.Empty,
+                    Email = reader["Email"]?.ToString() ?? email,
+                    FullName = reader["FullName"]?.ToString() ?? string.Empty,
+                    Role = reader["Role"]?.ToString() ?? "Doctor",
+                    Department = reader["Department"] != DBNull.Value ? reader["Department"]?.ToString() : null,
+                    DoctorProfileId = reader["DoctorProfileId"] != DBNull.Value ? Convert.ToInt32(reader["DoctorProfileId"]) : null,
+                    AvatarUrl = avatarCol >= 0 && !reader.IsDBNull(avatarCol) ? reader.GetString(avatarCol) : null,
+                    IsActive = activeCol >= 0 && !reader.IsDBNull(activeCol) ? Convert.ToBoolean(reader.GetValue(activeCol)) : true
+                };
+            }
+
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "GetByEmailAsync failed for {Email}", email);
             return null;
         }
     }
@@ -199,6 +288,37 @@ public class DoctorRepository : IDoctorRepository
 
     public async Task<(bool Success, string? ErrorMessage)> RegisterDoctorAsync(DoctorRegistrationDTO dto)
     {
+        if (dto == null) return (false, "Registration data is required.");
+
+        var rawPhone = dto.PhoneNumber?.Trim() ?? string.Empty;
+        var cleanPhone = new string(rawPhone.Where(char.IsDigit).ToArray());
+        if (cleanPhone.Length == 12 && cleanPhone.StartsWith("91")) cleanPhone = cleanPhone.Substring(2);
+        if (cleanPhone.Length == 11 && cleanPhone.StartsWith("0")) cleanPhone = cleanPhone.Substring(1);
+
+        if (cleanPhone.Length != 10)
+        {
+            return (false, "Mobile number must be exactly 10 digits.");
+        }
+
+        if (!"6789".Contains(cleanPhone[0]))
+        {
+            return (false, "Mobile number must start with 6, 7, 8, or 9.");
+        }
+
+        // 1. Check for duplicate Email
+        var existingEmail = await GetByEmailAsync(dto.Email.Trim());
+        if (existingEmail != null)
+        {
+            return (false, "An account with this email address already exists. Please sign in or use another email.");
+        }
+
+        // 2. Check for duplicate Mobile Number
+        var existingPhone = await GetByPhoneAsync(cleanPhone);
+        if (existingPhone != null)
+        {
+            return (false, "An account with this mobile number already exists. Please sign in with OTP or use another number.");
+        }
+
         try
         {
             await using var con = new SqlConnection(_conn);
@@ -211,7 +331,7 @@ public class DoctorRepository : IDoctorRepository
             cmd.Parameters.AddWithValue("@Flag", "REGISTER_DOCTOR");
             cmd.Parameters.AddWithValue("@FullName", dto.FullName.Trim());
             cmd.Parameters.AddWithValue("@Email", dto.Email.Trim());
-            cmd.Parameters.AddWithValue("@PhoneNumber", (object?)dto.PhoneNumber?.Trim() ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@PhoneNumber", cleanPhone);
             cmd.Parameters.AddWithValue("@Specialization", dto.Specialization.Trim());
             cmd.Parameters.AddWithValue("@LicenseNumber", dto.LicenseNumber.Trim());
             cmd.Parameters.AddWithValue("@ExperienceYears", dto.ExperienceYears);

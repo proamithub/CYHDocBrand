@@ -1,8 +1,9 @@
-@page "/"
+﻿@page "/"
 @page "/login"
 @layout AuthLayout
 @implements IDisposable
 @inject IAuthService AuthService
+@inject IOtpService OtpService
 @inject IDoctorRepository DoctorRepo
 @inject NavigationManager NavigationManager
 
@@ -20,75 +21,208 @@
     @if (!string.IsNullOrEmpty(ErrorMessage))
     {
         <div class="alert alert-danger py-2 px-3 small d-flex align-items-center gap-2 mb-3" style="background: rgba(244, 63, 94, 0.15); border: 1px solid rgba(244, 63, 94, 0.35); color: #fda4af; border-radius: 10px;">
-            <i class="bi bi-exclamation-octagon-fill fs-6"></i>
+            <i class="bi bi-exclamation-octagon-fill fs-6 flex-shrink-0"></i>
             <span>@ErrorMessage</span>
         </div>
     }
 
-    <div class="mb-3">
-        <label class="form-label d-flex align-items-center gap-1 mb-2" style="font-size: 0.86rem; font-weight: 600; color: #f1f5f9; letter-spacing: 0.3px;">
-            <i class="bi bi-envelope-fill text-info" style="font-size: 0.95rem;"></i>
-            <span>Email Address</span>
-        </label>
-        <div class="position-relative">
-            <i class="bi bi-envelope position-absolute" style="left: 14px; top: 50%; transform: translateY(-50%); font-size: 1rem; color: #38bdf8;"></i>
-            <input type="email" class="glass-input" style="padding-left: 2.6rem;" @bind="Email" placeholder="Enter your email address" autocomplete="off" />
-        </div>
+    <!-- Login Mode Tabs: Email vs Mobile OTP -->
+    <div class="d-flex p-1 mb-4 rounded-3" style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.1);">
+        <button type="button" 
+                class="btn flex-fill py-2 text-center rounded-2 border-0 fw-semibold"
+                style="@(LoginMode == "email" ? "background: linear-gradient(135deg, #00f2fe, #4facfe); color: #04101e !important; box-shadow: 0 4px 15px rgba(0, 242, 254, 0.35);" : "background: transparent; color: #94a3b8;") transition: all 0.25s ease;"
+                @onclick='() => SetLoginMode("email")'>
+            <i class="bi bi-envelope-at-fill me-1"></i> Email &amp; Password
+        </button>
+        <button type="button" 
+                class="btn flex-fill py-2 text-center rounded-2 border-0 fw-semibold"
+                style="@(LoginMode == "mobile" ? "background: linear-gradient(135deg, #00f2fe, #4facfe); color: #04101e !important; box-shadow: 0 4px 15px rgba(0, 242, 254, 0.35);" : "background: transparent; color: #94a3b8;") transition: all 0.25s ease;"
+                @onclick='() => SetLoginMode("mobile")'>
+            <i class="bi bi-phone-vibrate-fill me-1"></i> Mobile &amp; OTP
+        </button>
     </div>
 
-    <div class="mb-3">
-        <div class="d-flex align-items-center justify-content-between mb-2">
-            <label class="form-label d-flex align-items-center gap-1 mb-0" style="font-size: 0.86rem; font-weight: 600; color: #f1f5f9; letter-spacing: 0.3px;">
-                <i class="bi bi-shield-lock-fill text-info" style="font-size: 0.95rem;"></i>
-                <span>Password</span>
+    <!-- ========================================== -->
+    <!-- TAB 1: EMAIL & PASSWORD LOGIN               -->
+    <!-- ========================================== -->
+    @if (LoginMode == "email")
+    {
+        <div class="mb-3">
+            <label class="form-label d-flex align-items-center gap-1 mb-2" style="font-size: 0.86rem; font-weight: 600; color: #f1f5f9; letter-spacing: 0.3px;">
+                <i class="bi bi-envelope-fill text-info" style="font-size: 0.95rem;"></i>
+                <span>Email Address</span>
             </label>
+            <div class="position-relative">
+                <i class="bi bi-envelope position-absolute" style="left: 14px; top: 50%; transform: translateY(-50%); font-size: 1rem; color: #38bdf8;"></i>
+                <input type="email" class="glass-input" style="padding-left: 2.6rem;" @bind="Email" placeholder="Enter your email address" autocomplete="off" />
+            </div>
         </div>
-        <div class="position-relative">
-            <i class="bi bi-lock position-absolute" style="left: 14px; top: 50%; transform: translateY(-50%); font-size: 1rem; color: #38bdf8;"></i>
-            <input type="@(ShowPassword ? "text" : "password")" class="glass-input" style="padding-left: 2.6rem; padding-right: 2.75rem;" @bind="Password" placeholder="Enter your password" @onkeyup="HandleKeyUp" autocomplete="off" />
-            <button type="button" 
-                    class="btn position-absolute p-0 border-0" 
-                    style="right: 14px; top: 50%; transform: translateY(-50%); color: #00f2fe; background: transparent; z-index: 10; display: flex; align-items: center; justify-content: center; cursor: pointer; width: 30px; height: 30px; border-radius: 6px; transition: all 0.2s ease;"
-                    title="@(ShowPassword ? "Hide password" : "Show password")"
-                    @onclick="TogglePasswordVisibility">
-                @if (ShowPassword)
+
+        <div class="mb-3">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <label class="form-label d-flex align-items-center gap-1 mb-0" style="font-size: 0.86rem; font-weight: 600; color: #f1f5f9; letter-spacing: 0.3px;">
+                    <i class="bi bi-shield-lock-fill text-info" style="font-size: 0.95rem;"></i>
+                    <span>Password</span>
+                </label>
+            </div>
+            <div class="position-relative">
+                <i class="bi bi-lock position-absolute" style="left: 14px; top: 50%; transform: translateY(-50%); font-size: 1rem; color: #38bdf8;"></i>
+                <input type="@(ShowPassword ? "text" : "password")" class="glass-input" style="padding-left: 2.6rem; padding-right: 2.75rem;" @bind="Password" placeholder="Enter your password" @onkeyup="HandleKeyUp" autocomplete="off" />
+                <button type="button" 
+                        class="btn position-absolute p-0 border-0" 
+                        style="right: 14px; top: 50%; transform: translateY(-50%); color: #00f2fe; background: transparent; z-index: 10; display: flex; align-items: center; justify-content: center; cursor: pointer; width: 30px; height: 30px; border-radius: 6px; transition: all 0.2s ease;"
+                        title="@(ShowPassword ? "Hide password" : "Show password")"
+                        @onclick="TogglePasswordVisibility">
+                    @if (ShowPassword)
+                    {
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#00f2fe" viewBox="0 0 16 16">
+                            <path d="m10.79 12.912-1.614-1.615a3.5 3.5 0 0 1-4.474-4.474l-2.06-2.06C.938 6.278 0 8 0 8s3 5.5 8 5.5a7 7 0 0 0 2.79-.588M5.21 3.088A7 7 0 0 1 8 2.5c5 0 8 5.5 8 5.5s-.939 1.721-2.641 3.238l-2.062-2.062a3.5 3.5 0 0 0-4.474-4.474z"/>
+                            <path d="M5.525 7.646a2.5 2.5 0 0 0 2.829 2.829zm4.95.708-2.829-2.83a2.5 2.5 0 0 1 2.829 2.829zm3.171 5.95L1.354 1.96 2.06 1.253l12.354 12.354z"/>
+                        </svg>
+                    }
+                    else
+                    {
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#00f2fe" viewBox="0 0 16 16">
+                            <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z"/>
+                            <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0"/>
+                        </svg>
+                    }
+                </button>
+            </div>
+        </div>
+
+        <div class="d-flex align-items-center justify-content-between mb-4" style="font-size: 0.88rem;">
+            <label class="d-flex align-items-center gap-2 mb-0" style="cursor: pointer; color: #e2e8f0; font-weight: 500;">
+                <input type="checkbox" class="form-check-input bg-dark border-secondary" checked />
+                <span>Keep me signed in</span>
+            </label>
+            <a href="javascript:void(0)" class="text-decoration-none" style="color: #00f2fe; font-weight: 600;">Need Help?</a>
+        </div>
+
+        <button class="glass-btn-primary w-100 justify-content-center py-2 fs-6" @onclick="HandleLogin" disabled="@IsLoading" style="border-radius: 12px; height: 46px;">
+            @if (IsLoading)
+            {
+                <span class="spinner-border spinner-border-sm me-2"></span>
+                <span>Signing In...</span>
+            }
+            else
+            {
+                <i class="bi bi-box-arrow-in-right me-2"></i>
+                <span>Sign In Workspace</span>
+            }
+        </button>
+    }
+    else
+    {
+        <!-- ========================================== -->
+        <!-- TAB 2: MOBILE & OTP LOGIN                  -->
+        <!-- ========================================== -->
+        @if (!OtpSent)
+        {
+            <!-- Step 1: Enter Mobile Number -->
+            <div class="mb-3">
+                <label class="form-label d-flex align-items-center gap-1 mb-2" style="font-size: 0.86rem; font-weight: 600; color: #f1f5f9; letter-spacing: 0.3px;">
+                    <i class="bi bi-phone-fill text-info" style="font-size: 0.95rem;"></i>
+                    <span>Registered Mobile Number</span>
+                </label>
+                <div class="input-group">
+                    <span class="input-group-text border-0 px-3 fw-bold" style="background: rgba(15, 23, 42, 0.85); color: #00f2fe; border-radius: 12px 0 0 12px; border: 1px solid rgba(255, 255, 255, 0.12); border-right: none; font-size: 0.95rem;">
+                        🇮🇳 +91
+                    </span>
+                    <input type="tel" maxlength="10" class="glass-input" style="border-radius: 0 12px 12px 0 !important; font-size: 1.05rem; letter-spacing: 1px;" 
+                           @bind="MobileNumber" @bind:event="oninput" @onkeyup="HandleMobileKeyUp" placeholder="10-digit mobile number" autocomplete="off" />
+                </div>
+                
+                <!-- Quick Click Demo Numbers -->
+                <div class="d-flex flex-wrap align-items-center gap-2 mt-2 pt-1" style="font-size: 0.78rem;">
+                    <span class="text-secondary"><i class="bi bi-stars text-warning me-1"></i>Demo Mobile:</span>
+                    <button type="button" class="btn btn-sm py-0 px-2 rounded-pill border-0" style="background: rgba(0, 242, 254, 0.12); color: #00f2fe; font-size: 0.75rem;" @onclick='() => SetDemoMobile("9876543211")'>
+                        <i class="bi bi-person-fill me-1"></i>Doctor (9876543211)
+                    </button>
+                    <button type="button" class="btn btn-sm py-0 px-2 rounded-pill border-0" style="background: rgba(168, 85, 247, 0.15); color: #c084fc; font-size: 0.75rem;" @onclick='() => SetDemoMobile("9876543210")'>
+                        <i class="bi bi-shield-lock me-1"></i>Admin (9876543210)
+                    </button>
+                </div>
+            </div>
+
+            <button class="glass-btn-primary w-100 justify-content-center py-2 fs-6 mb-3" @onclick="HandleSendOtp" disabled="@(IsSendingOtp || string.IsNullOrWhiteSpace(MobileNumber))" style="border-radius: 12px; height: 46px;">
+                @if (IsSendingOtp)
                 {
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#00f2fe" viewBox="0 0 16 16">
-                        <path d="m10.79 12.912-1.614-1.615a3.5 3.5 0 0 1-4.474-4.474l-2.06-2.06C.938 6.278 0 8 0 8s3 5.5 8 5.5a7 7 0 0 0 2.79-.588M5.21 3.088A7 7 0 0 1 8 2.5c5 0 8 5.5 8 5.5s-.939 1.721-2.641 3.238l-2.062-2.062a3.5 3.5 0 0 0-4.474-4.474z"/>
-                        <path d="M5.525 7.646a2.5 2.5 0 0 0 2.829 2.829zm4.95.708-2.829-2.83a2.5 2.5 0 0 1 2.829 2.829zm3.171 5.95L1.354 1.96 2.06 1.253l12.354 12.354z"/>
-                    </svg>
+                    <span class="spinner-border spinner-border-sm me-2"></span>
+                    <span>Sending Real OTP via SMS...</span>
                 }
                 else
                 {
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#00f2fe" viewBox="0 0 16 16">
-                        <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z"/>
-                        <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0"/>
-                    </svg>
+                    <i class="bi bi-chat-left-dots-fill me-2"></i>
+                    <span>Get Login OTP via SMS</span>
                 }
             </button>
-        </div>
-    </div>
-
-    <div class="d-flex align-items-center justify-content-between mb-4" style="font-size: 0.88rem;">
-        <label class="d-flex align-items-center gap-2 mb-0" style="cursor: pointer; color: #e2e8f0; font-weight: 500;">
-            <input type="checkbox" class="form-check-input bg-dark border-secondary" checked />
-            <span>Keep me signed in</span>
-        </label>
-        <a href="javascript:void(0)" class="text-decoration-none" style="color: #00f2fe; font-weight: 600;">Need Help?</a>
-    </div>
-
-    <button class="glass-btn-primary w-100 justify-content-center py-2 fs-6" @onclick="HandleLogin" disabled="@IsLoading" style="border-radius: 12px; height: 46px;">
-        @if (IsLoading)
-        {
-            <span class="spinner-border spinner-border-sm me-2"></span>
-            <span>Signing In...</span>
         }
         else
         {
-            <i class="bi bi-box-arrow-in-right me-2"></i>
-            <span>Sign In Workspace</span>
+            <!-- Step 2: Enter & Verify OTP -->
+            <div class="alert p-3 mb-3 d-flex align-items-center justify-content-between" style="background: rgba(0, 242, 254, 0.08); border: 1px solid rgba(0, 242, 254, 0.3); border-radius: 12px; color: #e0f2fe;">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-check-circle-fill text-info fs-5 flex-shrink-0"></i>
+                    <div>
+                        <div class="small fw-semibold">OTP Sent to @MaskedPhone</div>
+                        <div class="text-secondary" style="font-size: 0.75rem;">Enter 6-digit code or demo OTP <strong class="text-warning">123456</strong></div>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-sm btn-link text-info text-decoration-none p-0 fw-semibold" @onclick="ResetOtpState" title="Change Mobile Number">
+                    Change
+                </button>
+            </div>
+
+            <div class="mb-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <label class="form-label d-flex align-items-center gap-1 mb-0" style="font-size: 0.86rem; font-weight: 600; color: #f1f5f9;">
+                        <i class="bi bi-key-fill text-info"></i>
+                        <span>Enter 6-Digit OTP</span>
+                    </label>
+                    <button type="button" class="btn btn-sm py-0 px-2 fw-semibold" style="background: rgba(234, 179, 8, 0.15); color: #fde047; border: 1px solid rgba(234, 179, 8, 0.4); border-radius: 6px; font-size: 0.75rem;" @onclick="FillDemoOtp">
+                        <i class="bi bi-lightning-charge-fill me-1"></i>Auto Fill 123456
+                    </button>
+                </div>
+                <div class="position-relative">
+                    <input type="text" maxlength="6" class="glass-input text-center fw-bold fs-3" 
+                           style="letter-spacing: 12px; height: 52px; color: #00f2fe;" 
+                           @bind="EnteredOtp" @bind:event="oninput" @onkeyup="HandleOtpKeyUp" placeholder="······" autocomplete="one-time-code" />
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center justify-content-between mb-3" style="font-size: 0.84rem;">
+                <span class="text-secondary">
+                    @if (CountdownSeconds > 0)
+                    {
+                        <span><i class="bi bi-clock me-1 text-info"></i>Resend OTP in <strong class="text-info">@(CountdownSeconds)s</strong></span>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-link p-0 text-info text-decoration-none fw-semibold" @onclick="HandleSendOtp" disabled="@IsSendingOtp">
+                            <i class="bi bi-arrow-clockwise me-1"></i>Resend OTP
+                        </button>
+                    }
+                </span>
+                <span class="badge px-2 py-1" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); font-size: 0.75rem;">
+                    <i class="bi bi-check-lg me-1"></i>Demo OTP: 123456
+                </span>
+            </div>
+
+            <button class="glass-btn-primary w-100 justify-content-center py-2 fs-6 mb-3" @onclick="HandleVerifyOtp" disabled="@(IsVerifyingOtp || string.IsNullOrWhiteSpace(EnteredOtp))" style="border-radius: 12px; height: 46px;">
+                @if (IsVerifyingOtp)
+                {
+                    <span class="spinner-border spinner-border-sm me-2"></span>
+                    <span>Validating OTP &amp; Signing In...</span>
+                }
+                else
+                {
+                    <i class="bi bi-check2-circle me-2 fs-5"></i>
+                    <span>Verify OTP &amp; Sign In</span>
+                }
+            </button>
         }
-    </button>
+    }
 
     <!-- Footer: Doctor Registration Link -->
     <div class="mt-4 pt-3 text-center border-top" style="border-color: rgba(255, 255, 255, 0.12) !important;">
@@ -100,7 +234,7 @@
 </div>
 
 <!-- ================================================================================== -->
-<!-- Doctor Registration Popup Modal (par active nahi hoga - pending admin approval) -->
+<!-- Doctor Registration Popup Modal (pending admin approval)                            -->
 <!-- ================================================================================== -->
 @if (ShowRegisterModal)
 {
@@ -139,7 +273,7 @@
                     @if (!string.IsNullOrEmpty(RegisterErrorMessage))
                     {
                         <div class="alert alert-danger py-2 px-3 small d-flex align-items-center gap-2 mb-3" style="background: rgba(244, 63, 94, 0.15); border: 1px solid rgba(244, 63, 94, 0.35); color: #fda4af; border-radius: 10px;">
-                            <i class="bi bi-exclamation-octagon-fill fs-6"></i>
+                            <i class="bi bi-exclamation-octagon-fill fs-6 flex-shrink-0"></i>
                             <span>@RegisterErrorMessage</span>
                         </div>
                     }
@@ -148,112 +282,117 @@
                         <!-- Full Name -->
                         <div class="col-12 col-md-6">
                             <label class="form-label small fw-semibold text-light mb-1">
-                                <i class="bi bi-person-fill text-info me-1"></i>Full Name (with Dr. prefix) *
+                                Full Name <span class="text-danger">*</span>
                             </label>
-                            <input type="text" class="glass-input" @bind="RegModel.FullName" placeholder="Dr. Rajesh Kumar" />
-                        </div>
-
-                        <!-- Email -->
-                        <div class="col-12 col-md-6">
-                            <label class="form-label small fw-semibold text-light mb-1">
-                                <i class="bi bi-envelope-fill text-info me-1"></i>Official / Login Email *
-                            </label>
-                            <input type="email" class="glass-input" @bind="RegModel.Email" placeholder="dr.rajesh@cyhdoctorhub.com" />
-                        </div>
-
-                        <!-- Password -->
-                        <div class="col-12 col-md-6">
-                            <label class="form-label small fw-semibold text-light mb-1">
-                                <i class="bi bi-lock-fill text-info me-1"></i>Password * (Min 6 chars)
-                            </label>
-                            <input type="password" class="glass-input" @bind="RegModel.Password" placeholder="••••••••" />
-                        </div>
-
-                        <!-- Confirm Password -->
-                        <div class="col-12 col-md-6">
-                            <label class="form-label small fw-semibold text-light mb-1">
-                                <i class="bi bi-check2-circle text-info me-1"></i>Confirm Password *
-                            </label>
-                            <input type="password" class="glass-input" @bind="RegModel.ConfirmPassword" placeholder="••••••••" />
-                        </div>
-
-                        <!-- Mobile Number -->
-                        <div class="col-12 col-md-6">
-                            <label class="form-label small fw-semibold text-light mb-1">
-                                <i class="bi bi-telephone-fill text-info me-1"></i>Mobile Number *
-                            </label>
-                            <input type="tel" class="glass-input" @bind="RegModel.PhoneNumber" placeholder="+91 98765 43210" />
+                            <input type="text" class="glass-input" @bind="RegModel.FullName" placeholder="e.g. Dr. Rajesh Kumar" />
                         </div>
 
                         <!-- Specialization -->
                         <div class="col-12 col-md-6">
                             <label class="form-label small fw-semibold text-light mb-1">
-                                <i class="bi bi-hospital-fill text-info me-1"></i>Specialization / Department *
+                                Medical Specialization <span class="text-danger">*</span>
                             </label>
-                            <select class="glass-input" @bind="RegModel.Specialization" style="background: #0f172a; color: #f1f5f9;">
-                                <option value="Cardiology">Cardiology / Cardiologist</option>
-                                <option value="Neurology">Neurology / Neurologist</option>
-                                <option value="General Medicine">General Medicine / Physician</option>
-                                <option value="Pediatrics">Pediatrics / Child Specialist</option>
-                                <option value="Orthopedics">Orthopedics / Bone Specialist</option>
-                                <option value="Dermatology">Dermatology / Skin Care</option>
-                                <option value="Gynecology & Obstetrics">Gynecology &amp; Obstetrics</option>
-                                <option value="ENT Specialist">ENT (Ear, Nose &amp; Throat)</option>
-                                <option value="Ophthalmology">Ophthalmology / Eye Care</option>
-                                <option value="Oncology">Oncology / Cancer Care</option>
-                                <option value="Psychiatry">Psychiatry / Mental Health</option>
-                                <option value="General Surgery">General &amp; Laparoscopic Surgery</option>
-                                <option value="Dental Surgery">Dental Surgery / Dentist</option>
-                                <option value="Radiology">Radiology &amp; Imaging</option>
+                            <select class="glass-input" @bind="RegModel.Specialization" style="background: #0f1c3f; color: #ffffff;">
+                                <option value="Cardiology">Cardiology &amp; Heart Care</option>
+                                <option value="Neurology">Neurology &amp; Brain</option>
+                                <option value="Orthopedics">Orthopedics &amp; Joint Surgery</option>
+                                <option value="Pediatrics">Pediatrics &amp; Child Health</option>
+                                <option value="Gynecology">Gynecology &amp; Obstetrics</option>
+                                <option value="Dermatology">Dermatology &amp; Cosmetology</option>
+                                <option value="Ophthalmology">Ophthalmology &amp; Eye Care</option>
+                                <option value="General Medicine">General Medicine &amp; Diabetology</option>
+                                <option value="Gastroenterology">Gastroenterology</option>
+                                <option value="ENT">ENT (Ear, Nose, Throat)</option>
+                                <option value="Pulmonology">Pulmonology &amp; Chest</option>
+                                <option value="Oncology">Oncology &amp; Cancer Care</option>
                             </select>
                         </div>
 
-                        <!-- License Number -->
+                        <!-- Email -->
                         <div class="col-12 col-md-6">
                             <label class="form-label small fw-semibold text-light mb-1">
-                                <i class="bi bi-card-heading text-info me-1"></i>Medical Registration / License No. *
+                                Official / Login Email <span class="text-danger">*</span>
                             </label>
-                            <input type="text" class="glass-input" @bind="RegModel.LicenseNumber" placeholder="MCI-DEL-2024-5412" />
+                            <input type="email" class="glass-input" @bind="RegModel.Email" placeholder="doctor@hospital.com" />
+                        </div>
+
+                        <!-- Phone Number -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-semibold text-light mb-1 d-flex justify-content-between">
+                                <span>Mobile / WhatsApp (10 Digits) <span class="text-danger">*</span></span>
+                                <span class="text-info" style="font-size: 0.75rem;">10 digits only</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text border-0 px-2 fw-semibold" style="background: rgba(15, 23, 42, 0.85); color: #00f2fe; border-radius: 10px 0 0 10px; border: 1px solid rgba(255, 255, 255, 0.12); border-right: none; font-size: 0.88rem;">
+                                    ðŸ‡®ðŸ‡³ +91
+                                </span>
+                                <input type="tel" maxlength="10" class="glass-input" style="border-radius: 0 10px 10px 0 !important;" 
+                                       @bind="RegModel.PhoneNumber" @bind:event="oninput" placeholder="10-digit mobile number" />
+                            </div>
+                        </div>
+
+                        <!-- Medical License Number -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-semibold text-light mb-1">
+                                Medical Registration / License No. <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="glass-input" @bind="RegModel.LicenseNumber" placeholder="e.g. MCI-2018-98421" />
                         </div>
 
                         <!-- Experience Years -->
-                        <div class="col-12 col-md-3">
+                        <div class="col-12 col-md-6">
                             <label class="form-label small fw-semibold text-light mb-1">
-                                <i class="bi bi-award-fill text-info me-1"></i>Experience (Years)
+                                Years of Experience
                             </label>
-                            <input type="number" class="glass-input" @bind="RegModel.ExperienceYears" min="0" max="60" />
+                            <input type="number" min="0" max="60" class="glass-input" @bind="RegModel.ExperienceYears" />
                         </div>
 
                         <!-- Consultation Fee -->
-                        <div class="col-12 col-md-3">
+                        <div class="col-12 col-md-6">
                             <label class="form-label small fw-semibold text-light mb-1">
-                                <i class="bi bi-currency-rupee text-info me-1"></i>Consultation Fee (₹)
+                                Consultation Fee (₹)
                             </label>
-                            <input type="number" class="glass-input" @bind="RegModel.ConsultationFee" min="0" step="50" />
+                            <input type="number" step="50" min="0" class="glass-input" @bind="RegModel.ConsultationFee" />
                         </div>
 
                         <!-- Available Days -->
                         <div class="col-12 col-md-6">
                             <label class="form-label small fw-semibold text-light mb-1">
-                                <i class="bi bi-calendar-week-fill text-info me-1"></i>Available Days
+                                Available Days
                             </label>
-                            <input type="text" class="glass-input" @bind="RegModel.AvailableDays" placeholder="Mon - Sat" />
+                            <input type="text" class="glass-input" @bind="RegModel.AvailableDays" placeholder="e.g. Mon - Sat" />
                         </div>
 
                         <!-- Available Hours -->
                         <div class="col-12 col-md-6">
                             <label class="form-label small fw-semibold text-light mb-1">
-                                <i class="bi bi-clock-fill text-info me-1"></i>Available Hours
+                                Available Hours
                             </label>
-                            <input type="text" class="glass-input" @bind="RegModel.AvailableHours" placeholder="09:00 AM - 05:00 PM" />
+                            <input type="text" class="glass-input" @bind="RegModel.AvailableHours" placeholder="e.g. 09:00 AM - 05:00 PM" />
                         </div>
 
-                        <!-- Bio -->
+                        <!-- Password -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-semibold text-light mb-1">
+                                Account Password <span class="text-danger">*</span>
+                            </label>
+                            <input type="password" class="glass-input" @bind="RegModel.Password" placeholder="Min 6 characters" />
+                        </div>
+
+                        <!-- Confirm Password -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-semibold text-light mb-1">
+                                Confirm Password <span class="text-danger">*</span>
+                            </label>
+                            <input type="password" class="glass-input" @bind="RegModel.ConfirmPassword" placeholder="Re-enter password" />
+                        </div>
+
+                        <!-- Bio / Summary -->
                         <div class="col-12">
                             <label class="form-label small fw-semibold text-light mb-1">
-                                <i class="bi bi-card-text text-info me-1"></i>Brief Professional Bio
+                                Professional Summary / Clinical Bio
                             </label>
-                            <textarea class="glass-input" rows="2" @bind="RegModel.Bio" placeholder="Specializing in advanced patient care, diagnosis, and preventive treatment..."></textarea>
+                            <textarea class="glass-input" rows="2" @bind="RegModel.Bio" placeholder="Brief about your clinical specialties, degrees, and hospital attachments..."></textarea>
                         </div>
                     </div>
                 </div>
@@ -285,11 +424,24 @@
 <ToastPopup Notification="ActivePopup" OnDismiss="DismissPopup" />
 
 @code {
+    private string LoginMode = "email"; // "email" or "mobile"
+
+    // Email Mode State
     private string Email = "";
     private string Password = "";
     private bool ShowPassword = false;
     private string? ErrorMessage;
     private bool IsLoading;
+
+    // Mobile OTP Mode State
+    private string MobileNumber = "";
+    private string EnteredOtp = "";
+    private string? MaskedPhone;
+    private bool OtpSent = false;
+    private bool IsSendingOtp = false;
+    private bool IsVerifyingOtp = false;
+    private int CountdownSeconds = 0;
+    private System.Threading.Timer? countdownTimer;
 
     // Doctor Registration Modal state
     private bool ShowRegisterModal = false;
@@ -300,6 +452,132 @@
     // Floating Popup
     private ToastNotificationDTO? ActivePopup;
     private CancellationTokenSource? popupCts;
+
+    private void SetLoginMode(string mode)
+    {
+        LoginMode = mode;
+        ErrorMessage = null;
+    }
+
+    private void SetDemoMobile(string phone)
+    {
+        MobileNumber = phone;
+    }
+
+    private void FillDemoOtp()
+    {
+        EnteredOtp = "123456";
+    }
+
+    private void ResetOtpState()
+    {
+        OtpSent = false;
+        EnteredOtp = "";
+        CountdownSeconds = 0;
+        countdownTimer?.Dispose();
+        countdownTimer = null;
+        ErrorMessage = null;
+    }
+
+    private async Task HandleSendOtp()
+    {
+        ErrorMessage = null;
+        if (string.IsNullOrWhiteSpace(MobileNumber))
+        {
+            ErrorMessage = "Please enter your 10-digit mobile number.";
+            ShowPopup("Mobile Required", ErrorMessage, "error");
+            return;
+        }
+
+        IsSendingOtp = true;
+        try
+        {
+            var result = await OtpService.SendOtpAsync(MobileNumber);
+            if (result.Success)
+            {
+                OtpSent = true;
+                MaskedPhone = result.MaskedPhone;
+                EnteredOtp = "";
+                StartCountdown(60);
+                ShowPopup("OTP Sent Successfully", result.Message ?? "OTP sent to your mobile. (Demo OTP: 123456)", "save");
+            }
+            else
+            {
+                ErrorMessage = result.ErrorMessage ?? "Failed to send OTP. Please check the number.";
+                ShowPopup("OTP Error", ErrorMessage, "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = ex.Message;
+            ShowPopup("OTP Error", ex.Message, "error");
+        }
+        finally
+        {
+            IsSendingOtp = false;
+        }
+    }
+
+    private async Task HandleVerifyOtp()
+    {
+        ErrorMessage = null;
+        if (string.IsNullOrWhiteSpace(EnteredOtp))
+        {
+            ErrorMessage = "Please enter the 6-digit OTP code (Demo OTP: 123456).";
+            ShowPopup("OTP Required", ErrorMessage, "error");
+            return;
+        }
+
+        IsVerifyingOtp = true;
+        try
+        {
+            var result = await AuthService.LoginWithPhoneOtpAsync(MobileNumber, EnteredOtp);
+            if (result.Success && result.User != null)
+            {
+                countdownTimer?.Dispose();
+                countdownTimer = null;
+
+                NavigateUserAfterLogin(result.User);
+            }
+            else
+            {
+                ErrorMessage = result.ErrorMessage ?? "Invalid or expired OTP. Please enter demo OTP: 123456";
+                ShowPopup("Verification Failed", ErrorMessage, "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = ex.Message;
+            ShowPopup("Login Error", ex.Message, "error");
+        }
+        finally
+        {
+            IsVerifyingOtp = false;
+        }
+    }
+
+    private void StartCountdown(int seconds)
+    {
+        CountdownSeconds = seconds;
+        countdownTimer?.Dispose();
+        countdownTimer = new System.Threading.Timer(_ =>
+        {
+            InvokeAsync(() =>
+            {
+                if (CountdownSeconds > 0)
+                {
+                    CountdownSeconds--;
+                    StateHasChanged();
+                }
+                else
+                {
+                    countdownTimer?.Dispose();
+                    countdownTimer = null;
+                    StateHasChanged();
+                }
+            });
+        }, null, 1000, 1000);
+    }
 
     private void TogglePasswordVisibility()
     {
@@ -331,7 +609,6 @@
     {
         RegisterErrorMessage = null;
 
-        // Validation
         if (string.IsNullOrWhiteSpace(RegModel.FullName) || RegModel.FullName.Trim() == "Dr." || RegModel.FullName.Trim() == "Dr")
         {
             RegisterErrorMessage = "Please enter the doctor's full name (e.g. Dr. Rajesh Kumar).";
@@ -367,6 +644,34 @@
             return;
         }
 
+        var rawPhone = RegModel.PhoneNumber.Trim();
+        var cleanPhone = new string(rawPhone.Where(char.IsDigit).ToArray());
+        if (cleanPhone.Length == 12 && cleanPhone.StartsWith("91")) cleanPhone = cleanPhone.Substring(2);
+        if (cleanPhone.Length == 11 && cleanPhone.StartsWith("0")) cleanPhone = cleanPhone.Substring(1);
+
+        if (cleanPhone.Length != 10)
+        {
+            RegisterErrorMessage = "Mobile number must be exactly 10 digits (e.g. 9876543210).";
+            ShowPopup("Invalid Mobile Number", RegisterErrorMessage, "error");
+            return;
+        }
+
+        if (!cleanPhone.All(char.IsDigit))
+        {
+            RegisterErrorMessage = "Mobile number must contain digits only.";
+            ShowPopup("Invalid Mobile Number", RegisterErrorMessage, "error");
+            return;
+        }
+
+        if (!"6789".Contains(cleanPhone[0]))
+        {
+            RegisterErrorMessage = "Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.";
+            ShowPopup("Invalid Mobile Prefix", RegisterErrorMessage, "error");
+            return;
+        }
+
+        RegModel.PhoneNumber = cleanPhone;
+
         if (string.IsNullOrWhiteSpace(RegModel.LicenseNumber))
         {
             RegisterErrorMessage = "Medical License / Registration number is required.";
@@ -381,15 +686,17 @@
             if (result.Success)
             {
                 var registeredEmail = RegModel.Email.Trim();
+                var registeredPhone = RegModel.PhoneNumber.Trim();
                 var registeredName = RegModel.FullName.Trim();
 
                 ShowRegisterModal = false;
                 Email = registeredEmail;
+                MobileNumber = registeredPhone;
                 Password = "";
 
                 ShowPopup(
                     "Registration Submitted!",
-                    $"{registeredName}, your account is created in PENDING APPROVAL state. You can sign in to view your Profile. Other tools will unlock once Hospital Admin activates your account.",
+                    $"{registeredName}, your account is created in PENDING APPROVAL state. You can sign in using Email or Mobile OTP to view your Profile. Other tools will unlock once Admin activates your account.",
                     "save"
                 );
             }
@@ -420,22 +727,7 @@
             var result = await AuthService.LoginAsync(Email, Password);
             if (result.Success && result.User != null)
             {
-                if (result.User.Role == "Admin")
-                {
-                    NavigationManager.NavigateTo("admin/dashboard");
-                }
-                else
-                {
-                    // If doctor is NOT active: Only Profile is unlocked; navigate straight to Profile
-                    if (!result.User.IsActive)
-                    {
-                        NavigationManager.NavigateTo("doctor/profile");
-                    }
-                    else
-                    {
-                        NavigationManager.NavigateTo("doctor/dashboard");
-                    }
-                }
+                NavigateUserAfterLogin(result.User);
             }
             else
             {
@@ -454,11 +746,47 @@
         }
     }
 
+    private void NavigateUserAfterLogin(CurrentUserDTO user)
+    {
+        if (user.Role == "Admin")
+        {
+            NavigationManager.NavigateTo("admin/dashboard");
+        }
+        else
+        {
+            // If doctor is NOT active: Only Profile is unlocked; navigate straight to Profile
+            if (!user.IsActive)
+            {
+                NavigationManager.NavigateTo("doctor/profile");
+            }
+            else
+            {
+                NavigationManager.NavigateTo("doctor/dashboard");
+            }
+        }
+    }
+
     private async Task HandleKeyUp(KeyboardEventArgs e)
     {
         if (e.Key == "Enter")
         {
             await HandleLogin();
+        }
+    }
+
+    private async Task HandleMobileKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(MobileNumber))
+        {
+            await HandleSendOtp();
+        }
+    }
+
+    private async Task HandleOtpKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(EnteredOtp))
+        {
+            await HandleVerifyOtp();
         }
     }
 
@@ -500,8 +828,10 @@
         popupCts?.Cancel();
         ActivePopup = null;
     }
+
     public void Dispose()
     {
+        countdownTimer?.Dispose();
         popupCts?.Cancel();
         popupCts?.Dispose();
     }

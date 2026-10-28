@@ -1,4 +1,4 @@
-USE [CYHDocBrandBD];
+﻿USE [CYHDocBrandBD];
 GO
 
 SET ANSI_NULLS ON;
@@ -271,10 +271,21 @@ BEGIN
     -- 8. Register new Doctor (Atomic transaction with inactive state by default)
     ELSE IF @Flag = 'REGISTER_DOCTOR'
     BEGIN
-        -- Check if user already exists
+        -- 1. Check if email already exists
         IF EXISTS (SELECT 1 FROM AspNetUsers WHERE Email = @Email OR UserName = @Email)
         BEGIN
             SELECT 0 AS StatusCode, 'An account with this email address already exists. Please sign in or use another email.' AS Message, NULL AS UserId;
+            RETURN;
+        END
+
+        -- 2. Check if mobile number already exists
+        DECLARE @CheckPhone NVARCHAR(50) = RIGHT(REPLACE(REPLACE(REPLACE(REPLACE(ISNULL(@PhoneNumber, ''), ' ', ''), '-', ''), '+', ''), '(', ''), 10);
+        IF @CheckPhone <> '' AND EXISTS (
+            SELECT 1 FROM AspNetUsers 
+            WHERE RIGHT(REPLACE(REPLACE(REPLACE(REPLACE(ISNULL(PhoneNumber, ''), ' ', ''), '-', ''), '+', ''), '(', ''), 10) = @CheckPhone
+        )
+        BEGIN
+            SELECT 0 AS StatusCode, 'An account with this mobile number already exists. Please sign in with OTP or use another number.' AS Message, NULL AS UserId;
             RETURN;
         END
 

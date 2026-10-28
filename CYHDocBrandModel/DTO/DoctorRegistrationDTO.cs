@@ -21,7 +21,7 @@ public class DoctorRegistrationDTO
     public string ConfirmPassword { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Mobile number is required.")]
-    [Phone(ErrorMessage = "Please enter a valid phone number.")]
+    [RegularExpression(@"^[6-9]\d{9}$", ErrorMessage = "Mobile number must be exactly 10 digits (starting with 6, 7, 8, or 9).")]
     public string PhoneNumber { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Specialization is required.")]

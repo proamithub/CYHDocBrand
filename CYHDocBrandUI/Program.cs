@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Components.Authorization;
+﻿using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.ResponseCompression;
 using CYHDocBrandData;
 using CYHDocBrandRepo.IRepository;
@@ -35,10 +35,11 @@ builder.Services.AddScoped<IPushNotificationRepository, PushNotificationReposito
 // 4. Application & Notification Services
 builder.Services.AddHttpClient();
 builder.Services.AddMemoryCache();
-builder.Services.AddScoped<ISMSService, SMSService>();
+builder.Services.AddHttpClient<ISMSService, SMSService>();
+builder.Services.AddScoped<IOtpService, OtpService>();
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 builder.Services.AddScoped<IBannerAiService, BannerAiService>();
-builder.Services.AddSingleton<IWebPushNotificationService, WebPushNotificationService>();
+builder.Services.AddScoped<IWebPushNotificationService, WebPushNotificationService>();
 builder.Services.AddHostedService<BannerPublishBackgroundWorker>();
 
 // 5. Performance Optimizations (Compression & SignalR Speed)
@@ -75,6 +76,14 @@ catch (Exception ex)
     var logger = app.Services.GetRequiredService<ILogger<Program>>();
     logger.LogError(ex, "An error occurred while initializing via Stored Procedure.");
 }
+
+if (args.Contains("--seed-only"))
+{
+    Console.WriteLine("Database initialization and seed complete!");
+    return;
+}
+
+
 
 // 8. Pipeline Configuration
 app.UseResponseCompression();
