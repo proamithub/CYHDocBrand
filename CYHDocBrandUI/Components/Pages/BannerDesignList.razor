@@ -845,7 +845,7 @@
             await EnsureBannerStudioLoadedAsync();
             var fileName = $"CYH_Banner_{viewingBanner.Id}_{IndianTimeHelper.Now:yyyyMMdd_HHmmss}.png";
             await JSRuntime.InvokeVoidAsync("bannerStudio.downloadBanner", "viewModalCanvas", fileName);
-            ShowPopup("Download Started", "HD composite banner PNG download ho raha hai!", "save");
+            ShowPopup("Download Started", "HD composite banner PNG download in progress...", "save");
         }
         catch (Exception ex)
         {
@@ -944,13 +944,13 @@
 
         if (selected.Count == 0)
         {
-            ShowPopup("Select Platform", "Kam se kam ek platform (WhatsApp, Facebook, Instagram ya Twitter) select karein.", "warning");
+            ShowPopup("Select Platform", "Please select at least one platform (WhatsApp, Facebook, Instagram, or Twitter).", "warning");
             return;
         }
 
         if (scheduleDateTime <= IndianTimeHelper.Now.AddMinutes(1))
         {
-            ShowPopup("Invalid Time", "Schedule time future ka hona chahiye (at least 2 minutes aage).", "error");
+            ShowPopup("Invalid Time", "Schedule time must be in the future (at least 2 minutes ahead).", "error");
             return;
         }
 
@@ -983,12 +983,12 @@
             var id = await ScheduleRepo.CreateScheduleAsync(req, currentUser?.FullName);
             if (id > 0)
             {
-                ShowPopup("Banner Scheduled!", $"Banner successfully queue me add ho gaya hai! Post scheduled for {scheduleDateTime:dd MMM, hh:mm tt} IST.", "save");
+                ShowPopup("Banner Scheduled!", $"Banner scheduled successfully! Post scheduled for {scheduleDateTime:dd MMM, hh:mm tt} IST.", "save");
                 CloseScheduleModal();
             }
             else
             {
-                ShowPopup("Scheduling Failed", "Schedule save karne me problem aayi. Please retry karein.", "error");
+                ShowPopup("Scheduling Failed", "Failed to save schedule. Please try again.", "error");
             }
         }
         catch (Exception ex)
@@ -1061,14 +1061,14 @@
             var success = await BannerRepo.PublishBannerAsync(id, filterUserId);
             if (success)
             {
-                feedbackMessage = $"Banner #{id} published successfully! Ab ye download aur share ke liye ready hai.";
-                ShowPopup("Banner Published!", $"Banner #{id} published successfully! Download aur Share ab active hain.", "save");
+                feedbackMessage = $"Banner #{id} published successfully. Ready for download and social sharing.";
+                ShowPopup("Banner Published!", $"Banner #{id} published successfully! Download and Share are now active.", "save");
                 await LoadBannersAsync();
             }
             else
             {
                 feedbackMessage = "Failed to publish banner.";
-                ShowPopup("Publish Failed", "Banner publish nahi ho saka.", "error");
+                ShowPopup("Publish Failed", "Banner could not be published.", "error");
             }
         }
         catch (Exception ex)
@@ -1083,7 +1083,7 @@
         var target = banners.FirstOrDefault(b => b.Id == id);
         if (target != null && target.Status == "Published" && !IsAdmin)
         {
-            ShowPopup("Delete Locked", "Published banners ko sirf Admin delete kar sakta hai. Doctors ke liye ye locked hai.", "error");
+            ShowPopup("Delete Locked", "Published banners can only be deleted by an Administrator.", "error");
             return;
         }
 
@@ -1110,7 +1110,7 @@
         var target = banners.FirstOrDefault(b => b.Id == id);
         if (target != null && target.Status == "Published" && !IsAdmin)
         {
-            ShowPopup("Permission Denied", "Published banners ko sirf Admin delete kar sakta hai.", "error");
+            ShowPopup("Permission Denied", "Published banners can only be deleted by an Administrator.", "error");
             return;
         }
 
@@ -1121,13 +1121,13 @@
             if (success)
             {
                 feedbackMessage = $"Banner #{id} deleted successfully from database.";
-                ShowPopup("Banner Deleted!", $"Banner #{id} SQL database se permanently delete kar diya gaya hai.", "delete");
+                ShowPopup("Banner Deleted!", $"Banner #{id} permanently deleted from database.", "delete");
                 await LoadBannersAsync();
             }
             else
             {
                 feedbackMessage = "Failed to delete banner.";
-                ShowPopup("Delete Failed", "Banner delete nahi ho saka.", "error");
+                ShowPopup("Delete Failed", "Banner could not be deleted.", "error");
             }
         }
         catch (Exception ex)

@@ -947,7 +947,7 @@ window.bannerStudio = window.bannerStudio || {
 
                 // Safety timeout (8s): Guarantees the browser/editor never hangs on corrupt or ultra-massive files
                 const timer = setTimeout(() => {
-                    finish({ success: false, message: "Image compression timed out. Image format corrupt ya unsupported ho sakti hai." });
+                    finish({ success: false, message: "Image compression timed out. Image format may be corrupted or unsupported." });
                 }, 8000);
 
                 const img = new Image();

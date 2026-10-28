@@ -502,7 +502,7 @@
             var ok = await JSRuntime.InvokeAsync<bool>("cyhSocial.requestNotificationPermissionExplicit");
             if (ok)
             {
-                await JSRuntime.InvokeVoidAsync("cyhSocial.showDesktopNotification", "✅ Notifications Active", "Schedule banner alert notifications active ho chuki hain!", "/favicon.png");
+                await JSRuntime.InvokeVoidAsync("cyhSocial.showDesktopNotification", "✅ Notifications Active", "Scheduled banner alert notifications are now active!", "/favicon.png");
             }
         }
         catch { }

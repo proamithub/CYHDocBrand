@@ -769,7 +769,7 @@
             await Task.Delay(300); // Allow image paint
             await JSRuntime.InvokeVoidAsync("bannerStudio.downloadBanner", "quickExportCanvas", filename);
 
-            ShowPopup("PNG Downloaded", $"Template #{tpl.Id} '{tpl.Title}' branded PNG download ho gaya hai!", "save");
+            ShowPopup("PNG Downloaded", $"Template #{tpl.Id} '{tpl.Title}' branded PNG downloaded successfully!", "save");
         }
         catch (Exception ex)
         {

@@ -87,7 +87,7 @@ public class BannerPublishBackgroundWorker : BackgroundService
                         schedule.DoctorId,
                         schedule.UserId,
                         $"⏰ Scheduled Banner: {schedule.BannerHeading}",
-                        $"Dr. {schedule.DoctorName}, aapka scheduled post share karne ke liye ready hai! Tap karein aur WhatsApp par send karein.",
+                        $"Dr. {schedule.DoctorName}, your scheduled post is ready to share! Tap to send via WhatsApp.",
                         schedule
                     );
                     _logger.LogInformation("Delivered Web-Push to {Count} registered device(s) for Dr. {DoctorName}.", pushedCount, schedule.DoctorName);

@@ -482,8 +482,8 @@
 
         if (string.IsNullOrWhiteSpace(MobileNumber))
         {
-            ErrorMessage = "Kripya 10-digit mobile number enter karein (Mobile number required).";
-            MobileValidationError = "Mobile number blank nahi ho sakta.";
+            ErrorMessage = "Please enter your 10-digit mobile number.";
+            MobileValidationError = "Mobile number is required.";
             ShowPopup("Mobile Required", ErrorMessage, "error");
             return;
         }
@@ -491,7 +491,7 @@
         var cleaned = new string(MobileNumber.Where(char.IsDigit).ToArray());
         if (cleaned.Length != 10)
         {
-            ErrorMessage = "Kripya valid 10 digits ka mobile number enter karein.";
+            ErrorMessage = "Please enter a valid 10-digit mobile number.";
             MobileValidationError = "Exact 10 digits required.";
             ShowPopup("Invalid Mobile", ErrorMessage, "error");
             return;
@@ -499,8 +499,8 @@
 
         if (!System.Text.RegularExpressions.Regex.IsMatch(cleaned, @"^[6-9]\d{9}$"))
         {
-            ErrorMessage = "Mobile number 6, 7, 8, ya 9 se start hona chahiye.";
-            MobileValidationError = "Invalid format (6-9 se shuru hona chahiye).";
+            ErrorMessage = "Mobile number must start with 6, 7, 8, or 9.";
+            MobileValidationError = "Must start with 6, 7, 8, or 9.";
             ShowPopup("Invalid Mobile", ErrorMessage, "error");
             return;
         }
@@ -544,8 +544,8 @@
 
         if (string.IsNullOrWhiteSpace(EnteredOtp))
         {
-            ErrorMessage = "Kripya 6-digit OTP code enter karein. OTP blank nahi ho sakta.";
-            OtpValidationError = "OTP code required hai.";
+            ErrorMessage = "Please enter the 6-digit OTP code. OTP cannot be blank.";
+            OtpValidationError = "OTP code is required.";
             ShowPopup("OTP Required", ErrorMessage, "error");
             return;
         }
@@ -553,7 +553,7 @@
         var cleanedOtp = new string(EnteredOtp.Where(char.IsDigit).ToArray());
         if (cleanedOtp.Length != 6)
         {
-            ErrorMessage = "Kripya 6 digits ka valid OTP code enter karein.";
+            ErrorMessage = "Please enter a valid 6-digit OTP code.";
             OtpValidationError = "Exact 6 digits required.";
             ShowPopup("Invalid OTP", ErrorMessage, "error");
             return;

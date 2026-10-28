@@ -69,11 +69,11 @@
             // Check iOS Safari
             const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
             if (isIos) {
-                alert("iPhone / iPad par App install karne ke liye:\n1. Neeche Safari ke 'Share' (↑) icon par tap karein.\n2. List me 'Add to Home Screen' (+) select karein.");
+                alert("To install the App on iPhone / iPad:\n1. Tap the Safari 'Share' (↑) icon below.\n2. Select 'Add to Home Screen' (+).");
                 return { success: false, reason: 'ios_safari' };
             }
 
-            alert("Browser menu (top-right 3 dots) par click karke 'Install App' ya 'Add to Phone' select karein.");
+            alert("Click the browser menu (top-right 3 dots) and select 'Install App' or 'Add to Phone'.");
             return { success: false, reason: 'manual_instructions' };
         },
 

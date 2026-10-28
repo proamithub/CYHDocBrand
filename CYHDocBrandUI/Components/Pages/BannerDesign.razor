@@ -1324,8 +1324,8 @@
 
                 await PopulateDoctorProfileAsync();
 
-                statusMessage = $"Loaded SQL Template #{template.Id} '{template.Title}'. Canvas me mouse se drag karein aur customize karein!";
-                ShowPopup("Template Ready", $"'{template.Title}' load ho gaya hai! Apne hisaab se customize, download ya share karein.", "save");
+                statusMessage = $"Loaded SQL Template #{template.Id} '{template.Title}'. Drag elements on canvas to reposition and customize.";
+                ShowPopup("Template Ready", $"'{template.Title}' loaded successfully. Customize, download, or share your banner.", "save");
                 await RenderCanvas();
                 return;
             }
@@ -1445,7 +1445,7 @@
         {
             state.Status = "Draft";
             statusMessage = "Editing enabled â€” banner converted to Draft mode.";
-            ShowPopup("Draft Edit Active", "Banner draft mode mein unlock ho gaya hai. Ab aap text edit aur mouse drag kar sakte hain.", "edit");
+            ShowPopup("Draft Edit Active", "Banner draft mode is now unlocked. You can edit text and reposition elements.", "edit");
         }
     }
 
@@ -1545,7 +1545,7 @@
                 const long maxOverlayBytes = 10 * 1024 * 1024; // 10 MB limit for overlay photos
                 if (file.Size > maxOverlayBytes)
                 {
-                    ShowPopup("Photo Too Large", $"Photo '{file.Name}' 10 MB limit se badi hai. Maximum allowed size 10 MB hai.", "warning");
+                    ShowPopup("Photo Too Large", $"Photo '{file.Name}' exceeds 10 MB limit. Maximum allowed size is 10 MB.", "warning");
                     continue;
                 }
 
@@ -1584,11 +1584,11 @@
             }
 
             await RenderCanvas();
-            statusMessage = "Photo(s) added! Right preview canvas par mouse se drag karke position set karein.";
+            statusMessage = "Photo(s) added. Drag elements on the right preview canvas to adjust positions.";
         }
         catch (Exception ex)
         {
-            ShowPopup("Upload Error", $"Overlay photo load nahi ho saki: {ex.Message}. Editor surakshit hai.", "error");
+            ShowPopup("Upload Error", $"Overlay photo could not be loaded: {ex.Message}.", "error");
         }
     }
 
@@ -1630,8 +1630,8 @@
         if (file.Size > maxAllowedRawSize)
         {
             var actualMb = (file.Size / (1024.0 * 1024.0)).ToString("0.1");
-            ShowPopup("Image Size Bahut Bada Hai", 
-                $"Aapki image ka size ({actualMb} MB) limit se zyada hai. Maximum allowed size 15 MB hai. Editor surakshit hai aur crash nahi hua. Kripya 15 MB se kam size ki image select karein.", 
+            ShowPopup("Image Size Too Large", 
+                $"Selected image size ({actualMb} MB) exceeds limit. Maximum allowed size is 15 MB. Please select an image under 15 MB.", 
                 "warning");
             return;
         }
@@ -1665,8 +1665,8 @@
             if (uploadFile.Size > maxSafeStreamBytes)
             {
                 var currentMb = (uploadFile.Size / (1024.0 * 1024.0)).ToString("0.1");
-                ShowPopup("Image Bahut Badi Hai", 
-                    $"Image ka size ({currentMb} MB) safe limit se zyada hai aur compress nahi ho saka. Maximum allowed size 15 MB hai. Editor crash ya hang se surakshit hai.", 
+                ShowPopup("Image Too Large", 
+                    $"Image size ({currentMb} MB) exceeds safe limit and could not be compressed. Maximum allowed size is 15 MB.", 
                     "warning");
                 return;
             }
@@ -1699,7 +1699,7 @@
 
                 var origKb = Math.Round((double)file.Size / 1024);
                 bgCompressionInfo = $"✅ Compressed: {compResult.SizeFormatted} (Original: {origKb} KB, HD Quality)";
-                ShowPopup("Background Updated", $"Background image compress ho gayi! Size: {compResult.SizeFormatted} (HD quality preserved).", "save");
+                ShowPopup("Background Updated", $"Background image compressed successfully! Size: {compResult.SizeFormatted}.", "save");
                 await RenderCanvas();
             }
             else if (uploadFile.Size <= 1024 * 1024)
@@ -1711,25 +1711,25 @@
                 state.BackgroundImageSizeBytes = uploadFile.Size;
                 var safeKb = Math.Round((double)uploadFile.Size / 1024);
                 bgCompressionInfo = $"✅ Active Background: {safeKb} KB (HD Quality)";
-                ShowPopup("Background Updated", $"Background image set ho gayi! Size: {safeKb} KB.", "save");
+                ShowPopup("Background Updated", $"Background image set successfully! Size: {safeKb} KB.", "save");
                 await RenderCanvas();
             }
             else
             {
                 // Compression failed and file was oversized - protect editor from corrupt/laggy state
                 var currentKb = Math.Round((double)uploadFile.Size / 1024);
-                ShowPopup("Image Compress Nahi Ho Saki", 
-                    $"Chuni hui image ({currentKb} KB) compress nahi ho saki. Maximum allowed size 15 MB hai. Editor surakshit hai, kripya standard JPG/PNG image select karein.", 
+                ShowPopup("Image Compression Failed", 
+                    $"Selected image ({currentKb} KB) could not be compressed. Maximum allowed size is 15 MB. Please select a standard JPG/PNG image.", 
                     "warning");
             }
         }
         catch (OperationCanceledException)
         {
-            ShowPopup("Upload Timeout", "Image load karne mein zyada samay laga. Editor surakshit hai aur hang nahi hua. Kripya dobara try karein ya choti image use karein.", "warning");
+            ShowPopup("Upload Timeout", "Image load timed out. Please try again or use a smaller image file.", "warning");
         }
         catch (Exception ex)
         {
-            ShowPopup("Upload Error", $"Image load nahi ho saki: {ex.Message}. Editor crash se surakshit hai.", "error");
+            ShowPopup("Upload Error", $"Failed to load image: {ex.Message}.", "error");
         }
         finally
         {
@@ -1827,7 +1827,7 @@
         state.DoctorCardPadding = 20;
         state.DoctorCardBorderRadius = 20;
         await RenderCanvas();
-        ShowPopup("Card Reset", "Doctor Card position aur size default kar diya gaya hai.", "delete");
+        ShowPopup("Card Reset", "Doctor Card position and size reset to default.", "delete");
     }
 
     private class CompressionResult
@@ -1858,7 +1858,7 @@
         state.HospitalNameY = null;
         await RenderCanvas();
         statusMessage = "Default auto-layout positions restored.";
-        ShowPopup("Layout Reset", "Default auto-layout positions restore kar di gayi hain.", "delete");
+        ShowPopup("Layout Reset", "Default auto-layout positions restored.", "delete");
     }
 
     private async Task UnlockForEditing()
@@ -1871,7 +1871,7 @@
         }
         await RenderCanvas();
         statusMessage = "Banner converted to Draft mode! Mouse drag and text editing are now UNLOCKED.";
-        ShowPopup("Draft Mode Active", "Banner editing ke liye unlock ho gaya hai.", "edit");
+        ShowPopup("Draft Mode Active", "Banner unlocked for editing.", "edit");
     }
 
     private async Task SaveDraftAsync()
@@ -1909,12 +1909,12 @@
                 NavigationManager.NavigateTo($"{prefix}banner-design?id={encId}", replace: true);
 
                 statusMessage = $"Banner #{savedId} saved successfully in SQL database! Mouse positions and photos saved.";
-                ShowPopup("Banner Saved!", $"Banner #{savedId} SQL database mein successfully save ho gaya hai!", "save");
+                ShowPopup("Banner Saved!", $"Banner #{savedId} saved successfully to database!", "save");
             }
             else
             {
                 statusMessage = "Failed to save draft to database.";
-                ShowPopup("Save Failed", "Draft database mein save nahi ho saka.", "error");
+                ShowPopup("Save Failed", "Failed to save draft to database.", "error");
             }
         }
         catch (Exception ex)
@@ -2021,7 +2021,7 @@
                 {
                     await RenderCanvas();
                     statusMessage = $"🎉 Banner #{savedId} successfully Published & LOCKED! Download and Social Share are now active.";
-                    ShowPopup("Banner Published!", $"🎉 Banner #{savedId} successfully publish ho gaya hai! 1 Credit deduct hua. HD Export aur Share ready hain.", "save");
+                    ShowPopup("Banner Published!", $"🎉 Banner #{savedId} published successfully! 1 Credit deducted. HD Export and Share are ready.", "save");
                 }
                 else
                 {
@@ -2032,7 +2032,7 @@
             else
             {
                 statusMessage = "Failed to publish banner.";
-                ShowPopup("Publish Failed", "Banner publish nahi ho saka.", "error");
+                ShowPopup("Publish Failed", "Banner could not be published.", "error");
             }
         }
         catch (Exception ex)
@@ -2131,7 +2131,7 @@
             var filename = $"CYH_Banner_{state.TemplateType}_{IndianTimeHelper.Now:yyyyMMdd_HHmmss}.png";
             await JSRuntime.InvokeVoidAsync("bannerStudio.downloadBanner", "bannerCanvas", filename);
             statusMessage = "Banner downloaded successfully in high resolution PNG!";
-            ShowPopup("PNG Downloaded", "High-Resolution PNG banner successfully download ho gaya hai!", "save");
+            ShowPopup("PNG Downloaded", "High-Resolution PNG banner downloaded successfully!", "save");
         }
         catch (Exception ex)
         {

@@ -168,7 +168,7 @@ public class BannerRepository : IBannerRepository
                 var status = statusObj?.ToString();
                 if (string.Equals(status, "Published", StringComparison.OrdinalIgnoreCase))
                 {
-                    throw new InvalidOperationException("Published banner locked hai! Published banner ko sirf Administrator hi delete kar sakta hai.");
+                    throw new InvalidOperationException("Published banner is locked. Only an Administrator can delete a published banner.");
                 }
             }
 

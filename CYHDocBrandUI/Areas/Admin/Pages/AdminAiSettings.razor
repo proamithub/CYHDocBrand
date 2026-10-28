@@ -567,7 +567,7 @@
         OnDoctorSelected();
         if (currentDoctor != null)
         {
-            ShowPopup("Doctor Selected for Edit", $"Dr. {currentDoctor.FullName} form mein load ho gaye hain. Ab aap unki keys edit kar sakte hain.", "edit");
+            ShowPopup("Doctor Selected for Edit", $"Dr. {currentDoctor.FullName} has been loaded. You can now edit their keys.", "edit");
         }
     }
 
@@ -637,8 +637,8 @@
                 await DoctorAiRepo.DeleteSettingAsync(curOpenAi.Id);
             }
 
-            feedbackMessage = $"✅ Dr. {currentDoctor.FullName} ke liye AI API Keys SQL Server me successfully save ho gayi hain!";
-            ShowPopup("Doctor AI Keys Saved!", $"Dr. {currentDoctor.FullName} ke liye AI API Keys SQL Server mein successfully save ho gayi hain!", "save");
+            feedbackMessage = $"✅ AI API Keys for Dr. {currentDoctor.FullName} saved successfully in SQL Server.";
+            ShowPopup("Doctor AI Keys Saved!", $"AI API Keys for Dr. {currentDoctor.FullName} have been successfully saved in SQL Server.", "save");
             await LoadDataAsync();
         }
         catch (Exception ex)
@@ -670,8 +670,8 @@
             docGeminiKeyInput = string.Empty;
             docOpenAiKeyInput = string.Empty;
 
-            feedbackMessage = $"Dr. {currentDoctor.FullName} ke custom keys reset kar diye gaye hain. Ab ye Hospital Global keys use karenge.";
-            ShowPopup("Keys Reset / Deleted", $"Dr. {currentDoctor.FullName} ke custom keys delete/reset ho gaye hain. Ab Hospital Global keys use hongi.", "delete");
+            feedbackMessage = $"Custom keys for Dr. {currentDoctor.FullName} have been reset. Hospital Global keys will be used.";
+            ShowPopup("Keys Reset / Deleted", $"Custom keys for Dr. {currentDoctor.FullName} have been reset. Hospital Global keys will be used.", "delete");
             await LoadDataAsync();
         }
         catch (Exception ex)

@@ -756,12 +756,12 @@
         pwdErrorMessage = null;
         if (string.IsNullOrWhiteSpace(newPasswordInput) || newPasswordInput.Length < 6)
         {
-            pwdErrorMessage = "Naya password kam se kam 6 characters ka hona chahiye.";
+            pwdErrorMessage = "New password must be at least 6 characters long.";
             return;
         }
         if (newPasswordInput != confirmPasswordInput)
         {
-            pwdErrorMessage = "New password aur Confirm password match nahi ho rahe.";
+            pwdErrorMessage = "New password and Confirm password do not match.";
             return;
         }
 
@@ -773,7 +773,7 @@
             var emailOrId = CurrentUser?.Email ?? CurrentUser?.UserId;
             if (string.IsNullOrWhiteSpace(emailOrId))
             {
-                pwdErrorMessage = "User identification nahi mili.";
+                pwdErrorMessage = "User identification not found.";
                 return;
             }
 
@@ -875,7 +875,7 @@
             newPasswordInput = "";
             confirmPasswordInput = "";
 
-            ShowToast("Password Changed", $"Admin password successfully update ho gaya aur Geolocation ({locSummary}) log database mein save ho gayi!", "save");
+            ShowToast("Password Changed", $"Admin password successfully updated and geolocation ({locSummary}) was saved in database.", "save");
         }
         catch (Exception ex)
         {
@@ -1039,7 +1039,7 @@
             var ok = await JSRuntime.InvokeAsync<bool>("cyhSocial.requestNotificationPermissionExplicit");
             if (ok)
             {
-                await JSRuntime.InvokeVoidAsync("cyhSocial.showDesktopNotification", "✅ Notifications Active", "Schedule banner alert notifications active ho chuki hain!", "/favicon.png");
+                await JSRuntime.InvokeVoidAsync("cyhSocial.showDesktopNotification", "✅ Notifications Active", "Scheduled banner alert notifications are now active!", "/favicon.png");
             }
         }
         catch { }

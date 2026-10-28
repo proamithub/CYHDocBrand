@@ -520,13 +520,13 @@
             var ok = await ScheduleRepo.DeleteScheduleAsync(deletingSchedule.Id);
             if (ok)
             {
-                ShowSuccess("Schedule Deleted", $"'{deletingSchedule.BannerHeading}' queue se successfully delete ho gaya hai.");
+                ShowSuccess("Schedule Deleted", $"'{deletingSchedule.BannerHeading}' deleted from queue successfully.");
                 CloseDeleteModal();
                 await LoadSchedulesAsync();
             }
             else
             {
-                ShowError("Delete Failed", "Schedule delete karne me problem aayi. Please retry karein.");
+                ShowError("Delete Failed", "Failed to delete schedule. Please try again.");
             }
         }
         catch (Exception ex)
@@ -549,7 +549,7 @@
         }
         await JSRuntime.InvokeVoidAsync("cyhSocial.openWhatsApp", "", message);
         await ScheduleRepo.UpdateScheduleStatusAsync(item.Id, "Success", null);
-        ShowSuccess("Opened WhatsApp", "Banner details WhatsApp par send karne ke liye taiyaar hain!");
+        ShowSuccess("Opened WhatsApp", "Banner details ready to share via WhatsApp!");
         await LoadSchedulesAsync();
     }
 
@@ -558,7 +558,7 @@
         var quote = $"{item.BannerHeading}\n\n{item.Caption}";
         await JSRuntime.InvokeVoidAsync("cyhSocial.openFacebookShare", item.ImageUrl, quote);
         await ScheduleRepo.UpdateScheduleStatusAsync(item.Id, "Success", null);
-        ShowSuccess("Opened Facebook", "Facebook share window khul gaya hai!");
+        ShowSuccess("Opened Facebook", "Facebook share window opened successfully!");
         await LoadSchedulesAsync();
     }
 
@@ -567,7 +567,7 @@
         var text = $"{item.BannerHeading}\n\n{item.Caption}";
         await JSRuntime.InvokeVoidAsync("cyhSocial.openInstagram", text, item.ImageUrl);
         await ScheduleRepo.UpdateScheduleStatusAsync(item.Id, "Success", null);
-        ShowSuccess("Opened Instagram", "Caption copy ho gaya hai aur banner download ho raha hai!");
+        ShowSuccess("Opened Instagram", "Caption copied to clipboard and banner is downloading!");
         await LoadSchedulesAsync();
     }
 

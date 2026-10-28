@@ -497,7 +497,7 @@
                 {
                     await JSRuntime.InvokeVoidAsync("cyhPush.subscribeUser", CurrentUser.DoctorProfileId, CurrentUser.UserId);
                 }
-                await JSRuntime.InvokeVoidAsync("cyhSocial.showDesktopNotification", "✅ Push Notifications Active", "Background Web Push active ho chuka hai! Browser band hone par bhi alerts milenge.", "/favicon.png");
+                await JSRuntime.InvokeVoidAsync("cyhSocial.showDesktopNotification", "✅ Push Notifications Active", "Background Web Push is now active! You will receive alerts even when browser is closed.", "/favicon.png");
             }
         }
         catch { }
