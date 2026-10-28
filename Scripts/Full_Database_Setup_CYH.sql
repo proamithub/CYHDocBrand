@@ -1,4 +1,4 @@
-﻿-- ============================================================================
+-- ============================================================================
 -- CYH DoctorHub — Complete Production Database Setup Script
 -- Target: SQL Server (VPS Server: https://vps2.clickyourhospital.com)
 -- Database: CYHDocBrandBD
@@ -59,6 +59,7 @@ GO
 
 IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'UQ_AspNetUsers_PhoneNumber' AND object_id = OBJECT_ID('AspNetUsers'))
 BEGIN
+    ALTER TABLE [dbo].[AspNetUsers] ALTER COLUMN [PhoneNumber] NVARCHAR(50) NULL;
     CREATE UNIQUE NONCLUSTERED INDEX [UQ_AspNetUsers_PhoneNumber] ON [dbo].[AspNetUsers] ([PhoneNumber]) WHERE [PhoneNumber] IS NOT NULL;
 END
 GO
