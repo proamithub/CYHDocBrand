@@ -1,4 +1,4 @@
-﻿@page "/admin/doctors"
+@page "/admin/doctors"
 @layout AdminLayout
 @using CYHDocBrandRepo.Utilities
 @inject IDoctorRepository DoctorRepo
@@ -202,29 +202,26 @@
                     }
 
                     <div class="row g-3">
+                        <!-- 1. Full Name -->
                         <div class="col-12 col-md-6">
                             <label class="form-label small fw-semibold text-light mb-1">Full Name (with Dr. prefix) *</label>
-                            <input type="text" class="glass-input" @bind="NewDoctor.FullName" placeholder="Dr. Sameer Khan" />
+                            <input type="text" class="glass-input @(AddValidationErrorField == "FullName" ? "border-danger" : "")" 
+                                   style="@(AddValidationErrorField == "FullName" ? "border-color: #f43f5e !important; box-shadow: 0 0 10px rgba(244, 63, 94, 0.4) !important;" : "")"
+                                   @bind="NewDoctor.FullName" placeholder="Dr. Sameer Khan" />
+                            @if (AddValidationErrorField == "FullName")
+                            {
+                                <div class="text-danger small mt-1" style="font-size: 0.78rem;">
+                                    <i class="bi bi-exclamation-circle-fill me-1"></i>@AddErrorMessage
+                                </div>
+                            }
                         </div>
-                        <div class="col-12 col-md-6">
-                            <label class="form-label small fw-semibold text-light mb-1">Login Email *</label>
-                            <input type="email" class="glass-input" @bind="NewDoctor.Email" placeholder="sameer.khan@cyhdoctorhub.com" />
-                        </div>
-                        <div class="col-12 col-md-6">
-                            <label class="form-label small fw-semibold text-light mb-1">Temporary Password *</label>
-                            <input type="password" class="glass-input" @bind="NewDoctor.Password" placeholder="••••••••" />
-                        </div>
-                        <div class="col-12 col-md-6">
-                            <label class="form-label small fw-semibold text-light mb-1">Confirm Password *</label>
-                            <input type="password" class="glass-input" @bind="NewDoctor.ConfirmPassword" placeholder="••••••••" />
-                        </div>
-                        <div class="col-12 col-md-6">
-                            <label class="form-label small fw-semibold text-light mb-1">Mobile Number *</label>
-                            <input type="tel" class="glass-input" @bind="NewDoctor.PhoneNumber" placeholder="+91 98765 43210" />
-                        </div>
+
+                        <!-- 2. Specialization -->
                         <div class="col-12 col-md-6">
                             <label class="form-label small fw-semibold text-light mb-1">Specialization *</label>
-                            <select class="glass-input" @bind="NewDoctor.Specialization" style="background: #0f172a; color: #f1f5f9;">
+                            <select class="glass-input @(AddValidationErrorField == "Specialization" ? "border-danger" : "")" 
+                                    style="background: #0f172a; color: #f1f5f9; @(AddValidationErrorField == "Specialization" ? "border-color: #f43f5e !important; box-shadow: 0 0 10px rgba(244, 63, 94, 0.4) !important;" : "")"
+                                    @bind="NewDoctor.Specialization">
                                 <option value="Cardiology">Cardiology</option>
                                 <option value="Neurology">Neurology</option>
                                 <option value="General Medicine">General Medicine</option>
@@ -238,22 +235,132 @@
                                 <option value="Psychiatry">Psychiatry</option>
                                 <option value="General Surgery">General Surgery</option>
                             </select>
+                            @if (AddValidationErrorField == "Specialization")
+                            {
+                                <div class="text-danger small mt-1" style="font-size: 0.78rem;">
+                                    <i class="bi bi-exclamation-circle-fill me-1"></i>@AddErrorMessage
+                                </div>
+                            }
                         </div>
+
+                        <!-- 3. Login Email -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-semibold text-light mb-1">Login Email *</label>
+                            <input type="email" class="glass-input @(AddValidationErrorField == "Email" ? "border-danger" : "")" 
+                                   style="@(AddValidationErrorField == "Email" ? "border-color: #f43f5e !important; box-shadow: 0 0 10px rgba(244, 63, 94, 0.4) !important;" : "")"
+                                   @bind="NewDoctor.Email" placeholder="sameer.khan@cyhdoctorhub.com" />
+                            @if (AddValidationErrorField == "Email")
+                            {
+                                <div class="text-danger small mt-1" style="font-size: 0.78rem;">
+                                    <i class="bi bi-exclamation-circle-fill me-1"></i>@AddErrorMessage
+                                </div>
+                            }
+                        </div>
+
+                        <!-- 4. Mobile Number -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-semibold text-light mb-1 d-flex justify-content-between">
+                                <span>Mobile Number *</span>
+                                <span class="text-info" style="font-size: 0.75rem;">10 digits only</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text border-0 px-2 fw-semibold" style="background: rgba(15, 23, 42, 0.85); color: #f59e0b; border-radius: 10px 0 0 10px; border: 1px solid rgba(255, 255, 255, 0.12); border-right: none; font-size: 0.88rem;">
+                                  +91
+                                </span>
+                                <input type="tel" maxlength="10" class="glass-input @(AddValidationErrorField == "PhoneNumber" ? "border-danger" : "")" 
+                                       style="border-radius: 0 10px 10px 0 !important; @(AddValidationErrorField == "PhoneNumber" ? "border-color: #f43f5e !important; box-shadow: 0 0 10px rgba(244, 63, 94, 0.4) !important;" : "")"
+                                       @bind="NewDoctor.PhoneNumber" placeholder="10-digit mobile number" />
+                            </div>
+                            @if (AddValidationErrorField == "PhoneNumber")
+                            {
+                                <div class="text-danger small mt-1" style="font-size: 0.78rem;">
+                                    <i class="bi bi-exclamation-circle-fill me-1"></i>@AddErrorMessage
+                                </div>
+                            }
+                        </div>
+
+                        <!-- 5. Medical License No. -->
                         <div class="col-12 col-md-6">
                             <label class="form-label small fw-semibold text-light mb-1">Medical License No. *</label>
-                            <input type="text" class="glass-input" @bind="NewDoctor.LicenseNumber" placeholder="MCI-DEL-2024-8891" />
+                            <input type="text" class="glass-input @(AddValidationErrorField == "LicenseNumber" ? "border-danger" : "")" 
+                                   style="@(AddValidationErrorField == "LicenseNumber" ? "border-color: #f43f5e !important; box-shadow: 0 0 10px rgba(244, 63, 94, 0.4) !important;" : "")"
+                                   @bind="NewDoctor.LicenseNumber" placeholder="MCI-DEL-2024-8891" />
+                            @if (AddValidationErrorField == "LicenseNumber")
+                            {
+                                <div class="text-danger small mt-1" style="font-size: 0.78rem;">
+                                    <i class="bi bi-exclamation-circle-fill me-1"></i>@AddErrorMessage
+                                </div>
+                            }
                         </div>
+
+                        <!-- 6. Experience (Years) -->
                         <div class="col-12 col-md-3">
                             <label class="form-label small fw-semibold text-light mb-1">Experience (Years)</label>
-                            <input type="number" class="glass-input" @bind="NewDoctor.ExperienceYears" min="0" max="60" />
+                            <input type="number" class="glass-input @(AddValidationErrorField == "ExperienceYears" ? "border-danger" : "")" 
+                                   style="@(AddValidationErrorField == "ExperienceYears" ? "border-color: #f43f5e !important; box-shadow: 0 0 10px rgba(244, 63, 94, 0.4) !important;" : "")"
+                                   @bind="NewDoctor.ExperienceYears" min="0" max="60" />
+                            @if (AddValidationErrorField == "ExperienceYears")
+                            {
+                                <div class="text-danger small mt-1" style="font-size: 0.78rem;">
+                                    <i class="bi bi-exclamation-circle-fill me-1"></i>@AddErrorMessage
+                                </div>
+                            }
                         </div>
+
+                        <!-- 7. Consultation Fee (₹) -->
                         <div class="col-12 col-md-3">
                             <label class="form-label small fw-semibold text-light mb-1">Consultation Fee (₹)</label>
-                            <input type="number" class="glass-input" @bind="NewDoctor.ConsultationFee" min="0" step="50" />
+                            <input type="number" class="glass-input @(AddValidationErrorField == "ConsultationFee" ? "border-danger" : "")" 
+                                   style="@(AddValidationErrorField == "ConsultationFee" ? "border-color: #f43f5e !important; box-shadow: 0 0 10px rgba(244, 63, 94, 0.4) !important;" : "")"
+                                   @bind="NewDoctor.ConsultationFee" min="0" step="50" />
+                            @if (AddValidationErrorField == "ConsultationFee")
+                            {
+                                <div class="text-danger small mt-1" style="font-size: 0.78rem;">
+                                    <i class="bi bi-exclamation-circle-fill me-1"></i>@AddErrorMessage
+                                </div>
+                            }
                         </div>
+
+                        <!-- 8. Temporary Password -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-semibold text-light mb-1">Temporary Password *</label>
+                            <input type="password" class="glass-input @(AddValidationErrorField == "Password" ? "border-danger" : "")" 
+                                   style="@(AddValidationErrorField == "Password" ? "border-color: #f43f5e !important; box-shadow: 0 0 10px rgba(244, 63, 94, 0.4) !important;" : "")"
+                                   @bind="NewDoctor.Password" placeholder="Min 6 characters" />
+                            @if (AddValidationErrorField == "Password")
+                            {
+                                <div class="text-danger small mt-1" style="font-size: 0.78rem;">
+                                    <i class="bi bi-exclamation-circle-fill me-1"></i>@AddErrorMessage
+                                </div>
+                            }
+                        </div>
+
+                        <!-- 9. Confirm Password -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-semibold text-light mb-1">Confirm Password *</label>
+                            <input type="password" class="glass-input @(AddValidationErrorField == "ConfirmPassword" ? "border-danger" : "")" 
+                                   style="@(AddValidationErrorField == "ConfirmPassword" ? "border-color: #f43f5e !important; box-shadow: 0 0 10px rgba(244, 63, 94, 0.4) !important;" : "")"
+                                   @bind="NewDoctor.ConfirmPassword" placeholder="Re-enter password" />
+                            @if (AddValidationErrorField == "ConfirmPassword")
+                            {
+                                <div class="text-danger small mt-1" style="font-size: 0.78rem;">
+                                    <i class="bi bi-exclamation-circle-fill me-1"></i>@AddErrorMessage
+                                </div>
+                            }
+                        </div>
+
+                        <!-- 10. Brief Bio -->
                         <div class="col-12">
                             <label class="form-label small fw-semibold text-light mb-1">Brief Bio</label>
-                            <textarea class="glass-input" rows="2" @bind="NewDoctor.Bio" placeholder="Specialist clinical overview..."></textarea>
+                            <textarea class="glass-input @(AddValidationErrorField == "Bio" ? "border-danger" : "")" 
+                                      style="@(AddValidationErrorField == "Bio" ? "border-color: #f43f5e !important; box-shadow: 0 0 10px rgba(244, 63, 94, 0.4) !important;" : "")"
+                                      rows="2" @bind="NewDoctor.Bio" placeholder="Specialist clinical overview..."></textarea>
+                            @if (AddValidationErrorField == "Bio")
+                            {
+                                <div class="text-danger small mt-1" style="font-size: 0.78rem;">
+                                    <i class="bi bi-exclamation-circle-fill me-1"></i>@AddErrorMessage
+                                </div>
+                            }
                         </div>
                     </div>
                 </div>
@@ -378,6 +485,7 @@
     private bool ShowAddDoctorModal = false;
     private bool IsSubmittingDoctor = false;
     private string? AddErrorMessage;
+    private string? AddValidationErrorField;
     private DoctorRegistrationDTO NewDoctor = new();
 
     // Password Visibility & Decrypt Tool
@@ -541,6 +649,7 @@
             ConsultationFee = 500m
         };
         AddErrorMessage = null;
+        AddValidationErrorField = null;
         ShowAddDoctorModal = true;
     }
 
@@ -548,50 +657,164 @@
     {
         ShowAddDoctorModal = false;
         AddErrorMessage = null;
+        AddValidationErrorField = null;
     }
 
     private async Task SubmitNewDoctor()
     {
         AddErrorMessage = null;
+        AddValidationErrorField = null;
+
+        // Sequence 1: Full Name
         if (string.IsNullOrWhiteSpace(NewDoctor.FullName) || NewDoctor.FullName.Trim() == "Dr." || NewDoctor.FullName.Trim() == "Dr")
         {
+            AddValidationErrorField = "FullName";
             AddErrorMessage = "Please enter the doctor's full name (e.g. Dr. Sameer Khan).";
             ShowPopup("Validation Error", AddErrorMessage, "error");
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(NewDoctor.Email) || !NewDoctor.Email.Contains("@"))
+        if (NewDoctor.FullName.Trim().Length < 3)
         {
-            AddErrorMessage = "Please enter a valid email address.";
+            AddValidationErrorField = "FullName";
+            AddErrorMessage = "Doctor's full name must be at least 3 characters long.";
+            ShowPopup("Validation Error", AddErrorMessage, "error");
+            return;
+        }
+
+        // Sequence 2: Specialization
+        if (string.IsNullOrWhiteSpace(NewDoctor.Specialization))
+        {
+            AddValidationErrorField = "Specialization";
+            AddErrorMessage = "Please select a medical specialization.";
+            ShowPopup("Specialization Required", AddErrorMessage, "error");
+            return;
+        }
+
+        // Sequence 3: Login Email
+        if (string.IsNullOrWhiteSpace(NewDoctor.Email))
+        {
+            AddValidationErrorField = "Email";
+            AddErrorMessage = "Login email address is required.";
+            ShowPopup("Email Required", AddErrorMessage, "error");
+            return;
+        }
+
+        if (!NewDoctor.Email.Contains("@") || !NewDoctor.Email.Contains(".") || NewDoctor.Email.Trim().Length < 5)
+        {
+            AddValidationErrorField = "Email";
+            AddErrorMessage = "Please enter a valid login email address (e.g. doctor@hospital.com).";
             ShowPopup("Invalid Email", AddErrorMessage, "error");
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(NewDoctor.Password) || NewDoctor.Password.Length < 6)
-        {
-            AddErrorMessage = "Password must be at least 6 characters.";
-            ShowPopup("Weak Password", AddErrorMessage, "warning");
-            return;
-        }
-
-        if (NewDoctor.Password != NewDoctor.ConfirmPassword)
-        {
-            AddErrorMessage = "Passwords do not match.";
-            ShowPopup("Password Mismatch", AddErrorMessage, "error");
-            return;
-        }
-
+        // Sequence 4: Mobile Number (10 Digits)
         if (string.IsNullOrWhiteSpace(NewDoctor.PhoneNumber))
         {
+            AddValidationErrorField = "PhoneNumber";
             AddErrorMessage = "Mobile number is required.";
             ShowPopup("Mobile Number Required", AddErrorMessage, "error");
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(NewDoctor.LicenseNumber))
+        var rawPhone = NewDoctor.PhoneNumber.Trim();
+        var cleanPhone = new string(rawPhone.Where(char.IsDigit).ToArray());
+        if (cleanPhone.Length == 12 && cleanPhone.StartsWith("91")) cleanPhone = cleanPhone.Substring(2);
+        if (cleanPhone.Length == 11 && cleanPhone.StartsWith("0")) cleanPhone = cleanPhone.Substring(1);
+
+        if (cleanPhone.Length != 10)
         {
-            AddErrorMessage = "Medical License number is required.";
+            AddValidationErrorField = "PhoneNumber";
+            AddErrorMessage = "Mobile number must be exactly 10 digits (e.g. 9876543210).";
+            ShowPopup("Invalid Mobile Number", AddErrorMessage, "error");
+            return;
+        }
+
+        if (!cleanPhone.All(char.IsDigit))
+        {
+            AddValidationErrorField = "PhoneNumber";
+            AddErrorMessage = "Mobile number must contain digits only.";
+            ShowPopup("Invalid Mobile Number", AddErrorMessage, "error");
+            return;
+        }
+
+        if (!"6789".Contains(cleanPhone[0]))
+        {
+            AddValidationErrorField = "PhoneNumber";
+            AddErrorMessage = "Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.";
+            ShowPopup("Invalid Mobile Prefix", AddErrorMessage, "error");
+            return;
+        }
+
+        NewDoctor.PhoneNumber = cleanPhone;
+
+        // Sequence 5: Medical License Number
+        if (string.IsNullOrWhiteSpace(NewDoctor.LicenseNumber) || NewDoctor.LicenseNumber.Trim().Length < 3)
+        {
+            AddValidationErrorField = "LicenseNumber";
+            AddErrorMessage = "Medical License / Registration number is required (min 3 characters).";
             ShowPopup("License Number Required", AddErrorMessage, "error");
+            return;
+        }
+
+        // Sequence 6: Years of Experience
+        if (NewDoctor.ExperienceYears < 0 || NewDoctor.ExperienceYears > 70)
+        {
+            AddValidationErrorField = "ExperienceYears";
+            AddErrorMessage = "Experience must be between 0 and 70 years.";
+            ShowPopup("Invalid Experience", AddErrorMessage, "warning");
+            return;
+        }
+
+        // Sequence 7: Consultation Fee
+        if (NewDoctor.ConsultationFee < 0)
+        {
+            AddValidationErrorField = "ConsultationFee";
+            AddErrorMessage = "Consultation fee cannot be negative.";
+            ShowPopup("Invalid Consultation Fee", AddErrorMessage, "warning");
+            return;
+        }
+
+        // Sequence 8: Password
+        if (string.IsNullOrWhiteSpace(NewDoctor.Password))
+        {
+            AddValidationErrorField = "Password";
+            AddErrorMessage = "Temporary password is required.";
+            ShowPopup("Password Required", AddErrorMessage, "warning");
+            return;
+        }
+
+        if (NewDoctor.Password.Length < 6)
+        {
+            AddValidationErrorField = "Password";
+            AddErrorMessage = "Password must be at least 6 characters long.";
+            ShowPopup("Weak Password", AddErrorMessage, "warning");
+            return;
+        }
+
+        // Sequence 9: Confirm Password
+        if (string.IsNullOrWhiteSpace(NewDoctor.ConfirmPassword))
+        {
+            AddValidationErrorField = "ConfirmPassword";
+            AddErrorMessage = "Please re-enter password in Confirm Password.";
+            ShowPopup("Confirm Password Required", AddErrorMessage, "warning");
+            return;
+        }
+
+        if (NewDoctor.Password != NewDoctor.ConfirmPassword)
+        {
+            AddValidationErrorField = "ConfirmPassword";
+            AddErrorMessage = "Passwords do not match. Please ensure both passwords are identical.";
+            ShowPopup("Password Mismatch", AddErrorMessage, "error");
+            return;
+        }
+
+        // Sequence 10: Bio / Summary
+        if (!string.IsNullOrWhiteSpace(NewDoctor.Bio) && NewDoctor.Bio.Trim().Length > 500)
+        {
+            AddValidationErrorField = "Bio";
+            AddErrorMessage = "Professional summary / bio cannot exceed 500 characters.";
+            ShowPopup("Bio Too Long", AddErrorMessage, "warning");
             return;
         }
 

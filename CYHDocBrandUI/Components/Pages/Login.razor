@@ -277,20 +277,30 @@
                     }
 
                     <div class="row g-3">
-                        <!-- Full Name -->
+                        <!-- 1. Full Name -->
                         <div class="col-12 col-md-6">
                             <label class="form-label small fw-semibold text-light mb-1">
                                 Full Name <span class="text-danger">*</span>
                             </label>
-                            <input type="text" class="glass-input" @bind="RegModel.FullName" placeholder="e.g. Dr. Rajesh Kumar" />
+                            <input type="text" class="glass-input @(RegValidationErrorField == "FullName" ? "border-danger" : "")" 
+                                   style="@(RegValidationErrorField == "FullName" ? "border-color: #f43f5e !important; box-shadow: 0 0 10px rgba(244, 63, 94, 0.4) !important;" : "")"
+                                   @bind="RegModel.FullName" placeholder="e.g. Dr. Rajesh Kumar" />
+                            @if (RegValidationErrorField == "FullName")
+                            {
+                                <div class="text-danger small mt-1" style="font-size: 0.78rem;">
+                                    <i class="bi bi-exclamation-circle-fill me-1"></i>@RegisterErrorMessage
+                                </div>
+                            }
                         </div>
 
-                        <!-- Specialization -->
+                        <!-- 2. Medical Specialization -->
                         <div class="col-12 col-md-6">
                             <label class="form-label small fw-semibold text-light mb-1">
                                 Medical Specialization <span class="text-danger">*</span>
                             </label>
-                            <select class="glass-input" @bind="RegModel.Specialization" style="background: #0f1c3f; color: #ffffff;">
+                            <select class="glass-input @(RegValidationErrorField == "Specialization" ? "border-danger" : "")" 
+                                    style="background: #0f1c3f; color: #ffffff; @(RegValidationErrorField == "Specialization" ? "border-color: #f43f5e !important; box-shadow: 0 0 10px rgba(244, 63, 94, 0.4) !important;" : "")"
+                                    @bind="RegModel.Specialization">
                                 <option value="Cardiology">Cardiology &amp; Heart Care</option>
                                 <option value="Neurology">Neurology &amp; Brain</option>
                                 <option value="Orthopedics">Orthopedics &amp; Joint Surgery</option>
@@ -304,17 +314,31 @@
                                 <option value="Pulmonology">Pulmonology &amp; Chest</option>
                                 <option value="Oncology">Oncology &amp; Cancer Care</option>
                             </select>
+                            @if (RegValidationErrorField == "Specialization")
+                            {
+                                <div class="text-danger small mt-1" style="font-size: 0.78rem;">
+                                    <i class="bi bi-exclamation-circle-fill me-1"></i>@RegisterErrorMessage
+                                </div>
+                            }
                         </div>
 
-                        <!-- Email -->
+                        <!-- 3. Official / Login Email -->
                         <div class="col-12 col-md-6">
                             <label class="form-label small fw-semibold text-light mb-1">
                                 Official / Login Email <span class="text-danger">*</span>
                             </label>
-                            <input type="email" class="glass-input" @bind="RegModel.Email" placeholder="doctor@hospital.com" />
+                            <input type="email" class="glass-input @(RegValidationErrorField == "Email" ? "border-danger" : "")" 
+                                   style="@(RegValidationErrorField == "Email" ? "border-color: #f43f5e !important; box-shadow: 0 0 10px rgba(244, 63, 94, 0.4) !important;" : "")"
+                                   @bind="RegModel.Email" placeholder="doctor@hospital.com" />
+                            @if (RegValidationErrorField == "Email")
+                            {
+                                <div class="text-danger small mt-1" style="font-size: 0.78rem;">
+                                    <i class="bi bi-exclamation-circle-fill me-1"></i>@RegisterErrorMessage
+                                </div>
+                            }
                         </div>
 
-                        <!-- Phone Number -->
+                        <!-- 4. Mobile / WhatsApp (10 Digits) -->
                         <div class="col-12 col-md-6">
                             <label class="form-label small fw-semibold text-light mb-1 d-flex justify-content-between">
                                 <span>Mobile / WhatsApp (10 Digits) <span class="text-danger">*</span></span>
@@ -322,75 +346,146 @@
                             </label>
                             <div class="input-group">
                                 <span class="input-group-text border-0 px-2 fw-semibold" style="background: rgba(15, 23, 42, 0.85); color: #00f2fe; border-radius: 10px 0 0 10px; border: 1px solid rgba(255, 255, 255, 0.12); border-right: none; font-size: 0.88rem;">
-                                    ðŸ‡®ðŸ‡³ +91
+                                  +91
                                 </span>
-                                <input type="tel" maxlength="10" class="glass-input" style="border-radius: 0 10px 10px 0 !important;" 
+                                <input type="tel" maxlength="10" class="glass-input @(RegValidationErrorField == "PhoneNumber" ? "border-danger" : "")" 
+                                       style="border-radius: 0 10px 10px 0 !important; @(RegValidationErrorField == "PhoneNumber" ? "border-color: #f43f5e !important; box-shadow: 0 0 10px rgba(244, 63, 94, 0.4) !important;" : "")" 
                                        @bind="RegModel.PhoneNumber" @bind:event="oninput" placeholder="10-digit mobile number" />
                             </div>
+                            @if (RegValidationErrorField == "PhoneNumber")
+                            {
+                                <div class="text-danger small mt-1" style="font-size: 0.78rem;">
+                                    <i class="bi bi-exclamation-circle-fill me-1"></i>@RegisterErrorMessage
+                                </div>
+                            }
                         </div>
 
-                        <!-- Medical License Number -->
+                        <!-- 5. Medical License Number -->
                         <div class="col-12 col-md-6">
                             <label class="form-label small fw-semibold text-light mb-1">
                                 Medical Registration / License No. <span class="text-danger">*</span>
                             </label>
-                            <input type="text" class="glass-input" @bind="RegModel.LicenseNumber" placeholder="e.g. MCI-2018-98421" />
+                            <input type="text" class="glass-input @(RegValidationErrorField == "LicenseNumber" ? "border-danger" : "")" 
+                                   style="@(RegValidationErrorField == "LicenseNumber" ? "border-color: #f43f5e !important; box-shadow: 0 0 10px rgba(244, 63, 94, 0.4) !important;" : "")"
+                                   @bind="RegModel.LicenseNumber" placeholder="e.g. MCI-2018-98421" />
+                            @if (RegValidationErrorField == "LicenseNumber")
+                            {
+                                <div class="text-danger small mt-1" style="font-size: 0.78rem;">
+                                    <i class="bi bi-exclamation-circle-fill me-1"></i>@RegisterErrorMessage
+                                </div>
+                            }
                         </div>
 
-                        <!-- Experience Years -->
-                        <div class="col-12 col-md-6">
+                        <!-- 6. Experience Years -->
+                        <div class="col-12 col-md-3">
                             <label class="form-label small fw-semibold text-light mb-1">
-                                Years of Experience
+                                Experience (Years)
                             </label>
-                            <input type="number" min="0" max="60" class="glass-input" @bind="RegModel.ExperienceYears" />
+                            <input type="number" min="0" max="60" class="glass-input @(RegValidationErrorField == "ExperienceYears" ? "border-danger" : "")" 
+                                   style="@(RegValidationErrorField == "ExperienceYears" ? "border-color: #f43f5e !important; box-shadow: 0 0 10px rgba(244, 63, 94, 0.4) !important;" : "")"
+                                   @bind="RegModel.ExperienceYears" />
+                            @if (RegValidationErrorField == "ExperienceYears")
+                            {
+                                <div class="text-danger small mt-1" style="font-size: 0.78rem;">
+                                    <i class="bi bi-exclamation-circle-fill me-1"></i>@RegisterErrorMessage
+                                </div>
+                            }
                         </div>
 
-                        <!-- Consultation Fee -->
-                        <div class="col-12 col-md-6">
+                        <!-- 7. Consultation Fee -->
+                        <div class="col-12 col-md-3">
                             <label class="form-label small fw-semibold text-light mb-1">
                                 Consultation Fee (₹)
                             </label>
-                            <input type="number" step="50" min="0" class="glass-input" @bind="RegModel.ConsultationFee" />
+                            <input type="number" step="50" min="0" class="glass-input @(RegValidationErrorField == "ConsultationFee" ? "border-danger" : "")" 
+                                   style="@(RegValidationErrorField == "ConsultationFee" ? "border-color: #f43f5e !important; box-shadow: 0 0 10px rgba(244, 63, 94, 0.4) !important;" : "")"
+                                   @bind="RegModel.ConsultationFee" />
+                            @if (RegValidationErrorField == "ConsultationFee")
+                            {
+                                <div class="text-danger small mt-1" style="font-size: 0.78rem;">
+                                    <i class="bi bi-exclamation-circle-fill me-1"></i>@RegisterErrorMessage
+                                </div>
+                            }
                         </div>
 
-                        <!-- Available Days -->
+                        <!-- 8. Available Days -->
                         <div class="col-12 col-md-6">
                             <label class="form-label small fw-semibold text-light mb-1">
                                 Available Days
                             </label>
-                            <input type="text" class="glass-input" @bind="RegModel.AvailableDays" placeholder="e.g. Mon - Sat" />
+                            <input type="text" class="glass-input @(RegValidationErrorField == "AvailableDays" ? "border-danger" : "")" 
+                                   style="@(RegValidationErrorField == "AvailableDays" ? "border-color: #f43f5e !important; box-shadow: 0 0 10px rgba(244, 63, 94, 0.4) !important;" : "")"
+                                   @bind="RegModel.AvailableDays" placeholder="e.g. Mon - Sat" />
+                            @if (RegValidationErrorField == "AvailableDays")
+                            {
+                                <div class="text-danger small mt-1" style="font-size: 0.78rem;">
+                                    <i class="bi bi-exclamation-circle-fill me-1"></i>@RegisterErrorMessage
+                                </div>
+                            }
                         </div>
 
-                        <!-- Available Hours -->
+                        <!-- 9. Available Hours -->
                         <div class="col-12 col-md-6">
                             <label class="form-label small fw-semibold text-light mb-1">
                                 Available Hours
                             </label>
-                            <input type="text" class="glass-input" @bind="RegModel.AvailableHours" placeholder="e.g. 09:00 AM - 05:00 PM" />
+                            <input type="text" class="glass-input @(RegValidationErrorField == "AvailableHours" ? "border-danger" : "")" 
+                                   style="@(RegValidationErrorField == "AvailableHours" ? "border-color: #f43f5e !important; box-shadow: 0 0 10px rgba(244, 63, 94, 0.4) !important;" : "")"
+                                   @bind="RegModel.AvailableHours" placeholder="e.g. 09:00 AM - 05:00 PM" />
+                            @if (RegValidationErrorField == "AvailableHours")
+                            {
+                                <div class="text-danger small mt-1" style="font-size: 0.78rem;">
+                                    <i class="bi bi-exclamation-circle-fill me-1"></i>@RegisterErrorMessage
+                                </div>
+                            }
                         </div>
 
-                        <!-- Password -->
+                        <!-- 10. Password -->
                         <div class="col-12 col-md-6">
                             <label class="form-label small fw-semibold text-light mb-1">
                                 Account Password <span class="text-danger">*</span>
                             </label>
-                            <input type="password" class="glass-input" @bind="RegModel.Password" placeholder="Min 6 characters" />
+                            <input type="password" class="glass-input @(RegValidationErrorField == "Password" ? "border-danger" : "")" 
+                                   style="@(RegValidationErrorField == "Password" ? "border-color: #f43f5e !important; box-shadow: 0 0 10px rgba(244, 63, 94, 0.4) !important;" : "")"
+                                   @bind="RegModel.Password" placeholder="Min 6 characters" />
+                            @if (RegValidationErrorField == "Password")
+                            {
+                                <div class="text-danger small mt-1" style="font-size: 0.78rem;">
+                                    <i class="bi bi-exclamation-circle-fill me-1"></i>@RegisterErrorMessage
+                                </div>
+                            }
                         </div>
 
-                        <!-- Confirm Password -->
+                        <!-- 11. Confirm Password -->
                         <div class="col-12 col-md-6">
                             <label class="form-label small fw-semibold text-light mb-1">
                                 Confirm Password <span class="text-danger">*</span>
                             </label>
-                            <input type="password" class="glass-input" @bind="RegModel.ConfirmPassword" placeholder="Re-enter password" />
+                            <input type="password" class="glass-input @(RegValidationErrorField == "ConfirmPassword" ? "border-danger" : "")" 
+                                   style="@(RegValidationErrorField == "ConfirmPassword" ? "border-color: #f43f5e !important; box-shadow: 0 0 10px rgba(244, 63, 94, 0.4) !important;" : "")"
+                                   @bind="RegModel.ConfirmPassword" placeholder="Re-enter password" />
+                            @if (RegValidationErrorField == "ConfirmPassword")
+                            {
+                                <div class="text-danger small mt-1" style="font-size: 0.78rem;">
+                                    <i class="bi bi-exclamation-circle-fill me-1"></i>@RegisterErrorMessage
+                                </div>
+                            }
                         </div>
 
-                        <!-- Bio / Summary -->
+                        <!-- 12. Bio / Summary -->
                         <div class="col-12">
                             <label class="form-label small fw-semibold text-light mb-1">
                                 Professional Summary / Clinical Bio
                             </label>
-                            <textarea class="glass-input" rows="2" @bind="RegModel.Bio" placeholder="Brief about your clinical specialties, degrees, and hospital attachments..."></textarea>
+                            <textarea class="glass-input @(RegValidationErrorField == "Bio" ? "border-danger" : "")" 
+                                      style="@(RegValidationErrorField == "Bio" ? "border-color: #f43f5e !important; box-shadow: 0 0 10px rgba(244, 63, 94, 0.4) !important;" : "")"
+                                      rows="2" @bind="RegModel.Bio" placeholder="Brief about your clinical specialties, degrees, and hospital attachments..."></textarea>
+                            @if (RegValidationErrorField == "Bio")
+                            {
+                                <div class="text-danger small mt-1" style="font-size: 0.78rem;">
+                                    <i class="bi bi-exclamation-circle-fill me-1"></i>@RegisterErrorMessage
+                                </div>
+                            }
                         </div>
                     </div>
                 </div>
@@ -447,6 +542,7 @@
     private bool ShowRegisterModal = false;
     private bool IsRegistering = false;
     private string? RegisterErrorMessage;
+    private string? RegValidationErrorField;
     private DoctorRegistrationDTO RegModel = new();
 
     // Floating Popup
@@ -629,6 +725,7 @@
             ConsultationFee = 500m
         };
         RegisterErrorMessage = null;
+        RegValidationErrorField = null;
         ShowRegisterModal = true;
     }
 
@@ -636,42 +733,61 @@
     {
         ShowRegisterModal = false;
         RegisterErrorMessage = null;
+        RegValidationErrorField = null;
     }
 
     private async Task HandleDoctorRegistration()
     {
         RegisterErrorMessage = null;
+        RegValidationErrorField = null;
 
+        // Sequence 1: Full Name
         if (string.IsNullOrWhiteSpace(RegModel.FullName) || RegModel.FullName.Trim() == "Dr." || RegModel.FullName.Trim() == "Dr")
         {
+            RegValidationErrorField = "FullName";
             RegisterErrorMessage = "Please enter the doctor's full name (e.g. Dr. Rajesh Kumar).";
             ShowPopup("Validation Error", RegisterErrorMessage, "error");
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(RegModel.Email) || !RegModel.Email.Contains("@"))
+        if (RegModel.FullName.Trim().Length < 3)
         {
-            RegisterErrorMessage = "Please enter a valid official/login email address.";
+            RegValidationErrorField = "FullName";
+            RegisterErrorMessage = "Doctor's full name must be at least 3 characters long.";
+            ShowPopup("Validation Error", RegisterErrorMessage, "error");
+            return;
+        }
+
+        // Sequence 2: Medical Specialization
+        if (string.IsNullOrWhiteSpace(RegModel.Specialization))
+        {
+            RegValidationErrorField = "Specialization";
+            RegisterErrorMessage = "Please select a medical specialization.";
+            ShowPopup("Specialization Required", RegisterErrorMessage, "error");
+            return;
+        }
+
+        // Sequence 3: Official / Login Email
+        if (string.IsNullOrWhiteSpace(RegModel.Email))
+        {
+            RegValidationErrorField = "Email";
+            RegisterErrorMessage = "Official / Login email address is required.";
+            ShowPopup("Email Required", RegisterErrorMessage, "error");
+            return;
+        }
+
+        if (!RegModel.Email.Contains("@") || !RegModel.Email.Contains(".") || RegModel.Email.Trim().Length < 5)
+        {
+            RegValidationErrorField = "Email";
+            RegisterErrorMessage = "Please enter a valid official/login email address (e.g. doctor@hospital.com).";
             ShowPopup("Invalid Email", RegisterErrorMessage, "error");
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(RegModel.Password) || RegModel.Password.Length < 6)
-        {
-            RegisterErrorMessage = "Password must be at least 6 characters.";
-            ShowPopup("Weak Password", RegisterErrorMessage, "warning");
-            return;
-        }
-
-        if (RegModel.Password != RegModel.ConfirmPassword)
-        {
-            RegisterErrorMessage = "Passwords do not match. Please re-enter.";
-            ShowPopup("Password Mismatch", RegisterErrorMessage, "error");
-            return;
-        }
-
+        // Sequence 4: Mobile / WhatsApp (10 Digits)
         if (string.IsNullOrWhiteSpace(RegModel.PhoneNumber))
         {
+            RegValidationErrorField = "PhoneNumber";
             RegisterErrorMessage = "Mobile number is required for specialist doctor contact.";
             ShowPopup("Mobile Number Required", RegisterErrorMessage, "error");
             return;
@@ -684,6 +800,7 @@
 
         if (cleanPhone.Length != 10)
         {
+            RegValidationErrorField = "PhoneNumber";
             RegisterErrorMessage = "Mobile number must be exactly 10 digits (e.g. 9876543210).";
             ShowPopup("Invalid Mobile Number", RegisterErrorMessage, "error");
             return;
@@ -691,6 +808,7 @@
 
         if (!cleanPhone.All(char.IsDigit))
         {
+            RegValidationErrorField = "PhoneNumber";
             RegisterErrorMessage = "Mobile number must contain digits only.";
             ShowPopup("Invalid Mobile Number", RegisterErrorMessage, "error");
             return;
@@ -698,6 +816,7 @@
 
         if (!"6789".Contains(cleanPhone[0]))
         {
+            RegValidationErrorField = "PhoneNumber";
             RegisterErrorMessage = "Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.";
             ShowPopup("Invalid Mobile Prefix", RegisterErrorMessage, "error");
             return;
@@ -705,10 +824,91 @@
 
         RegModel.PhoneNumber = cleanPhone;
 
-        if (string.IsNullOrWhiteSpace(RegModel.LicenseNumber))
+        // Sequence 5: Medical Registration / License Number
+        if (string.IsNullOrWhiteSpace(RegModel.LicenseNumber) || RegModel.LicenseNumber.Trim().Length < 3)
         {
-            RegisterErrorMessage = "Medical License / Registration number is required.";
+            RegValidationErrorField = "LicenseNumber";
+            RegisterErrorMessage = "Medical License / Registration number is required (min 3 characters).";
             ShowPopup("License Number Required", RegisterErrorMessage, "error");
+            return;
+        }
+
+        // Sequence 6: Years of Experience
+        if (RegModel.ExperienceYears < 0 || RegModel.ExperienceYears > 70)
+        {
+            RegValidationErrorField = "ExperienceYears";
+            RegisterErrorMessage = "Experience must be between 0 and 70 years.";
+            ShowPopup("Invalid Experience", RegisterErrorMessage, "warning");
+            return;
+        }
+
+        // Sequence 7: Consultation Fee
+        if (RegModel.ConsultationFee < 0)
+        {
+            RegValidationErrorField = "ConsultationFee";
+            RegisterErrorMessage = "Consultation fee cannot be negative.";
+            ShowPopup("Invalid Consultation Fee", RegisterErrorMessage, "warning");
+            return;
+        }
+
+        // Sequence 8: Available Days
+        if (!string.IsNullOrWhiteSpace(RegModel.AvailableDays) && RegModel.AvailableDays.Trim().Length > 100)
+        {
+            RegValidationErrorField = "AvailableDays";
+            RegisterErrorMessage = "Available days cannot exceed 100 characters.";
+            ShowPopup("Available Days Too Long", RegisterErrorMessage, "warning");
+            return;
+        }
+
+        // Sequence 9: Available Hours
+        if (!string.IsNullOrWhiteSpace(RegModel.AvailableHours) && RegModel.AvailableHours.Trim().Length > 100)
+        {
+            RegValidationErrorField = "AvailableHours";
+            RegisterErrorMessage = "Available hours cannot exceed 100 characters.";
+            ShowPopup("Available Hours Too Long", RegisterErrorMessage, "warning");
+            return;
+        }
+
+        // Sequence 10: Account Password
+        if (string.IsNullOrWhiteSpace(RegModel.Password))
+        {
+            RegValidationErrorField = "Password";
+            RegisterErrorMessage = "Account password is required.";
+            ShowPopup("Password Required", RegisterErrorMessage, "warning");
+            return;
+        }
+
+        if (RegModel.Password.Length < 6)
+        {
+            RegValidationErrorField = "Password";
+            RegisterErrorMessage = "Password must be at least 6 characters long.";
+            ShowPopup("Weak Password", RegisterErrorMessage, "warning");
+            return;
+        }
+
+        // Sequence 11: Confirm Password
+        if (string.IsNullOrWhiteSpace(RegModel.ConfirmPassword))
+        {
+            RegValidationErrorField = "ConfirmPassword";
+            RegisterErrorMessage = "Please re-enter password in Confirm Password.";
+            ShowPopup("Confirm Password Required", RegisterErrorMessage, "warning");
+            return;
+        }
+
+        if (RegModel.Password != RegModel.ConfirmPassword)
+        {
+            RegValidationErrorField = "ConfirmPassword";
+            RegisterErrorMessage = "Passwords do not match. Please ensure both passwords are identical.";
+            ShowPopup("Password Mismatch", RegisterErrorMessage, "error");
+            return;
+        }
+
+        // Sequence 12: Bio / Summary
+        if (!string.IsNullOrWhiteSpace(RegModel.Bio) && RegModel.Bio.Trim().Length > 500)
+        {
+            RegValidationErrorField = "Bio";
+            RegisterErrorMessage = "Professional summary / bio cannot exceed 500 characters.";
+            ShowPopup("Bio Too Long", RegisterErrorMessage, "warning");
             return;
         }
 
