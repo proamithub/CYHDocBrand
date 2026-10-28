@@ -17,7 +17,7 @@
         <img src="images/branding/cyh-emblem.png" alt="CYH" style="width: 100%; height: 100%; object-fit: contain; padding: 2px;" />
     </div>
     <div class="flex-grow-1 min-w-0" style="overflow: hidden;">
-        <div class="cyh-brand-title text-truncate">CYH Brand Hub</div>
+        <div class="cyh-brand-title text-truncate">CYH Portal</div>
         <div class="cyh-brand-subtitle text-truncate" style="color: #00f2fe; font-size: 0.72rem;">Workspace</div>
     </div>
     <!-- Mobile Close Button -->
@@ -29,11 +29,7 @@
 <div class="px-3 pt-3 flex-shrink-0">
     @if (IsActive)
     {
-        <div class="p-2 text-center rounded-3" style="background: rgba(0, 242, 254, 0.12); border: 1px solid rgba(0, 242, 254, 0.35);">
-            <span class="badge" style="background: transparent; color: #00f2fe; font-size: 0.72rem; letter-spacing: 0.8px; font-weight: 700;">
-                <i class="bi bi-person-badge-fill me-1"></i> DOCTOR PORTAL • ACTIVE
-            </span>
-        </div>
+        
     }
     else
     {
@@ -60,7 +56,7 @@
 
         <NavLink class="cyh-nav-item" href="doctor/profile" @onclick="HandleClose">
             <i class="bi bi-person-circle text-info"></i>
-            <span>My Profile &amp; Branding</span>
+            <span>My Profile</span>
         </NavLink>
 
         <NavLink class="cyh-nav-item" href="doctor/template-gallery" @onclick="HandleClose">
@@ -70,7 +66,7 @@
 
         <NavLink class="cyh-nav-item" href="doctor/banner-design" @onclick="HandleClose">
             <i class="bi bi-palette-fill text-info"></i>
-            <span>AI Banner Studio</span>
+            <span>Banner Studio</span>
         </NavLink>
 
         <NavLink class="cyh-nav-item" href="doctor/banner-designs" @onclick="HandleClose">
