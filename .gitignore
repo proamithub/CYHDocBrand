@@ -16,3 +16,7 @@
 .DS_Store
 Thumbs.db
 *.zip
+
+## Uploads & Backups
+**/wwwroot/uploads/**
+**/wwwroot/images/branding/backup/**

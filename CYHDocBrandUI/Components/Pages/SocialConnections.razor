@@ -10,11 +10,11 @@
         var user = await AuthService.GetOrRestoreCurrentUserAsync();
         if (user?.Role == "Admin")
         {
-            NavigationManager.NavigateTo("admin/schedules", replace: true);
+            NavigationManager.NavigateTo("admin/media-settings", replace: true);
         }
         else
         {
-            NavigationManager.NavigateTo("doctor/schedules", replace: true);
+            NavigationManager.NavigateTo("doctor/social-accounts", replace: true);
         }
     }
 }

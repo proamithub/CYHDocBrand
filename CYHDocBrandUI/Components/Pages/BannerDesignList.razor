@@ -1,4 +1,4 @@
-@page "/banner-designs"
+﻿@page "/banner-designs"
 @page "/doctor/banner-designs"
 @page "/admin/banner-designs"
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
@@ -9,11 +9,14 @@
 @using CYHDocBrandData.Entities
 @using CYHDocBrandUI.Components.Common
 @using CYHDocBrandRepo.Utilities
+@using CYHDocBrandRepo.IRepository
 
 @inject IBannerRepository BannerRepo
 @inject ICreditRepository CreditRepo
 @inject IDoctorRepository DoctorRepo
 @inject IBannerScheduleRepository ScheduleRepo
+@inject IMediaPlatformRepository MediaPlatformRepo
+@inject ISocialAccountRepository SocialAccountRepo
 @inject IAuthService AuthService
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
@@ -447,91 +450,76 @@
                                 </div>
                             </div>
                         </div>
-
-                        <!-- Target Platforms (100% Without API) -->
+                        <!-- --- Target Platforms (Dynamic from DB) --- -->
                         <div class="mb-4">
                             <label class="form-label text-white fw-bold small mb-2 d-flex justify-content-between align-items-center">
-                                <span><i class="bi bi-share-fill me-1 text-info"></i> Target Platforms (1-Click Popup Sharing)</span>
-                                <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50">No API Needed</span>
+                                <span><i class="bi bi-share-fill me-1 text-info"></i> Target Platforms</span>
+                                @if (activePlatforms.Count == 0)
+                                {
+                                    <span class="badge" style="background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.4);color:#fbbf24;font-size:0.72rem;"><i class="bi bi-exclamation-triangle me-1"></i>Admin se platforms activate karwayein</span>
+                                }
+                                else
+                                {
+                                    <span class="badge" style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.4);color:#10b981;font-size:0.72rem;"><i class="bi bi-check2-circle me-1"></i>@activePlatforms.Count Platform Active</span>
+                                }
                             </label>
-                            
-                            <div class="d-flex flex-column gap-2">
-                                <!-- 1. WhatsApp Card -->
-                                <div class="p-3 rounded-3 border @(scheduleWhatsApp ? "border-success bg-success bg-opacity-10" : "border-secondary border-opacity-25 bg-dark") d-flex align-items-center justify-content-between" 
-                                     style="cursor: pointer; transition: all 0.2s ease;" 
-                                     @onclick="() => scheduleWhatsApp = !scheduleWhatsApp">
-                                    <div class="d-flex align-items-center gap-3">
-                                        <input class="form-check-input mt-0" type="checkbox" id="chkWa" @bind="scheduleWhatsApp" @onclick:stopPropagation="true" style="width: 1.25rem; height: 1.25rem;" />
-                                        <div>
-                                            <div class="text-white fw-bold d-flex align-items-center gap-2">
-                                                <i class="bi bi-whatsapp text-success fs-5"></i> WhatsApp
-                                                <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50" style="font-size: 0.68rem;">1-Click Web / App</span>
-                                            </div>
-                                            <div class="text-secondary small">
-                                                Desktop notification + 1-Click WhatsApp popup share at scheduled time
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <i class="bi @(scheduleWhatsApp ? "bi-check-circle-fill text-success" : "bi-circle text-secondary") fs-5"></i>
-                                </div>
 
-                                <!-- 2. Facebook Card -->
-                                <div class="p-3 rounded-3 border @(scheduleFacebook ? "border-primary bg-primary bg-opacity-10" : "border-secondary border-opacity-25 bg-dark") d-flex align-items-center justify-content-between" 
-                                     style="cursor: pointer; transition: all 0.2s ease;" 
-                                     @onclick="() => scheduleFacebook = !scheduleFacebook">
-                                    <div class="d-flex align-items-center gap-3">
-                                        <input class="form-check-input mt-0" type="checkbox" id="chkFb" @bind="scheduleFacebook" @onclick:stopPropagation="true" style="width: 1.25rem; height: 1.25rem;" />
-                                        <div>
-                                            <div class="text-white fw-bold d-flex align-items-center gap-2">
-                                                <i class="bi bi-facebook text-primary fs-5"></i> Facebook
-                                                <span class="badge bg-primary bg-opacity-25 text-primary border border-primary border-opacity-50" style="font-size: 0.68rem;">1-Click Sharer Popup</span>
-                                            </div>
-                                            <div class="text-secondary small">
-                                                Direct Facebook popup share with pre-filled banner link &amp; caption
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <i class="bi @(scheduleFacebook ? "bi-check-circle-fill text-primary" : "bi-circle text-secondary") fs-5"></i>
+                            @if (isLoadingPlatforms)
+                            {
+                                <div class="text-center py-3">
+                                    <div class="spinner-border spinner-border-sm text-info"></div>
+                                    <span class="text-secondary small ms-2">Platforms load ho rahe hain...</span>
                                 </div>
-
-                                <!-- 3. Instagram Card -->
-                                <div class="p-3 rounded-3 border @(scheduleInstagram ? "border-danger bg-danger bg-opacity-10" : "border-secondary border-opacity-25 bg-dark") d-flex align-items-center justify-content-between" 
-                                     style="cursor: pointer; transition: all 0.2s ease;" 
-                                     @onclick="() => scheduleInstagram = !scheduleInstagram">
-                                    <div class="d-flex align-items-center gap-3">
-                                        <input class="form-check-input mt-0" type="checkbox" id="chkIg" @bind="scheduleInstagram" @onclick:stopPropagation="true" style="width: 1.25rem; height: 1.25rem;" />
-                                        <div>
-                                            <div class="text-white fw-bold d-flex align-items-center gap-2">
-                                                <i class="bi bi-instagram text-danger fs-5"></i> Instagram
-                                                <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-50" style="font-size: 0.68rem;">1-Click Download &amp; Copy</span>
-                                            </div>
-                                            <div class="text-secondary small">
-                                                Copies caption + auto-downloads banner photo + opens Instagram feed/story
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <i class="bi @(scheduleInstagram ? "bi-check-circle-fill text-danger" : "bi-circle text-secondary") fs-5"></i>
+                            }
+                            else if (activePlatforms.Count == 0)
+                            {
+                                <div class="p-3 rounded-3 text-center" style="background:rgba(245,158,11,0.08);border:1px dashed rgba(245,158,11,0.35);">
+                                    <i class="bi bi-share text-warning" style="font-size:2rem;"></i>
+                                    <div class="text-warning small mt-2 fw-bold">Koi active platform nahi mila</div>
+                                    <div class="text-secondary" style="font-size:0.8rem;">Admin Panel ? Media & Social API Settings se platforms activate karein.</div>
                                 </div>
-
-                                <!-- 4. Twitter / X Card -->
-                                <div class="p-3 rounded-3 border @(scheduleTwitter ? "border-light bg-light bg-opacity-10" : "border-secondary border-opacity-25 bg-dark") d-flex align-items-center justify-content-between" 
-                                     style="cursor: pointer; transition: all 0.2s ease;" 
-                                     @onclick="() => scheduleTwitter = !scheduleTwitter">
-                                    <div class="d-flex align-items-center gap-3">
-                                        <input class="form-check-input mt-0" type="checkbox" id="chkTw" @bind="scheduleTwitter" @onclick:stopPropagation="true" style="width: 1.25rem; height: 1.25rem;" />
-                                        <div>
-                                            <div class="text-white fw-bold d-flex align-items-center gap-2">
-                                                <i class="bi bi-twitter-x text-white fs-5"></i> Twitter / X
-                                                <span class="badge bg-dark border border-secondary text-light" style="font-size: 0.68rem;">1-Click Tweet</span>
+                            }
+                            else
+                            {
+                                <div class="d-flex flex-column gap-2">
+                                    @foreach (var platform in activePlatforms)
+                                    {
+                                        var isSelected = selectedPlatforms.Contains(platform.PlatformCode);
+                                        var platformCode = platform.PlatformCode;
+                                        <div class="p-3 rounded-3 border d-flex align-items-center justify-content-between"
+                                             style="cursor:pointer; transition:all 0.2s ease; border-color:@(isSelected ? platform.ColorHex : "rgba(255,255,255,0.1)") !important; background:@(isSelected ? $"rgba({HexToScheduleRgb(platform.ColorHex)},0.1)" : "rgba(0,0,0,0.2)");"
+                                             @onclick="() => TogglePlatformSelection(platformCode)">
+                                            <div class="d-flex align-items-center gap-3">
+                                                <input class="form-check-input mt-0" type="checkbox"
+                                                       checked="@isSelected"
+                                                       @onchange="() => TogglePlatformSelection(platformCode)"
+                                                       @onclick:stopPropagation="true"
+                                                       style="width:1.25rem;height:1.25rem;border-color:@platform.ColorHex;" />
+                                                <div>
+                                                    <div class="text-white fw-bold d-flex align-items-center gap-2">
+                                                        <i class="bi @platform.IconClass fs-5" style="color:@platform.ColorHex;"></i>
+                                                        @platform.PlatformName
+                                                        @if (!platform.AllowGlobalFallback)
+                                                        {
+                                                            <span class="badge" style="background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.4);color:#a78bfa;font-size:0.65rem;">
+                                                                <i class="bi bi-person-check-fill me-1"></i>Doctor Account Required
+                                                            </span>
+                                                        }
+                                                        else if (platform.HasGlobalApiConfigured)
+                                                        {
+                                                            <span class="badge" style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.35);color:#10b981;font-size:0.65rem;">
+                                                                <i class="bi bi-arrow-repeat me-1"></i>Global API Ready
+                                                            </span>
+                                                        }
+                                                    </div>
+                                                    <div class="text-secondary small">@platform.Category � Scheduled banner post hoga</div>
+                                                </div>
                                             </div>
-                                            <div class="text-secondary small">
-                                                Direct Tweet popup window with pre-filled hashtags &amp; banner
-                                            </div>
+                                            <i class="bi @(isSelected ? "bi-check-circle-fill" : "bi-circle") fs-5" style="color:@(isSelected ? platform.ColorHex : "#64748b");"></i>
                                         </div>
-                                    </div>
-                                    <i class="bi @(scheduleTwitter ? "bi-check-circle-fill text-info" : "bi-circle text-secondary") fs-5"></i>
+                                    }
                                 </div>
-                            </div>
+                            }
                         </div>
 
                         <!-- Date & Time Picker (On-Click Calendar & Clock Popup) -->
@@ -868,10 +856,9 @@
 
     // ── Social Media Scheduling State & Methods (100% Without API) ──
     private BannerDesignRecordDTO? schedulingBanner;
-    private bool scheduleWhatsApp = true;
-    private bool scheduleFacebook = true;
-    private bool scheduleInstagram = true;
-    private bool scheduleTwitter = false;
+    private List<MediaPlatformDTO> activePlatforms = new();
+    private HashSet<string> selectedPlatforms = new();
+    private bool isLoadingPlatforms = false;
     private DateTime scheduleDateTime = IndianTimeHelper.Now.AddHours(1);
     private string scheduleCaption = string.Empty;
     private bool isSubmittingSchedule = false;
@@ -903,11 +890,22 @@
         scheduleCaption = $"{item.Heading}\n\n{(state.Subtitle ?? "")}\n\nFor expert consultations, visit {item.HospitalName ?? "CYH Hospital"} or contact {state.ContactPhone}.\n\n#Healthcare #Doctor #{item.DoctorName.Replace(" ", "")} #Wellness";
         scheduleDateTime = IndianTimeHelper.Now.AddHours(1);
 
-        scheduleWhatsApp = true;
-        scheduleFacebook = true;
-        scheduleInstagram = true;
-        scheduleTwitter = false;
-        
+        // Load active platforms dynamically from DB
+        isLoadingPlatforms = true;
+        selectedPlatforms = new HashSet<string>();
+        StateHasChanged();
+        _ = Task.Run(async () =>
+        {
+            activePlatforms = await MediaPlatformRepo.GetActiveAsync();
+            // Default select all active platforms (Google excluded unless doctor account found)
+            foreach (var p in activePlatforms)
+            {
+                if (p.AllowGlobalFallback || p.HasGlobalApiConfigured)
+                    selectedPlatforms.Add(p.PlatformCode);
+            }
+            isLoadingPlatforms = false;
+            await InvokeAsync(StateHasChanged);
+        });
         shouldInitDatePicker = true;
         StateHasChanged();
     }
@@ -930,21 +928,40 @@
     private void CloseScheduleModal()
     {
         schedulingBanner = null;
+        selectedPlatforms.Clear();
+        activePlatforms.Clear();
+    }
+
+    private void TogglePlatformSelection(string platformCode)
+    {
+        if (selectedPlatforms.Contains(platformCode))
+            selectedPlatforms.Remove(platformCode);
+        else
+            selectedPlatforms.Add(platformCode);
+    }
+
+    private static string HexToScheduleRgb(string hex)
+    {
+        hex = hex.TrimStart('#');
+        if (hex.Length == 6)
+        {
+            var r = Convert.ToInt32(hex[..2], 16);
+            var g = Convert.ToInt32(hex[2..4], 16);
+            var b = Convert.ToInt32(hex[4..6], 16);
+            return $"{r},{g},{b}";
+        }
+        return "255,255,255";
     }
 
     private async Task ConfirmCreateScheduleAsync()
     {
         if (schedulingBanner == null) return;
 
-        var selected = new List<string>();
-        if (scheduleWhatsApp) selected.Add("WhatsApp");
-        if (scheduleFacebook) selected.Add("Facebook");
-        if (scheduleInstagram) selected.Add("Instagram");
-        if (scheduleTwitter) selected.Add("Twitter");
+        var selected = selectedPlatforms.ToList();
 
         if (selected.Count == 0)
         {
-            ShowPopup("Select Platform", "Please select at least one platform (WhatsApp, Facebook, Instagram, or Twitter).", "warning");
+            ShowPopup("Select Platform", "Please select at least one platform to schedule this banner.", "warning");
             return;
         }
 

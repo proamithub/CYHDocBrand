@@ -1,0 +1,762 @@
+@page "/admin/media-settings"
+@layout AdminLayout
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+@using CYHDocBrandData.Entities
+@using CYHDocBrandModel.Common
+@using CYHDocBrandModel.DTO
+@using CYHDocBrandRepo.IRepository
+@using CYHDocBrandUI.Components.Common
+
+@inject IMediaPlatformRepository MediaPlatformRepo
+@inject ISocialAccountRepository SocialAccountRepo
+@inject IDoctorRepository DoctorRepo
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+
+<!-- Animated Floating Toast Popup -->
+<ToastPopup Notification="activePopup" OnDismiss="DismissPopup" />
+
+<div class="d-flex flex-column gap-4 fade-in">
+
+    <!-- ── Header ── -->
+    <div class="glass-panel p-4 d-flex flex-wrap align-items-center justify-content-between gap-3"
+         style="border-left: 4px solid #f59e0b; background: rgba(14, 25, 48, 0.85); backdrop-filter: blur(16px); border-radius: 16px;">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge px-2 py-1" style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); color: #fbbf24; font-size: 0.72rem; font-weight: 700;">
+                    <i class="bi bi-shield-lock-fill me-1"></i> ADMIN CONSOLE
+                </span>
+                <span class="badge px-2 py-1" style="background: rgba(0, 242, 254, 0.15); border: 1px solid rgba(0, 242, 254, 0.4); color: #00f2fe; font-size: 0.72rem; font-weight: 700;">
+                    <i class="bi bi-share-fill me-1"></i> MEDIA &amp; API SETTINGS
+                </span>
+            </div>
+            <h3 class="fw-bold mb-1 text-white">
+                <i class="bi bi-share-fill text-warning me-2"></i>Social Media &amp; API Management
+            </h3>
+            <p class="small mb-0" style="color: #cbd5e1;">
+                Hospital Common APIs (Fallback) aur Doctor-Wise Social &amp; Google Business accounts yahan se manage karein.
+            </p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <button class="btn btn-outline-warning d-flex align-items-center gap-2 px-3 py-2"
+                    @onclick="LoadDataAsync" disabled="@isLoading" style="border-radius: 10px;">
+                <i class="bi bi-arrow-clockwise @(isLoading ? "spin-icon" : "")"></i>
+                <span>@(isLoading ? "Loading..." : "Refresh")</span>
+            </button>
+            <NavLink href="admin/schedules" class="btn btn-warning d-flex align-items-center gap-2 px-3 py-2 fw-semibold"
+                     style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); border: none; color: #070d1e; border-radius: 10px;">
+                <i class="bi bi-broadcast-pin"></i>
+                <span>Schedules Monitor</span>
+            </NavLink>
+        </div>
+    </div>
+
+    <!-- ── Mode Selector Tabs (Global vs Doctor-Wise) ── -->
+    <div class="d-flex flex-wrap gap-2 border-bottom border-secondary border-opacity-25 pb-3">
+        <button type="button"
+                class="btn d-flex align-items-center gap-2 px-4 py-2 @(activeTab == "global" ? "btn-warning fw-bold text-dark" : "btn-outline-secondary text-white")"
+                @onclick='() => SetTab("global")'
+                style="border-radius: 10px; transition: all 0.2s ease;">
+            <i class="bi bi-globe2"></i>
+            <span>Hospital Common APIs (Global Fallback)</span>
+        </button>
+
+        <button type="button"
+                class="btn d-flex align-items-center gap-2 px-4 py-2 @(activeTab == "doctor" ? "btn-warning fw-bold text-dark" : "btn-outline-secondary text-white")"
+                @onclick='() => SetTab("doctor")'
+                style="border-radius: 10px; transition: all 0.2s ease;">
+            <i class="bi bi-person-badge-fill"></i>
+            <span>Doctor-Wise Media &amp; Google Accounts</span>
+        </button>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- TAB 1: HOSPITAL COMMON GLOBAL FALLBACK APIS                     -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    @if (activeTab == "global")
+    {
+        <!-- Stats Row -->
+        @if (!isLoading && platforms.Count > 0)
+        {
+            <div class="row g-3">
+                <div class="col-6 col-md-3">
+                    <div class="glass-panel p-3 rounded-4 text-center" style="background: rgba(14, 25, 48, 0.65); border: 1px solid rgba(255,255,255,0.08);">
+                        <div class="text-secondary" style="font-size: 0.78rem; font-weight: 600;">TOTAL PLATFORMS</div>
+                        <h3 class="fw-bold text-white mb-0 mt-1">@platforms.Count</h3>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="glass-panel p-3 rounded-4 text-center" style="background: rgba(14, 25, 48, 0.65); border: 1px solid rgba(16, 185, 129, 0.25);">
+                        <div class="text-success" style="font-size: 0.78rem; font-weight: 600;">ACTIVE</div>
+                        <h3 class="fw-bold text-success mb-0 mt-1">@platforms.Count(p => p.IsActive)</h3>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="glass-panel p-3 rounded-4 text-center" style="background: rgba(14, 25, 48, 0.65); border: 1px solid rgba(0, 242, 254, 0.25);">
+                        <div class="text-info" style="font-size: 0.78rem; font-weight: 600;">API CONFIGURED</div>
+                        <h3 class="fw-bold text-info mb-0 mt-1">@platforms.Count(p => p.HasGlobalApiConfigured)</h3>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="glass-panel p-3 rounded-4 text-center" style="background: rgba(14, 25, 48, 0.65); border: 1px solid rgba(239, 68, 68, 0.25);">
+                        <div class="text-danger" style="font-size: 0.78rem; font-weight: 600;">INACTIVE</div>
+                        <h3 class="fw-bold text-danger mb-0 mt-1">@platforms.Count(p => !p.IsActive)</h3>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Platforms Grid -->
+        @if (isLoading)
+        {
+            <div class="glass-panel p-5 text-center rounded-4" style="background: rgba(14, 25, 48, 0.65);">
+                <div class="spinner-border text-warning" style="width: 2.5rem; height: 2.5rem;"></div>
+                <div class="text-secondary mt-3">Platforms load ho rahe hain...</div>
+            </div>
+        }
+        else
+        {
+            <div class="row g-3">
+                @foreach (var p in platforms)
+                {
+                    <div class="col-12 col-md-6 col-xl-4">
+                        <div class="glass-panel p-0 rounded-4 h-100 platform-card @(p.IsActive ? "" : "opacity-70")"
+                             style="background: rgba(14, 25, 48, 0.75); border: 1px solid @(p.IsActive ? GetPlatformBorderColor(p.ColorHex) : "rgba(255,255,255,0.08)"); overflow: hidden; transition: all 0.25s ease;">
+
+                            <!-- Card Top Strip -->
+                            <div class="px-4 py-3 d-flex align-items-center justify-content-between"
+                                 style="background: @(p.IsActive ? GetPlatformBgColor(p.ColorHex) : "rgba(255,255,255,0.03)"); border-bottom: 1px solid @(p.IsActive ? GetPlatformBorderColor(p.ColorHex) : "rgba(255,255,255,0.06)");">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="rounded-3 d-flex align-items-center justify-content-center"
+                                         style="width: 44px; height: 44px; background: rgba(0,0,0,0.35); border: 1px solid @GetPlatformBorderColor(p.ColorHex);">
+                                        <i class="bi @p.IconClass fs-4" style="color: @p.ColorHex;"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-white fw-bold" style="font-size: 0.97rem; line-height: 1.2;">@p.PlatformName</div>
+                                        <div class="text-secondary" style="font-size: 0.75rem;">@p.Category</div>
+                                    </div>
+                                </div>
+
+                                <!-- Active Toggle Switch -->
+                                <div class="form-check form-switch mb-0 d-flex align-items-center">
+                                    <input class="form-check-input" type="checkbox" role="switch"
+                                           checked="@p.IsActive"
+                                           disabled="@(togglingId == p.Id)"
+                                           @onchange="() => TogglePlatformAsync(p)"
+                                           style="width: 2.2rem; height: 1.1rem; cursor: pointer; @(p.IsActive ? $"background-color: {p.ColorHex}; border-color: {p.ColorHex};" : "")" />
+                                </div>
+                            </div>
+
+                            <!-- Card Body -->
+                            <div class="p-4">
+                                <div class="d-flex flex-wrap gap-2 mb-3">
+                                    <span class="badge" style="background: @(p.IsActive ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.12)"); border: 1px solid @(p.IsActive ? "rgba(16,185,129,0.4)" : "rgba(239,68,68,0.35)"); color: @(p.IsActive ? "#10b981" : "#ef4444"); font-size: 0.72rem;">
+                                        <i class="bi @(p.IsActive ? "bi-circle-fill" : "bi-circle") me-1" style="font-size: 0.55rem;"></i>
+                                        @(p.IsActive ? "Active" : "Inactive")
+                                    </span>
+
+                                    @if (p.HasGlobalApiConfigured)
+                                    {
+                                        <span class="badge" style="background: rgba(0,242,254,0.12); border: 1px solid rgba(0,242,254,0.35); color: #00f2fe; font-size: 0.72rem;">
+                                            <i class="bi bi-check2-circle me-1"></i>Global API Set
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge" style="background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.35); color: #fbbf24; font-size: 0.72rem;">
+                                            <i class="bi bi-exclamation-circle me-1"></i>API Pending
+                                        </span>
+                                    }
+
+                                    @if (!p.AllowGlobalFallback)
+                                    {
+                                        <span class="badge" style="background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.4); color: #a78bfa; font-size: 0.72rem;">
+                                            <i class="bi bi-person-check-fill me-1"></i>Doctor Only (No Fallback)
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #94a3b8; font-size: 0.72rem;">
+                                            <i class="bi bi-arrow-repeat me-1"></i>Fallback OK
+                                        </span>
+                                    }
+                                </div>
+
+                                <div class="mb-3 p-3 rounded-3" style="background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.06);">
+                                    @if (!p.AllowGlobalFallback)
+                                    {
+                                        <div class="d-flex align-items-start gap-2">
+                                            <i class="bi bi-info-circle text-info mt-1" style="font-size: 0.85rem;"></i>
+                                            <span class="text-secondary" style="font-size: 0.78rem; line-height: 1.5;">
+                                                <strong class="text-warning">No Global Fallback:</strong> Sirf Doctor ka connected account use hoga. Common API se post nahi hoga.
+                                            </span>
+                                        </div>
+                                    }
+                                    else if (p.HasGlobalApiConfigured)
+                                    {
+                                        <div class="d-flex align-items-start gap-2">
+                                            <i class="bi bi-check-circle-fill text-success mt-1" style="font-size: 0.85rem;"></i>
+                                            <span class="text-secondary" style="font-size: 0.78rem; line-height: 1.5;">
+                                                Global API configured hai. Doctor account na hone par yahi use hoga.
+                                                @if (!string.IsNullOrWhiteSpace(p.GlobalAccessToken))
+                                                {
+                                                    <span class="d-block text-info mt-1">Token: @p.MaskedAccessToken</span>
+                                                }
+                                            </span>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="d-flex align-items-start gap-2">
+                                            <i class="bi bi-exclamation-triangle text-warning mt-1" style="font-size: 0.85rem;"></i>
+                                            <span class="text-secondary" style="font-size: 0.78rem; line-height: 1.5;">
+                                                Global API set nahi hai. Doctor ke apne account se hi post hoga.
+                                            </span>
+                                        </div>
+                                    }
+                                </div>
+
+                                <div class="text-secondary mb-3" style="font-size: 0.73rem;">
+                                    <i class="bi bi-clock me-1"></i>
+                                    Last updated: @p.UpdatedAt.ToString("dd MMM yyyy, hh:mm tt") IST
+                                    @if (!string.IsNullOrWhiteSpace(p.UpdatedBy))
+                                    {
+                                        <span>by @p.UpdatedBy</span>
+                                    }
+                                </div>
+
+                                <button class="btn w-100 fw-semibold d-flex align-items-center justify-content-center gap-2 py-2"
+                                        @onclick="() => OpenApiModal(p)"
+                                        style="background: linear-gradient(135deg, @(p.HasGlobalApiConfigured ? "rgba(0,242,254,0.15)" : "rgba(245,158,11,0.15)") 0%, transparent 100%); border: 1px solid @(p.HasGlobalApiConfigured ? "rgba(0,242,254,0.4)" : "rgba(245,158,11,0.4)"); color: @(p.HasGlobalApiConfigured ? "#00f2fe" : "#fbbf24"); border-radius: 10px; transition: all 0.2s ease; font-size: 0.88rem;">
+                                    <i class="bi @(p.HasGlobalApiConfigured ? "bi-pencil-fill" : "bi-gear-fill")"></i>
+                                    @(p.HasGlobalApiConfigured ? "Edit Global API Config" : "Setup Global API")
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    }
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- TAB 2: DOCTOR-WISE MEDIA & GOOGLE ACCOUNTS                      -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    @if (activeTab == "doctor")
+    {
+        <div class="glass-panel p-4 rounded-4" style="background: rgba(14, 25, 48, 0.85); border: 2px solid rgba(245, 158, 11, 0.35);">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3 border-bottom border-secondary border-opacity-25 pb-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon-circle" style="width: 46px; height: 46px; border-radius: 12px; background: rgba(245, 158, 11, 0.15); color: #fbbf24; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">
+                        <i class="bi bi-person-fill-gear"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold text-white mb-0">Doctor-Wise Media API &amp; Google Connect</h5>
+                        <span class="text-secondary small">Specialist doctor chunein aur unke Google Business, Facebook, Instagram credentials inspect/edit karein</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Doctor Selector Dropdown -->
+            <div class="row g-3 mb-4">
+                <div class="col-12 col-md-8">
+                    <label class="form-label text-warning fw-bold mb-1" style="font-size: 0.92rem;">
+                        <i class="bi bi-person-badge-fill me-1"></i> Select Specialist Doctor *
+                    </label>
+                    <select class="form-select bg-dark text-white border-warning py-2"
+                            @bind="selectedDoctorId"
+                            @bind:after="OnDoctorSelectedAsync"
+                            style="border-radius: 10px; font-size: 0.95rem;">
+                        <option value="0">-- Select Doctor from Directory --</option>
+                        @foreach (var doc in doctors)
+                        {
+                            <option value="@doc.Id">Dr. @doc.FullName — @doc.Specialization</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+            @if (selectedDoctorId > 0)
+            {
+                var docObj = doctors.FirstOrDefault(d => d.Id == selectedDoctorId);
+                <div class="alert rounded-3 p-3 mb-4" style="background: rgba(0, 242, 254, 0.08); border: 1px solid rgba(0, 242, 254, 0.3); color: #00f2fe;">
+                    <i class="bi bi-person-check-fill me-2"></i>
+                    Managing accounts for <strong>Dr. @docObj?.FullName</strong> (@docObj?.Specialization). Google Business Profile yahan link hone par unke banner schedule mein Google enable ho jayega.
+                </div>
+
+                <div class="row g-3">
+                    @foreach (var p in platforms)
+                    {
+                        var connected = doctorAccounts.FirstOrDefault(a =>
+                            a.Platform.Equals(p.PlatformCode, StringComparison.OrdinalIgnoreCase));
+                        var isConnected = connected != null && connected.IsActive;
+
+                        <div class="col-12 col-md-6 col-xl-4">
+                            <div class="glass-panel p-3 rounded-4 h-100" style="background: rgba(0,0,0,0.3); border: 1px solid @(isConnected ? GetPlatformBorderColor(p.ColorHex) : "rgba(255,255,255,0.08)");">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i class="bi @p.IconClass fs-5" style="color: @p.ColorHex;"></i>
+                                        <span class="text-white fw-bold">@p.PlatformName</span>
+                                    </div>
+                                    <span class="badge" style="background: @(isConnected ? "rgba(16,185,129,0.15)" : "rgba(245,158,11,0.12)"); border: 1px solid @(isConnected ? "rgba(16,185,129,0.4)" : "rgba(245,158,11,0.35)"); color: @(isConnected ? "#10b981" : "#fbbf24"); font-size: 0.7rem;">
+                                        @(isConnected ? "Connected" : "Not Linked")
+                                    </span>
+                                </div>
+
+                                <div class="small mb-3 text-secondary" style="font-size: 0.78rem;">
+                                    @if (connected != null)
+                                    {
+                                        <div><strong class="text-white">@connected.AccountName</strong></div>
+                                        <div class="text-truncate">ID: @connected.PageOrAccountId</div>
+                                    }
+                                    else if (!p.AllowGlobalFallback)
+                                    {
+                                        <span class="text-danger"><i class="bi bi-exclamation-circle me-1"></i>Google require doctor account (No fallback).</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Not linked; uses Hospital Common Fallback.</span>
+                                    }
+                                </div>
+
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-sm btn-outline-info flex-grow-1"
+                                            @onclick="() => OpenDoctorAccountModal(p, connected)">
+                                        <i class="bi @(connected != null ? "bi-pencil" : "bi-plus") me-1"></i>
+                                        @(connected != null ? "Edit Details" : "Link Account")
+                                    </button>
+                                    @if (connected != null)
+                                    {
+                                        <button class="btn btn-sm btn-outline-danger"
+                                                @onclick="() => DeleteDoctorAccountAsync(connected.Id)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-5 text-secondary">
+                    <i class="bi bi-person-badge fs-1 text-secondary"></i>
+                    <div class="mt-2">Doctor ke accounts dekhne aur edit karne ke liye upar list se Specialist Doctor select karein.</div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<!-- ── MODAL 1: Global API Configuration Modal ── -->
+@if (editingPlatform != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); z-index: 1085;">
+        <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+            <div class="modal-content glass-panel" style="background: rgba(14, 25, 48, 0.98); border: 1px solid @GetPlatformBorderColor(editingPlatform.ColorHex); border-radius: 18px; max-height: 90vh;">
+                <div class="modal-header border-bottom border-secondary border-opacity-25 px-4 py-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="rounded-3 d-flex align-items-center justify-content-center"
+                             style="width: 44px; height: 44px; background: @GetPlatformBgColor(editingPlatform.ColorHex); border: 1px solid @GetPlatformBorderColor(editingPlatform.ColorHex);">
+                            <i class="bi @editingPlatform.IconClass fs-4" style="color: @editingPlatform.ColorHex;"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title text-white fw-bold mb-0">@editingPlatform.PlatformName — Global API Configuration</h5>
+                            <span class="text-secondary small">Ye credentials doctor ke account na hone par fallback me use honge</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseApiModal"></button>
+                </div>
+
+                <div class="modal-body px-4 py-4" style="overflow-y: auto;">
+                    @if (!editingPlatform.AllowGlobalFallback)
+                    {
+                        <div class="alert mb-4 rounded-3" style="background: rgba(139,92,246,0.12); border: 1px solid rgba(139,92,246,0.4); color: #a78bfa;">
+                            <i class="bi bi-shield-exclamation me-2"></i>
+                            <strong>Doctor-Only Platform:</strong> Google Business Profile ke liye global fallback disabled hai. Scheduling ke time Doctor ka apna account mandatory hai.
+                        </div>
+                    }
+
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label text-warning fw-bold small mb-1">API Endpoint / Base URL</label>
+                            <input type="text" class="form-control bg-dark text-white border-secondary" @bind="apiFormModel.GlobalApiEndpoint" placeholder="e.g. https://graph.facebook.com/v19.0" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-warning fw-bold small mb-1">App ID / Client ID</label>
+                            <input type="text" class="form-control bg-dark text-white border-secondary" @bind="apiFormModel.GlobalAppId" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-warning fw-bold small mb-1">App Secret / Client Secret</label>
+                            <input type="@(showSecret ? "text" : "password")" class="form-control bg-dark text-white border-secondary" @bind="apiFormModel.GlobalAppSecret" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-warning fw-bold small mb-1">Page ID / Account ID / Google Location ID</label>
+                            <input type="text" class="form-control bg-dark text-white border-secondary" @bind="apiFormModel.GlobalPageOrAccountId" />
+                        </div>
+                        @if (editingPlatform.PlatformCode == "WHATSAPP")
+                        {
+                            <div class="col-md-6">
+                                <label class="form-label text-warning fw-bold small mb-1">WhatsApp Phone Number ID</label>
+                                <input type="text" class="form-control bg-dark text-white border-secondary" @bind="apiFormModel.GlobalPhoneNumberId" />
+                            </div>
+                        }
+                        <div class="col-12">
+                            <label class="form-label text-warning fw-bold small mb-1">API Key</label>
+                            <input type="@(showSecret ? "text" : "password")" class="form-control bg-dark text-white border-secondary" @bind="apiFormModel.GlobalApiKey" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label text-warning fw-bold small mb-1">Access Token / Bearer Token</label>
+                            <textarea class="form-control bg-dark text-white border-secondary small" rows="3" @bind="apiFormModel.GlobalAccessToken"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label text-warning fw-bold small mb-1">Refresh Token (OAuth)</label>
+                            <textarea class="form-control bg-dark text-white border-secondary small" rows="2" @bind="apiFormModel.GlobalRefreshToken"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label text-warning fw-bold small mb-1">Default Post Caption Template</label>
+                            <textarea class="form-control bg-dark text-white border-secondary small" rows="3" @bind="apiFormModel.DefaultMessageTemplate" placeholder="e.g. {HospitalName} | Dr. {DoctorName} | {BannerHeading}"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check form-switch d-flex align-items-center gap-2">
+                                <input class="form-check-input" type="checkbox" role="switch" @bind="showSecret" id="showSec" />
+                                <label class="form-check-label text-secondary small" for="showSec">Show Keys &amp; Secrets in plain text</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-top border-secondary border-opacity-25 px-4 py-3 d-flex justify-content-between align-items-center">
+                    <button type="button" class="btn btn-outline-secondary px-4" @onclick="CloseApiModal">Cancel</button>
+                    <button type="button" class="btn fw-bold px-4" @onclick="SaveApiConfigAsync" disabled="@isSaving"
+                            style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); border: none; color: #070d1e; border-radius: 10px;">
+                        @(isSaving ? "Saving..." : "Save Global API Config")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- ── MODAL 2: Admin Doctor Account Link Modal ── -->
+@if (editingDocPlatform != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); z-index: 1085;">
+        <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+            <div class="modal-content glass-panel" style="background: rgba(14, 25, 48, 0.98); border: 1px solid @GetPlatformBorderColor(editingDocPlatform.ColorHex); border-radius: 18px; max-height: 90vh;">
+                <div class="modal-header border-bottom border-secondary border-opacity-25 px-4 py-3">
+                    <h5 class="modal-title text-white fw-bold mb-0">Link @editingDocPlatform.PlatformName for Dr. @selectedDoctorObj?.FullName</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseDoctorAccountModal"></button>
+                </div>
+                <div class="modal-body px-4 py-4">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label text-info fw-bold small mb-1">Account Name / Clinic Name *</label>
+                            <input type="text" class="form-control bg-dark text-white border-secondary" @bind="docAccountForm.AccountName" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label text-info fw-bold small mb-1">
+                                @(editingDocPlatform.PlatformCode == "GOOGLE" ? "Google Location ID *" : "Page ID / Account ID *")
+                            </label>
+                            <input type="text" class="form-control bg-dark text-white border-secondary" @bind="docAccountForm.PageOrAccountId" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label text-info fw-bold small mb-1">Access Token / API Key *</label>
+                            <textarea class="form-control bg-dark text-white border-secondary small" rows="3" @bind="docAccountForm.AccessToken"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label text-info fw-bold small mb-1">Refresh Token (OAuth, Optional)</label>
+                            <textarea class="form-control bg-dark text-white border-secondary small" rows="2" @bind="docAccountForm.RefreshToken"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top border-secondary border-opacity-25 px-4 py-3 d-flex justify-content-between align-items-center">
+                    <button type="button" class="btn btn-outline-secondary px-4" @onclick="CloseDoctorAccountModal">Cancel</button>
+                    <button type="button" class="btn btn-info fw-bold px-4" @onclick="SaveDoctorAccountByAdminAsync" disabled="@isSaving">
+                        @(isSaving ? "Saving..." : "Save Doctor Account")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .platform-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+    }
+    .opacity-70 { opacity: 0.70; }
+    .spin-icon { animation: spin 1s linear infinite; }
+    @@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+</style>
+
+@code {
+    private CurrentUserDTO? currentUser;
+    private string activeTab = "global";
+
+    private List<MediaPlatformDTO> platforms = new();
+    private List<DoctorProfile> doctors = new();
+    private int selectedDoctorId = 0;
+    private DoctorProfile? selectedDoctorObj => doctors.FirstOrDefault(d => d.Id == selectedDoctorId);
+    private List<DoctorSocialAccountDTO> doctorAccounts = new();
+
+    private ToastNotificationDTO? activePopup;
+    private bool isLoading = true;
+    private int? togglingId = null;
+    private bool isSaving = false;
+    private bool showSecret = false;
+
+    // Modals
+    private MediaPlatformDTO? editingPlatform;
+    private UpdateMediaPlatformApiRequest apiFormModel = new();
+
+    private MediaPlatformDTO? editingDocPlatform;
+    private SocialAccountSaveRequest docAccountForm = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        currentUser = await AuthService.GetOrRestoreCurrentUserAsync();
+        if (currentUser?.Role != "Admin")
+        {
+            NavigationManager.NavigateTo("login");
+            return;
+        }
+        await LoadDataAsync();
+    }
+
+    private void SetTab(string tab)
+    {
+        activeTab = tab;
+    }
+
+    private async Task LoadDataAsync()
+    {
+        isLoading = true;
+        try
+        {
+            platforms = await MediaPlatformRepo.GetAllAsync();
+            doctors = await DoctorRepo.GetAllWithUsersAsync();
+            if (selectedDoctorId > 0)
+            {
+                await LoadSelectedDoctorAccountsAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowPopup("Error", $"Data load karne me error: {ex.Message}", "error");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task OnDoctorSelectedAsync()
+    {
+        await LoadSelectedDoctorAccountsAsync();
+    }
+
+    private async Task LoadSelectedDoctorAccountsAsync()
+    {
+        if (selectedDoctorId <= 0)
+        {
+            doctorAccounts.Clear();
+            return;
+        }
+        try
+        {
+            var doc = doctors.FirstOrDefault(d => d.Id == selectedDoctorId);
+            doctorAccounts = await SocialAccountRepo.GetByDoctorAsync(selectedDoctorId, doc?.UserId);
+        }
+        catch (Exception ex)
+        {
+            ShowPopup("Error", ex.Message, "error");
+        }
+    }
+
+    private async Task TogglePlatformAsync(MediaPlatformDTO p)
+    {
+        togglingId = p.Id;
+        try
+        {
+            var ok = await MediaPlatformRepo.ToggleActiveAsync(p.Id, currentUser?.FullName);
+            if (ok)
+            {
+                p.IsActive = !p.IsActive;
+                ShowPopup(
+                    p.IsActive ? "Platform Activated" : "Platform Deactivated",
+                    $"{p.PlatformName} ab {(p.IsActive ? "Active" : "Inactive")} hai.",
+                    p.IsActive ? "save" : "warning"
+                );
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowPopup("Error", ex.Message, "error");
+        }
+        finally
+        {
+            togglingId = null;
+        }
+    }
+
+    private void OpenApiModal(MediaPlatformDTO p)
+    {
+        editingPlatform = p;
+        showSecret = false;
+        apiFormModel = new UpdateMediaPlatformApiRequest
+        {
+            Id = p.Id,
+            GlobalApiEndpoint = p.GlobalApiEndpoint,
+            GlobalApiKey = p.GlobalApiKey,
+            GlobalAppId = p.GlobalAppId,
+            GlobalAppSecret = p.GlobalAppSecret,
+            GlobalAccessToken = p.GlobalAccessToken,
+            GlobalPageOrAccountId = p.GlobalPageOrAccountId,
+            GlobalPhoneNumberId = p.GlobalPhoneNumberId,
+            GlobalRefreshToken = p.GlobalRefreshToken,
+            GlobalTokenExpiresAt = p.GlobalTokenExpiresAt,
+            DefaultMessageTemplate = p.DefaultMessageTemplate,
+            ApiNotes = p.ApiNotes,
+            UpdatedBy = currentUser?.FullName
+        };
+    }
+
+    private void CloseApiModal() => editingPlatform = null;
+
+    private async Task SaveApiConfigAsync()
+    {
+        if (editingPlatform == null) return;
+        isSaving = true;
+        try
+        {
+            apiFormModel.Id = editingPlatform.Id;
+            apiFormModel.UpdatedBy = currentUser?.FullName;
+            var ok = await MediaPlatformRepo.UpdateGlobalApiAsync(apiFormModel);
+            if (ok)
+            {
+                var platform = platforms.FirstOrDefault(p => p.Id == editingPlatform.Id);
+                if (platform != null)
+                {
+                    platform.GlobalApiEndpoint = apiFormModel.GlobalApiEndpoint;
+                    platform.GlobalApiKey = apiFormModel.GlobalApiKey;
+                    platform.GlobalAppId = apiFormModel.GlobalAppId;
+                    platform.GlobalAppSecret = apiFormModel.GlobalAppSecret;
+                    platform.GlobalAccessToken = apiFormModel.GlobalAccessToken;
+                    platform.GlobalPageOrAccountId = apiFormModel.GlobalPageOrAccountId;
+                    platform.GlobalPhoneNumberId = apiFormModel.GlobalPhoneNumberId;
+                    platform.GlobalRefreshToken = apiFormModel.GlobalRefreshToken;
+                    platform.GlobalTokenExpiresAt = apiFormModel.GlobalTokenExpiresAt;
+                    platform.DefaultMessageTemplate = apiFormModel.DefaultMessageTemplate;
+                    platform.UpdatedBy = currentUser?.FullName;
+                    platform.UpdatedAt = IndianTimeHelper.Now;
+                }
+                CloseApiModal();
+                ShowPopup("API Saved!", $"{editingPlatform?.PlatformName} Global API saved.", "save");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowPopup("Error", ex.Message, "error");
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    // Doctor Accounts by Admin
+    private void OpenDoctorAccountModal(MediaPlatformDTO p, DoctorSocialAccountDTO? existing)
+    {
+        editingDocPlatform = p;
+        var doc = selectedDoctorObj;
+        docAccountForm = new SocialAccountSaveRequest
+        {
+            Id = existing?.Id ?? 0,
+            DoctorId = selectedDoctorId,
+            UserId = doc?.UserId,
+            DoctorName = doc?.FullName,
+            Platform = p.PlatformCode,
+            AccountName = existing?.AccountName ?? $"Dr. {doc?.FullName} {p.PlatformName}",
+            PageOrAccountId = existing?.PageOrAccountId ?? string.Empty,
+            AccessToken = existing?.AccessToken ?? string.Empty,
+            RefreshToken = existing?.RefreshToken,
+            TokenExpiresAt = existing?.TokenExpiresAt,
+            IsActive = existing?.IsActive ?? true
+        };
+    }
+
+    private void CloseDoctorAccountModal() => editingDocPlatform = null;
+
+    private async Task SaveDoctorAccountByAdminAsync()
+    {
+        if (string.IsNullOrWhiteSpace(docAccountForm.AccountName) || string.IsNullOrWhiteSpace(docAccountForm.PageOrAccountId))
+        {
+            ShowPopup("Required Fields", "Account Name aur ID dono mandatory hain.", "warning");
+            return;
+        }
+
+        isSaving = true;
+        try
+        {
+            var newId = await SocialAccountRepo.SaveAccountAsync(docAccountForm);
+            if (newId > 0)
+            {
+                CloseDoctorAccountModal();
+                await LoadSelectedDoctorAccountsAsync();
+                ShowPopup("Doctor Account Saved", "Doctor media credentials saved successfully.", "save");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowPopup("Error", ex.Message, "error");
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task DeleteDoctorAccountAsync(int id)
+    {
+        try
+        {
+            var ok = await SocialAccountRepo.DeleteAccountAsync(id);
+            if (ok)
+            {
+                await LoadSelectedDoctorAccountsAsync();
+                ShowPopup("Account Deleted", "Doctor account disconnected.", "save");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowPopup("Error", ex.Message, "error");
+        }
+    }
+
+    private void ShowPopup(string title, string message, string type)
+    {
+        activePopup = new ToastNotificationDTO { Title = title, Message = message, Type = type };
+        StateHasChanged();
+    }
+
+    private void DismissPopup() => activePopup = null;
+
+    private static string GetPlatformBorderColor(string hex) => $"rgba({HexToRgb(hex)}, 0.45)";
+    private static string GetPlatformBgColor(string hex) => $"rgba({HexToRgb(hex)}, 0.08)";
+
+    private static string HexToRgb(string hex)
+    {
+        hex = hex.TrimStart('#');
+        if (hex.Length == 6)
+        {
+            var r = Convert.ToInt32(hex[..2], 16);
+            var g = Convert.ToInt32(hex[2..4], 16);
+            var b = Convert.ToInt32(hex[4..6], 16);
+            return $"{r},{g},{b}";
+        }
+        return "255,255,255";
+    }
+}

@@ -1,0 +1,579 @@
+@page "/doctor/social-accounts"
+@page "/doctor/media-settings"
+@layout DoctorLayout
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+@using CYHDocBrandModel.Common
+@using CYHDocBrandModel.DTO
+@using CYHDocBrandRepo.IRepository
+@using CYHDocBrandUI.Components.Common
+
+@inject IMediaPlatformRepository MediaPlatformRepo
+@inject ISocialAccountRepository SocialAccountRepo
+@inject IDoctorRepository DoctorRepo
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+
+<!-- Animated Floating Toast Popup -->
+<ToastPopup Notification="activePopup" OnDismiss="DismissPopup" />
+
+<div class="d-flex flex-column gap-4 fade-in">
+
+    <!-- ── Header ── -->
+    <div class="glass-panel p-4 d-flex flex-wrap align-items-center justify-content-between gap-3"
+         style="border-left: 4px solid #00f2fe; background: rgba(14, 25, 48, 0.85); backdrop-filter: blur(16px); border-radius: 16px;">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge px-2 py-1" style="background: rgba(0, 242, 254, 0.15); border: 1px solid rgba(0, 242, 254, 0.4); color: #00f2fe; font-size: 0.72rem; font-weight: 700;">
+                    <i class="bi bi-heart-pulse-fill me-1"></i> DOCTOR WORKSPACE
+                </span>
+                <span class="badge px-2 py-1" style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #10b981; font-size: 0.72rem; font-weight: 700;">
+                    <i class="bi bi-broadcast-pin me-1"></i> SOCIAL &amp; GOOGLE CONNECT
+                </span>
+            </div>
+            <h3 class="fw-bold mb-1 text-white">
+                <i class="bi bi-share-fill text-info me-2"></i>My Social Media &amp; Google API Settings
+            </h3>
+            <p class="small mb-0" style="color: #cbd5e1;">
+                Apne personal Google Business Profile, Facebook Page, Instagram, WhatsApp credentials yahan connect karein. Banner schedule karte samay yahi credentials use honge.
+            </p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <button class="btn btn-outline-info d-flex align-items-center gap-2 px-3 py-2"
+                    @onclick="LoadDataAsync" disabled="@isLoading" style="border-radius: 10px;">
+                <i class="bi bi-arrow-clockwise @(isLoading ? "spin-icon" : "")"></i>
+                <span>@(isLoading ? "Loading..." : "Refresh")</span>
+            </button>
+            <NavLink href="doctor/schedules" class="btn btn-info d-flex align-items-center gap-2 px-3 py-2 fw-semibold"
+                     style="background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); border: none; color: #070d1e; border-radius: 10px;">
+                <i class="bi bi-calendar2-check-fill"></i>
+                <span>Scheduled Posts</span>
+            </NavLink>
+        </div>
+    </div>
+
+    <!-- ── Special Notice for Google Business Profile ── -->
+    <div class="alert rounded-4 p-3 d-flex align-items-center gap-3"
+         style="background: rgba(66, 133, 244, 0.12); border: 1px solid rgba(66, 133, 244, 0.35); color: #93c5fd;">
+        <div class="rounded-3 d-flex align-items-center justify-content-center p-2" style="background: rgba(66, 133, 244, 0.2); width: 44px; height: 44px;">
+            <i class="bi bi-google fs-4" style="color: #4285F4;"></i>
+        </div>
+        <div class="small">
+            <strong class="text-white">Google Business Profile Rule:</strong> Google Business Profile doctor/clinic specific hota hai, isme Hospital Common Fallback allow nahi hota. Scheduled banners ko Google par post karne ke liye apna Google Business Profile account link karna zaroori hai.
+        </div>
+    </div>
+
+    <!-- ── Stats Summary ── -->
+    @if (!isLoading)
+    {
+        <div class="row g-3">
+            <div class="col-6 col-md-3">
+                <div class="glass-panel p-3 rounded-4 text-center" style="background: rgba(14, 25, 48, 0.65); border: 1px solid rgba(255,255,255,0.08);">
+                    <div class="text-secondary" style="font-size: 0.78rem; font-weight: 600;">ACTIVE PLATFORMS</div>
+                    <h3 class="fw-bold text-white mb-0 mt-1">@platforms.Count</h3>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="glass-panel p-3 rounded-4 text-center" style="background: rgba(14, 25, 48, 0.65); border: 1px solid rgba(16, 185, 129, 0.25);">
+                    <div class="text-success" style="font-size: 0.78rem; font-weight: 600;">CONNECTED</div>
+                    <h3 class="fw-bold text-success mb-0 mt-1">@connectedAccounts.Count(a => a.IsActive)</h3>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="glass-panel p-3 rounded-4 text-center" style="background: rgba(14, 25, 48, 0.65); border: 1px solid rgba(66, 133, 244, 0.25);">
+                    <div class="text-info" style="font-size: 0.78rem; font-weight: 600;">GOOGLE PROFILE</div>
+                    <h3 class="fw-bold text-info mb-0 mt-1">@(IsPlatformConnected("GOOGLE") ? "Linked" : "Not Linked")</h3>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="glass-panel p-3 rounded-4 text-center" style="background: rgba(14, 25, 48, 0.65); border: 1px solid rgba(245, 158, 11, 0.25);">
+                    <div class="text-warning" style="font-size: 0.78rem; font-weight: 600;">COMMON FALLBACK</div>
+                    <h3 class="fw-bold text-warning mb-0 mt-1">Available</h3>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- ── Platforms Cards Grid ── -->
+    @if (isLoading)
+    {
+        <div class="glass-panel p-5 text-center rounded-4" style="background: rgba(14, 25, 48, 0.65);">
+            <div class="spinner-border text-info" style="width: 2.5rem; height: 2.5rem;"></div>
+            <div class="text-secondary mt-3">Platforms & Accounts load ho rahe hain...</div>
+        </div>
+    }
+    else
+    {
+        <div class="row g-3">
+            @foreach (var p in platforms)
+            {
+                var connected = GetConnectedAccount(p.PlatformCode);
+                var isConnected = connected != null && connected.IsActive;
+
+                <div class="col-12 col-md-6 col-xl-4">
+                    <div class="glass-panel p-0 rounded-4 h-100 platform-card"
+                         style="background: rgba(14, 25, 48, 0.75); border: 1px solid @(isConnected ? GetPlatformBorderColor(p.ColorHex) : "rgba(255,255,255,0.08)"); overflow: hidden; transition: all 0.25s ease;">
+
+                        <!-- Card Top Header Strip -->
+                        <div class="px-4 py-3 d-flex align-items-center justify-content-between"
+                             style="background: @(isConnected ? GetPlatformBgColor(p.ColorHex) : "rgba(255,255,255,0.02)"); border-bottom: 1px solid @(isConnected ? GetPlatformBorderColor(p.ColorHex) : "rgba(255,255,255,0.06)");">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="rounded-3 d-flex align-items-center justify-content-center"
+                                     style="width: 44px; height: 44px; background: rgba(0,0,0,0.35); border: 1px solid @GetPlatformBorderColor(p.ColorHex);">
+                                    <i class="bi @p.IconClass fs-4" style="color: @p.ColorHex;"></i>
+                                </div>
+                                <div>
+                                    <div class="text-white fw-bold" style="font-size: 0.97rem; line-height: 1.2;">@p.PlatformName</div>
+                                    <div class="text-secondary" style="font-size: 0.75rem;">@p.Category</div>
+                                </div>
+                            </div>
+
+                            @if (connected != null)
+                            {
+                                <!-- Active Toggle -->
+                                <div class="form-check form-switch mb-0 d-flex align-items-center">
+                                    <input class="form-check-input" type="checkbox" role="switch"
+                                           checked="@connected.IsActive"
+                                           @onchange="() => ToggleAccountAsync(connected)"
+                                           style="width: 2.2rem; height: 1.1rem; cursor: pointer; @(connected.IsActive ? $"background-color: {p.ColorHex}; border-color: {p.ColorHex};" : "")" />
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Card Body -->
+                        <div class="p-4">
+                            <!-- Badges Row -->
+                            <div class="d-flex flex-wrap gap-2 mb-3">
+                                @if (isConnected)
+                                {
+                                    <span class="badge" style="background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.4); color: #10b981; font-size: 0.72rem;">
+                                        <i class="bi bi-check-circle-fill me-1"></i>Connected
+                                    </span>
+                                }
+                                else if (connected != null && !connected.IsActive)
+                                {
+                                    <span class="badge" style="background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.4); color: #f87171; font-size: 0.72rem;">
+                                        <i class="bi bi-pause-circle me-1"></i>Paused
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge" style="background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.35); color: #fbbf24; font-size: 0.72rem;">
+                                        <i class="bi bi-dash-circle me-1"></i>Not Linked
+                                    </span>
+                                }
+
+                                @if (!p.AllowGlobalFallback)
+                                {
+                                    <span class="badge" style="background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.4); color: #a78bfa; font-size: 0.72rem;">
+                                        <i class="bi bi-shield-lock-fill me-1"></i>Doctor Only (No Fallback)
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #94a3b8; font-size: 0.72rem;">
+                                        <i class="bi bi-arrow-repeat me-1"></i>Common Fallback Ready
+                                    </span>
+                                }
+                            </div>
+
+                            <!-- Connection Details Box -->
+                            <div class="mb-3 p-3 rounded-3" style="background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.06);">
+                                @if (connected != null)
+                                {
+                                    <div class="d-flex flex-column gap-1">
+                                        <div class="text-white fw-bold small">
+                                            <i class="bi bi-person-badge text-info me-1"></i>@connected.AccountName
+                                        </div>
+                                        @if (!string.IsNullOrWhiteSpace(connected.PageOrAccountId))
+                                        {
+                                            <div class="text-secondary" style="font-size: 0.75rem;">
+                                                <span class="text-info">ID:</span> @connected.PageOrAccountId
+                                            </div>
+                                        }
+                                        <div class="text-secondary" style="font-size: 0.73rem;">
+                                            <i class="bi bi-calendar-check me-1"></i>Linked: @connected.ConnectedAt.ToString("dd MMM yyyy, hh:mm tt") IST
+                                        </div>
+                                    </div>
+                                }
+                                else if (!p.AllowGlobalFallback)
+                                {
+                                    <div class="text-danger small" style="font-size: 0.78rem; line-height: 1.4;">
+                                        <i class="bi bi-exclamation-triangle-fill me-1"></i>Google par publish karne ke liye account link karna mandatory hai. Hospital common account Google par use nahi hoga.
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="text-secondary small" style="font-size: 0.78rem; line-height: 1.4;">
+                                        <i class="bi bi-info-circle me-1 text-info"></i>Aapka personal account nahi hai to Hospital ke common API se auto-share ho jayega.
+                                    </div>
+                                }
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="d-flex gap-2">
+                                <button class="btn flex-grow-1 fw-semibold d-flex align-items-center justify-content-center gap-2 py-2"
+                                        @onclick="() => OpenAccountModal(p, connected)"
+                                        style="background: linear-gradient(135deg, rgba(0,242,254,0.15) 0%, transparent 100%); border: 1px solid rgba(0,242,254,0.4); color: #00f2fe; border-radius: 10px; font-size: 0.85rem;">
+                                    <i class="bi @(connected != null ? "bi-pencil-fill" : "bi-plus-circle-fill")"></i>
+                                    <span>@(connected != null ? "Edit API Details" : "Connect Account")</span>
+                                </button>
+
+                                @if (connected != null)
+                                {
+                                    <button class="btn btn-outline-danger px-3 py-2"
+                                            @onclick="() => DeleteAccountAsync(connected.Id)"
+                                            title="Disconnect Account"
+                                            style="border-radius: 10px;">
+                                        <i class="bi bi-trash-fill"></i>
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<!-- ── Account Configuration Modal ── -->
+@if (editingPlatform != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); z-index: 1085;">
+        <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+            <div class="modal-content glass-panel" style="background: rgba(14, 25, 48, 0.98); border: 1px solid @GetPlatformBorderColor(editingPlatform.ColorHex); border-radius: 18px; max-height: 90vh;">
+
+                <!-- Header -->
+                <div class="modal-header border-bottom border-secondary border-opacity-25 px-4 py-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="rounded-3 d-flex align-items-center justify-content-center"
+                             style="width: 44px; height: 44px; background: @GetPlatformBgColor(editingPlatform.ColorHex); border: 1px solid @GetPlatformBorderColor(editingPlatform.ColorHex);">
+                            <i class="bi @editingPlatform.IconClass fs-4" style="color: @editingPlatform.ColorHex;"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title text-white fw-bold mb-0">Connect @editingPlatform.PlatformName</h5>
+                            <span class="text-secondary small">Dr. @doctorName ke accounts/API credentials</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseAccountModal"></button>
+                </div>
+
+                <!-- Body -->
+                <div class="modal-body px-4 py-4" style="overflow-y: auto;">
+                    @if (!editingPlatform.AllowGlobalFallback)
+                    {
+                        <div class="alert mb-4 rounded-3" style="background: rgba(139,92,246,0.12); border: 1px solid rgba(139,92,246,0.4); color: #a78bfa;">
+                            <i class="bi bi-shield-lock-fill me-2"></i>
+                            <strong>Mandatory Doctor Connection:</strong> Google Business Profile ke liye global fallback allow nahi hai. Yahan details save karne ke baad hi aap Google par banner schedule kar payenge.
+                        </div>
+                    }
+
+                    <div class="row g-3">
+                        <!-- Account / Business Name -->
+                        <div class="col-12">
+                            <label class="form-label text-info fw-bold small mb-1">
+                                <i class="bi bi-person-badge me-1"></i>Account Name / Clinic Name *
+                            </label>
+                            <input type="text" class="form-control bg-dark text-white border-secondary"
+                                   @bind="formModel.AccountName"
+                                   placeholder="e.g. Dr. @doctorName Dental Clinic / Apollo Health Center"
+                                   style="border-radius: 10px;" />
+                        </div>
+
+                        <!-- Page / Account / Location ID -->
+                        <div class="col-md-6">
+                            <label class="form-label text-info fw-bold small mb-1">
+                                <i class="bi bi-fingerprint me-1"></i>
+                                @(editingPlatform.PlatformCode == "GOOGLE" ? "Google Location ID *" :
+                                  editingPlatform.PlatformCode == "WHATSAPP" ? "WhatsApp Phone Number ID *" :
+                                  editingPlatform.PlatformCode == "FACEBOOK" ? "Facebook Page ID *" :
+                                  editingPlatform.PlatformCode == "INSTAGRAM" ? "Instagram Account ID *" : "Account ID *")
+                            </label>
+                            <input type="text" class="form-control bg-dark text-white border-secondary"
+                                   @bind="formModel.PageOrAccountId"
+                                   placeholder="@(editingPlatform.PlatformCode == "GOOGLE" ? "e.g. locations/123456789" : "e.g. 1092837465829")"
+                                   style="border-radius: 10px;" />
+                        </div>
+
+                        <!-- Token Expiration Date -->
+                        <div class="col-md-6">
+                            <label class="form-label text-info fw-bold small mb-1">
+                                <i class="bi bi-hourglass-split me-1"></i>Token Expiry (Optional, IST)
+                            </label>
+                            <input type="datetime-local" class="form-control bg-dark text-white border-secondary"
+                                   value="@(formModel.TokenExpiresAt?.ToString("yyyy-MM-ddTHH:mm") ?? "")"
+                                   @onchange="OnExpiryChanged"
+                                   style="border-radius: 10px;" />
+                        </div>
+
+                        <!-- Access Token -->
+                        <div class="col-12">
+                            <label class="form-label text-info fw-bold small mb-1">
+                                <i class="bi bi-key-fill me-1"></i>Access Token / API Key *
+                            </label>
+                            <textarea class="form-control bg-dark text-white border-secondary small"
+                                      rows="3"
+                                      @bind="formModel.AccessToken"
+                                      placeholder="Paste long-lived access token or API key here..."
+                                      style="border-radius: 10px; font-family: monospace; font-size: 0.82rem; resize: vertical;"></textarea>
+                        </div>
+
+                        <!-- Refresh Token (especially Google OAuth) -->
+                        <div class="col-12">
+                            <label class="form-label text-info fw-bold small mb-1">
+                                <i class="bi bi-arrow-repeat me-1"></i>Refresh Token (Optional, Google OAuth2 ke liye)
+                            </label>
+                            <textarea class="form-control bg-dark text-white border-secondary small"
+                                      rows="2"
+                                      @bind="formModel.RefreshToken"
+                                      placeholder="OAuth 2.0 refresh token (if applicable)"
+                                      style="border-radius: 10px; font-family: monospace; font-size: 0.82rem; resize: vertical;"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="modal-footer border-top border-secondary border-opacity-25 px-4 py-3 d-flex justify-content-between align-items-center">
+                    <button type="button" class="btn btn-outline-secondary px-4" @onclick="CloseAccountModal">
+                        <i class="bi bi-x-circle me-1"></i>Cancel
+                    </button>
+                    <button type="button" class="btn fw-bold px-4 d-flex align-items-center gap-2"
+                            @onclick="SaveAccountAsync"
+                            disabled="@isSaving"
+                            style="background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); border: none; color: #070d1e; border-radius: 10px;">
+                        @if (isSaving)
+                        {
+                            <span class="spinner-border spinner-border-sm"></span>
+                            <span>Saving...</span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-floppy2-fill"></i>
+                            <span>Save &amp; Link Account</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .platform-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+    }
+    .spin-icon {
+        animation: spin 1s linear infinite;
+    }
+    @@keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+</style>
+
+@code {
+    private CurrentUserDTO? currentUser;
+    private int doctorProfileId = 0;
+    private string doctorName = string.Empty;
+
+    private List<MediaPlatformDTO> platforms = new();
+    private List<DoctorSocialAccountDTO> connectedAccounts = new();
+    private ToastNotificationDTO? activePopup;
+
+    private bool isLoading = true;
+    private bool isSaving = false;
+
+    private MediaPlatformDTO? editingPlatform;
+    private SocialAccountSaveRequest formModel = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        currentUser = await AuthService.GetOrRestoreCurrentUserAsync();
+        if (currentUser == null)
+        {
+            NavigationManager.NavigateTo("login");
+            return;
+        }
+
+        doctorName = currentUser.FullName ?? "Doctor";
+        doctorProfileId = currentUser.DoctorProfileId ?? 0;
+
+        if (doctorProfileId == 0 && !string.IsNullOrEmpty(currentUser.UserId))
+        {
+            var doc = await DoctorRepo.GetByUserIdAsync(currentUser.UserId);
+            if (doc != null)
+            {
+                doctorProfileId = doc.Id;
+                doctorName = doc.FullName;
+            }
+        }
+
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        isLoading = true;
+        try
+        {
+            platforms = await MediaPlatformRepo.GetActiveAsync();
+            connectedAccounts = await SocialAccountRepo.GetByDoctorAsync(doctorProfileId, currentUser?.UserId);
+        }
+        catch (Exception ex)
+        {
+            ShowPopup("Error", $"Data load karne me error: {ex.Message}", "error");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private DoctorSocialAccountDTO? GetConnectedAccount(string platformCode)
+    {
+        return connectedAccounts.FirstOrDefault(a =>
+            a.Platform.Equals(platformCode, StringComparison.OrdinalIgnoreCase) ||
+            a.Platform.Equals(platformCode.Replace("_", ""), StringComparison.OrdinalIgnoreCase));
+    }
+
+    private bool IsPlatformConnected(string platformCode)
+    {
+        var acc = GetConnectedAccount(platformCode);
+        return acc != null && acc.IsActive;
+    }
+
+    private void OpenAccountModal(MediaPlatformDTO p, DoctorSocialAccountDTO? existing)
+    {
+        editingPlatform = p;
+        formModel = new SocialAccountSaveRequest
+        {
+            Id = existing?.Id ?? 0,
+            DoctorId = doctorProfileId,
+            UserId = currentUser?.UserId,
+            DoctorName = doctorName,
+            Platform = p.PlatformCode,
+            AccountName = existing?.AccountName ?? $"Dr. {doctorName} {p.PlatformName}",
+            PageOrAccountId = existing?.PageOrAccountId ?? string.Empty,
+            AccessToken = existing?.AccessToken ?? string.Empty,
+            RefreshToken = existing?.RefreshToken,
+            TokenExpiresAt = existing?.TokenExpiresAt,
+            IsActive = existing?.IsActive ?? true
+        };
+    }
+
+    private void CloseAccountModal()
+    {
+        editingPlatform = null;
+    }
+
+    private void OnExpiryChanged(ChangeEventArgs e)
+    {
+        if (DateTime.TryParse(e.Value?.ToString(), out var dt))
+            formModel.TokenExpiresAt = dt;
+        else
+            formModel.TokenExpiresAt = null;
+    }
+
+    private async Task SaveAccountAsync()
+    {
+        if (string.IsNullOrWhiteSpace(formModel.AccountName))
+        {
+            ShowPopup("Account Name Required", "Kripya Account Name enter karein.", "warning");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(formModel.PageOrAccountId))
+        {
+            ShowPopup("ID Required", "Kripya Page/Location/Account ID enter karein.", "warning");
+            return;
+        }
+
+        isSaving = true;
+        try
+        {
+            var newId = await SocialAccountRepo.SaveAccountAsync(formModel);
+            if (newId > 0)
+            {
+                CloseAccountModal();
+                await LoadDataAsync();
+                ShowPopup("Account Linked!", $"{editingPlatform?.PlatformName} account successfully link ho gaya.", "save");
+            }
+            else
+            {
+                ShowPopup("Error", "Account save nahi ho saka. Kripya check karein.", "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowPopup("Error", ex.Message, "error");
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task ToggleAccountAsync(DoctorSocialAccountDTO acc)
+    {
+        try
+        {
+            var ok = await SocialAccountRepo.ToggleActiveAsync(acc.Id);
+            if (ok)
+            {
+                acc.IsActive = !acc.IsActive;
+                ShowPopup(
+                    acc.IsActive ? "Account Activated" : "Account Paused",
+                    $"{acc.AccountName} ab {(acc.IsActive ? "Active" : "Paused")} hai.",
+                    acc.IsActive ? "save" : "warning"
+                );
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowPopup("Error", ex.Message, "error");
+        }
+    }
+
+    private async Task DeleteAccountAsync(int accountId)
+    {
+        try
+        {
+            var ok = await SocialAccountRepo.DeleteAccountAsync(accountId);
+            if (ok)
+            {
+                await LoadDataAsync();
+                ShowPopup("Account Removed", "Social account successfully disconnect ho gaya.", "save");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowPopup("Error", ex.Message, "error");
+        }
+    }
+
+    private void ShowPopup(string title, string message, string type)
+    {
+        activePopup = new ToastNotificationDTO { Title = title, Message = message, Type = type };
+        StateHasChanged();
+    }
+
+    private void DismissPopup() => activePopup = null;
+
+    private static string GetPlatformBorderColor(string hex) => $"rgba({HexToRgb(hex)}, 0.45)";
+    private static string GetPlatformBgColor(string hex) => $"rgba({HexToRgb(hex)}, 0.08)";
+
+    private static string HexToRgb(string hex)
+    {
+        hex = hex.TrimStart('#');
+        if (hex.Length == 6)
+        {
+            var r = Convert.ToInt32(hex[..2], 16);
+            var g = Convert.ToInt32(hex[2..4], 16);
+            var b = Convert.ToInt32(hex[4..6], 16);
+            return $"{r},{g},{b}";
+        }
+        return "255,255,255";
+    }
+}

@@ -30,6 +30,7 @@ builder.Services.AddScoped<IDoctorAiSettingRepository, DoctorAiSettingRepository
 builder.Services.AddScoped<ICreditRepository, CreditRepository>();
 builder.Services.AddScoped<ISocialAccountRepository, SocialAccountRepository>();
 builder.Services.AddScoped<IBannerScheduleRepository, BannerScheduleRepository>();
+builder.Services.AddScoped<IMediaPlatformRepository, MediaPlatformRepository>();
 builder.Services.AddScoped<IPushNotificationRepository, PushNotificationRepository>();
 
 // 4. Application & Notification Services
@@ -70,6 +71,7 @@ try
 {
     var logger = app.Services.GetRequiredService<ILogger<Program>>();
     await DbInitializer.InitializeAsync(connectionString, logger);
+    await MediaPlatformInitializer.InitializeAsync(connectionString, logger);
 }
 catch (Exception ex)
 {

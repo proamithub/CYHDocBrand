@@ -1,5 +1,5 @@
 // CYH Doctor Brand - Progressive Web App (PWA) Service Worker
-const CACHE_NAME = 'cyh-pwa-cache-v1.0';
+const CACHE_NAME = 'cyh-pwa-cache-v1.2';
 
 const PRECACHE_ASSETS = [
     '/',
@@ -7,9 +7,9 @@ const PRECACHE_ASSETS = [
     '/css/glass-theme.css',
     '/favicon.svg',
     '/favicon.png',
-    '/images/branding/cyh-logo.svg',
+    '/images/branding/cyh-emblem.png',
+    '/images/branding/cyh-logo.png',
     '/images/branding/icon-192.png',
-    '/images/branding/icon-512.png',
     '/lib/bootstrap/dist/css/bootstrap.min.css',
     '/js/bannerStudio.js'
 ];
