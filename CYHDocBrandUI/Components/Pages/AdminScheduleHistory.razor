@@ -665,41 +665,43 @@
 <!-- ── Image Preview Lightbox Modal ── -->
 @if (previewingSchedule != null)
 {
-    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.92); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 10000;" @onclick="() => previewingSchedule = null">
-        <div class="modal-dialog modal-dialog-centered modal-lg" @onclick:stopPropagation="true">
-            <div class="modal-content glass-panel border-0 text-white" style="background: rgba(14, 25, 48, 0.96); border: 1px solid rgba(245, 158, 11, 0.3) !important; border-radius: 18px;">
-                <div class="modal-header border-bottom border-secondary border-opacity-25 px-4 py-3">
-                    <div>
-                        <h5 class="modal-title fw-bold text-white mb-0">@previewingSchedule.BannerHeading</h5>
-                        <span class="text-secondary small">Doctor: @previewingSchedule.DoctorName &bull; @(previewingSchedule.HospitalName ?? "CYH Hospital")</span>
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.92); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 10000; padding: 8px;" @onclick="() => previewingSchedule = null">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 640px; width: 100%; margin: auto;" @onclick:stopPropagation="true">
+            <div class="modal-content glass-panel border-0 text-white" style="background: rgba(14, 25, 48, 0.98); border: 1px solid rgba(245, 158, 11, 0.35) !important; border-radius: 16px; max-height: calc(100dvh - 16px); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);">
+                <div class="modal-header border-bottom border-secondary border-opacity-25 px-3 py-2 flex-shrink-0 align-items-center" style="min-height: 44px;">
+                    <div class="text-truncate me-2">
+                        <h6 class="modal-title fw-bold text-white mb-0 text-truncate" style="font-size: 0.92rem;">@previewingSchedule.BannerHeading</h6>
+                        <span class="text-secondary small" style="font-size: 0.72rem;">Dr. @previewingSchedule.DoctorName &bull; @(previewingSchedule.HospitalName ?? "CYH Hospital")</span>
                     </div>
-                    <button type="button" class="btn-close btn-close-white" @onclick="() => previewingSchedule = null"></button>
+                    <button type="button" class="btn-close btn-close-white" style="font-size: 0.8rem;" @onclick="() => previewingSchedule = null"></button>
                 </div>
-                <div class="modal-body p-4 text-center">
+                <div class="modal-body p-2 p-sm-3 text-center d-flex flex-column align-items-center justify-content-center overflow-hidden flex-grow-1" style="min-height: 0;">
                     @if (!string.IsNullOrEmpty(previewingSchedule.ImageUrl))
                     {
-                        <img src="@previewingSchedule.ImageUrl" alt="Banner Preview" class="img-fluid rounded-3 shadow-lg" style="max-height: 70vh; object-fit: contain;" />
+                        <div class="w-100 d-flex align-items-center justify-content-center flex-grow-1" style="min-height: 0;">
+                            <img src="@previewingSchedule.ImageUrl" alt="Banner Preview" class="img-fluid rounded-2 shadow-lg" style="max-height: min(50vh, 420px); width: auto; height: auto; object-fit: contain; display: block;" />
+                        </div>
                     }
                     @if (!string.IsNullOrEmpty(previewingSchedule.Caption))
                     {
-                        <div class="text-start mt-3 p-3 rounded-3 bg-dark border border-secondary border-opacity-25">
-                            <div class="text-secondary small fw-bold">Post Caption:</div>
-                            <div class="text-light small mt-1" style="white-space: pre-wrap;">@previewingSchedule.Caption</div>
+                        <div class="text-start mt-2 px-3 py-1 rounded-2 bg-dark border border-secondary border-opacity-25 w-100 flex-shrink-0 text-truncate" style="font-size: 0.75rem;" title="@previewingSchedule.Caption">
+                            <span class="text-secondary fw-bold">Caption:</span>
+                            <span class="text-light ms-1">@previewingSchedule.Caption</span>
                         </div>
                     }
                 </div>
-                <div class="modal-footer border-top border-secondary border-opacity-25 px-4 py-3 d-flex justify-content-between">
-                    <div class="text-secondary small">
+                <div class="modal-footer border-top border-secondary border-opacity-25 px-3 py-2 d-flex justify-content-between flex-shrink-0" style="min-height: 44px;">
+                    <div class="text-secondary small" style="font-size: 0.75rem;">
                         Status: <strong class="text-white">@previewingSchedule.Status</strong>
                     </div>
                     <div class="d-flex gap-2">
                         @if (!string.IsNullOrEmpty(previewingSchedule.ImageUrl))
                         {
-                            <a href="@previewingSchedule.ImageUrl" target="_blank" download="Banner.png" class="btn btn-outline-info btn-sm">
-                                <i class="bi bi-download me-1"></i> Download Banner
+                            <a href="@previewingSchedule.ImageUrl" target="_blank" download="Banner.png" class="btn btn-outline-info btn-sm py-1 px-3 d-inline-flex align-items-center gap-1" style="font-size: 0.8rem;">
+                                <i class="bi bi-download"></i> Download
                             </a>
                         }
-                        <button type="button" class="btn btn-outline-secondary btn-sm px-4" @onclick="() => previewingSchedule = null">Close</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-3" style="font-size: 0.8rem;" @onclick="() => previewingSchedule = null">Close</button>
                     </div>
                 </div>
             </div>

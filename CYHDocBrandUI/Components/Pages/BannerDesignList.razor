@@ -300,83 +300,85 @@
         </div>
     }
 
-    <!-- PHOTO VIEW MODAL (अगर फोटो खोलना हो तो - FULL BRANDED COMPOSITE PREVIEW & HD DOWNLOAD) -->
+    <!-- PHOTO VIEW MODAL (अगर फोटो खोलना हो तो - FULL BRANDED COMPOSITE PREVIEW & HD DOWNLOAD - ZERO SCROLL ADAPTIVE) -->
     @if (viewingBanner != null)
     {
-        <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.88); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 1070;" @onclick="ClosePhotoModal">
-            <div class="modal-dialog modal-dialog-centered modal-lg" @onclick:stopPropagation>
-                <div class="modal-content text-white" style="background: #0b1426; border: 1px solid rgba(0, 242, 254, 0.35); border-radius: 18px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7); overflow: hidden;">
-                    <div class="modal-header border-secondary border-opacity-25 pb-3">
-                        <div>
-                            <div class="d-flex align-items-center gap-2 mb-1">
-                                <span class="badge @(viewingBanner.Status == "Published" ? "bg-success" : "bg-warning text-dark")">
-                                    <i class="bi @(viewingBanner.Status == "Published" ? "bi-shield-lock-fill" : "bi-pencil-fill") me-1"></i>
-                                    @(viewingBanner.Status == "Published" ? "FINAL PUBLISHED & LOCKED" : "DRAFT")
-                                </span>
-                                <span class="badge bg-secondary">@viewingBanner.AspectRatio • 1080p HD</span>
-                                <span class="badge bg-secondary">@viewingBanner.TemplateType</span>
-                            </div>
-                            <h5 class="modal-title fw-bold text-white mb-0">@viewingBanner.Heading</h5>
-                            <div class="small text-info mt-1"><i class="bi bi-person-badge me-1"></i>Specialist: <strong>@viewingBanner.DoctorName</strong></div>
+        <div class="modal fade show d-block photo-view-modal-backdrop" tabindex="-1" @onclick="ClosePhotoModal">
+            <div class="modal-dialog modal-dialog-centered photo-view-dialog" @onclick:stopPropagation>
+                <div class="modal-content text-white photo-view-content">
+                    <!-- Compact Header -->
+                    <div class="modal-header border-secondary border-opacity-25 py-2 px-3 align-items-center flex-shrink-0" style="min-height: 46px;">
+                        <div class="d-flex flex-wrap align-items-center gap-1 gap-sm-2 overflow-hidden me-2">
+                            <span class="badge @(viewingBanner.Status == "Published" ? "bg-success" : "bg-warning text-dark") px-2 py-1" style="font-size: 0.72rem;">
+                                <i class="bi @(viewingBanner.Status == "Published" ? "bi-shield-lock-fill" : "bi-pencil-fill") me-1"></i>
+                                @(viewingBanner.Status == "Published" ? "PUBLISHED" : "DRAFT")
+                            </span>
+                            <span class="badge bg-secondary px-2 py-1" style="font-size: 0.72rem;">@viewingBanner.AspectRatio</span>
+                            <span class="fw-bold text-white mb-0 text-truncate" style="max-width: 320px; font-size: 0.92rem;">@viewingBanner.Heading</span>
+                            <span class="text-info small text-truncate d-none d-sm-inline" style="font-size: 0.75rem;">&bull; Dr. @viewingBanner.DoctorName</span>
                         </div>
-                        <button type="button" class="btn-close btn-close-white" @onclick="ClosePhotoModal"></button>
+                        <button type="button" class="btn-close btn-close-white" style="font-size: 0.8rem;" @onclick="ClosePhotoModal"></button>
                     </div>
 
-                    <div class="modal-body p-4 text-center">
-                        <!-- High-Res Composite Banner Canvas Preview -->
-                        <div class="p-2 rounded-3 mx-auto shadow-lg position-relative overflow-hidden mb-3 d-flex align-items-center justify-content-center"
-                             style="max-width: 540px; background: #050a17; border: 2px solid rgba(0, 242, 254, 0.25); min-height: 380px;">
-                            
+                    <!-- Auto-Fitting Zero-Scroll Body -->
+                    <div class="modal-body photo-view-body text-center">
+                        <!-- High-Res Composite Banner Canvas Container -->
+                        <div class="photo-view-canvas-wrap">
                             @if (isRenderingModalCanvas)
                             {
                                 <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center" style="background: rgba(7, 13, 30, 0.75); z-index: 5;">
-                                    <div class="spinner-border text-info mb-2" role="status"></div>
-                                    <small class="text-secondary">Rendering High-Resolution Composite Banner...</small>
+                                    <div class="spinner-border spinner-border-sm text-info mb-2" role="status"></div>
+                                    <small class="text-secondary" style="font-size: 0.78rem;">Rendering High-Resolution Banner...</small>
                                 </div>
                             }
 
-                            <canvas id="viewModalCanvas" class="shadow-lg rounded-2" style="max-width: 100%; max-height: 520px; width: auto; height: auto; object-fit: contain;"></canvas>
+                            <canvas id="viewModalCanvas" class="shadow-lg rounded-2"></canvas>
                         </div>
 
                         @if (!string.IsNullOrEmpty(viewingBanner.Subtitle))
                         {
-                            <div class="p-3 rounded-2 text-start small mb-2" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);">
-                                <span class="text-white-50 d-block mb-1 fw-bold">Subtitle / Description:</span>
-                                <span class="text-light">@viewingBanner.Subtitle</span>
+                            <div class="w-100 px-3 py-1 mt-1 rounded-2 text-start small text-truncate flex-shrink-0" 
+                                 style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); font-size: 0.74rem;" 
+                                 title="@viewingBanner.Subtitle">
+                                <span class="text-white-50 fw-semibold">Subtitle:</span>
+                                <span class="text-light ms-1">@viewingBanner.Subtitle</span>
                             </div>
                         }
 
-                        <div class="d-flex justify-content-between small text-white-50 pt-2 border-top border-secondary border-opacity-25">
-                            <span>Banner ID: #@viewingBanner.Id</span>
-                            <span>Updated: @viewingBanner.UpdatedAt.ToLocalTime().ToString("dd MMM yyyy, hh:mm tt")</span>
+                        <div class="w-100 d-flex justify-content-between small text-white-50 pt-1 mt-1 border-top border-secondary border-opacity-25 flex-shrink-0" style="font-size: 0.7rem;">
+                            <span>#@viewingBanner.Id &bull; Updated: @viewingBanner.UpdatedAt.ToLocalTime().ToString("dd MMM, hh:mm tt")</span>
                             @if (viewingBanner.PublishedAt.HasValue)
                             {
-                                <span class="text-success"><i class="bi bi-shield-check me-1"></i>Published: @viewingBanner.PublishedAt.Value.ToLocalTime().ToString("dd MMM yyyy")</span>
+                                <span class="text-success"><i class="bi bi-shield-check me-1"></i>Published: @viewingBanner.PublishedAt.Value.ToLocalTime().ToString("dd MMM")</span>
                             }
                         </div>
                     </div>
 
-                    <div class="modal-footer border-secondary border-opacity-25 justify-content-between">
+                    <!-- Compact Footer with Accessible Buttons -->
+                    <div class="modal-footer border-secondary border-opacity-25 py-2 px-3 justify-content-between flex-shrink-0" style="min-height: 46px;">
                         <div>
                             @if (IsAdmin)
                             {
-                                <button type="button" class="btn btn-outline-danger btn-sm"
+                                <button type="button" class="btn btn-outline-danger btn-sm py-1 px-2" style="font-size: 0.78rem;"
                                         @onclick="() => { ClosePhotoModal(); ConfirmDeleteBanner(viewingBanner.Id, viewingBanner.Heading); }">
-                                    <i class="bi bi-trash-fill me-1"></i> Delete Banner
+                                    <i class="bi bi-trash-fill me-1"></i> <span class="d-none d-sm-inline">Delete</span>
                                 </button>
                             }
                         </div>
-                        <div class="d-flex flex-wrap gap-2">
-                            <button type="button" class="btn btn-warning btn-sm fw-semibold" @onclick="DownloadModalBannerPng">
-                                <i class="bi bi-download me-1"></i> Download HD PNG
+                        <div class="d-flex flex-wrap gap-1 gap-sm-2">
+                            <button type="button" class="btn btn-warning btn-sm fw-semibold py-1 px-2 px-sm-3 d-inline-flex align-items-center gap-1" style="font-size: 0.8rem;" @onclick="DownloadModalBannerPng">
+                                <i class="bi bi-download"></i>
+                                <span>Download HD</span>
                             </button>
-                            <button type="button" class="btn btn-outline-success btn-sm fw-semibold" @onclick="ShareModalBanner">
-                                <i class="bi bi-share-fill me-1"></i> Share
+                            <button type="button" class="btn btn-outline-success btn-sm fw-semibold py-1 px-2 px-sm-3 d-inline-flex align-items-center gap-1" style="font-size: 0.8rem;" @onclick="ShareModalBanner">
+                                <i class="bi bi-share-fill"></i>
+                                <span>Share</span>
                             </button>
-                            <button type="button" class="btn btn-primary btn-sm fw-semibold" @onclick="OpenScheduleModalFromView" style="background: linear-gradient(135deg, #1877f2 0%, #0d6efd 100%); border: none;">
-                                <i class="bi bi-calendar2-plus me-1"></i> Schedule Post
+                            <button type="button" class="btn btn-primary btn-sm fw-semibold py-1 px-2 px-sm-3 d-inline-flex align-items-center gap-1" style="background: linear-gradient(135deg, #1877f2 0%, #0d6efd 100%); border: none; font-size: 0.8rem;" @onclick="OpenScheduleModalFromView">
+                                <i class="bi bi-calendar2-plus"></i>
+                                <span>Schedule</span>
                             </button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="ClosePhotoModal">Close</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-2 px-sm-3" style="font-size: 0.8rem;" @onclick="ClosePhotoModal">Close</button>
                         </div>
                     </div>
                 </div>
@@ -616,6 +618,79 @@
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
+    }
+
+    /* Non-scrollable Photo View Modal for PC & Mobile */
+    .photo-view-modal-backdrop {
+        background: rgba(0, 0, 0, 0.9) !important;
+        backdrop-filter: blur(10px) !important;
+        -webkit-backdrop-filter: blur(10px) !important;
+        z-index: 1070 !important;
+        padding: 8px !important;
+    }
+    .photo-view-dialog {
+        max-width: 640px !important;
+        width: 100% !important;
+        margin: auto !important;
+    }
+    .photo-view-content {
+        max-height: calc(100dvh - 16px) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        background: #0b1426 !important;
+        border: 1px solid rgba(0, 242, 254, 0.35) !important;
+        border-radius: 16px !important;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.75) !important;
+        overflow: hidden !important;
+    }
+    .photo-view-body {
+        padding: 8px 12px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        overflow: hidden !important;
+        flex-grow: 1 !important;
+        min-height: 0 !important;
+    }
+    .photo-view-canvas-wrap {
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background: #050a17 !important;
+        border: 1.5px solid rgba(0, 242, 254, 0.25) !important;
+        border-radius: 12px !important;
+        position: relative !important;
+        overflow: hidden !important;
+        padding: 4px !important;
+    }
+    #viewModalCanvas {
+        max-width: 100% !important;
+        max-height: min(52vh, 440px) !important;
+        width: auto !important;
+        height: auto !important;
+        object-fit: contain !important;
+        display: block !important;
+    }
+    @@media (max-width: 768px) {
+        .photo-view-dialog {
+            max-width: 98% !important;
+            margin: 4px auto !important;
+        }
+        .photo-view-content {
+            max-height: calc(100dvh - 8px) !important;
+            border-radius: 12px !important;
+        }
+        .photo-view-body {
+            padding: 6px 8px !important;
+        }
+        #viewModalCanvas {
+            max-height: min(44vh, 290px) !important;
+        }
     }
 </style>
 
