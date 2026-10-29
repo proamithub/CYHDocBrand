@@ -46,6 +46,9 @@
             </div>
 
             <div class="d-flex align-items-center gap-2">
+                <!-- Theme Switcher (Glass, Dark, Light) -->
+                <ThemeSelector />
+
                 <!-- Sound Alert Choice Toggle (Sound ON / OFF) -->
                 <button type="button" class="btn btn-outline-secondary p-2 rounded-circle d-flex align-items-center justify-content-center"
                         style="width: 38px; height: 38px; border-color: @(isSoundEnabled ? "rgba(245, 158, 11, 0.5)" : "rgba(255,255,255,0.15)"); background: rgba(14, 25, 48, 0.7);"
@@ -71,7 +74,7 @@
                     <!-- Due Notifications Dropdown -->
                     @if (showNotificationDropdown)
                     {
-                        <div class="position-absolute end-0 mt-2 p-3 rounded-4 shadow-lg glass-panel" style="width: 320px; max-width: 90vw; background: rgba(14, 25, 48, 0.98); border: 1px solid rgba(245, 158, 11, 0.4); z-index: 1050;">
+                        <div class="position-absolute end-0 mt-2 p-3 rounded-4 shadow-lg glass-panel admin-notifications-dropdown" style="width: 320px; max-width: 90vw; z-index: 1050;">
                             <div class="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom border-secondary border-opacity-25">
                                 <span class="text-white fw-bold small">
                                     <i class="bi bi-clock-history text-warning me-1"></i> Ready to Share Now (@dueSchedules.Count)
@@ -121,19 +124,19 @@
                         aria-expanded="@isUserDropdownOpen"
                         title="Admin Account Options">
                     <div class="user-profile-pill d-flex align-items-center gap-2" 
-                         style="border: 1px solid rgba(245, 158, 11, 0.45); background: rgba(14, 25, 48, 0.85); padding: 5px 12px 5px 6px; border-radius: 30px; cursor: pointer; transition: all 0.2s ease;">
+                         style="border: 1px solid rgba(245, 158, 11, 0.45); padding: 5px 12px 5px 6px; border-radius: 30px; cursor: pointer; transition: all 0.2s ease;">
                         <div class="user-avatar" style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #f59e0b, #fbbf24); color: #070d1e; display: flex; align-items: center; justify-content: center; font-weight: bold;">
                             <i class="bi bi-shield-fill"></i>
                         </div>
                         <div class="d-none d-sm-block text-start">
-                            <div style="font-size: 0.85rem; font-weight: 600; line-height: 1.1; color: #ffffff; max-width: 140px;" class="text-truncate">
+                            <div style="font-size: 0.85rem; font-weight: 600; line-height: 1.1; color: var(--cyh-text-primary); max-width: 140px;" class="text-truncate">
                                 @(CurrentUser?.FullName ?? "System Administrator")
                             </div>
-                            <div class="d-none d-md-block text-truncate" style="font-size: 0.72rem; color: #fbbf24; font-weight: 600; max-width: 140px;">
+                            <div class="d-none d-md-block text-truncate" style="font-size: 0.72rem; color: #b45309; font-weight: 600; max-width: 140px;">
                                 Hospital Administrator
                             </div>
                         </div>
-                        <i class="bi bi-chevron-down ms-1" style="color: #fbbf24; font-size: 0.75rem; transition: transform 0.2s; transform: @(isUserDropdownOpen ? "rotate(180deg)" : "rotate(0deg)");"></i>
+                        <i class="bi bi-chevron-down ms-1" style="color: #b45309; font-size: 0.75rem; transition: transform 0.2s; transform: @(isUserDropdownOpen ? "rotate(180deg)" : "rotate(0deg)");"></i>
                     </div>
                 </button>
 
@@ -143,34 +146,34 @@
                     <div class="position-fixed top-0 start-0 w-100 h-100" style="z-index: 1040;" @onclick="CloseUserDropdown"></div>
 
                     <!-- Dropdown Menu Box -->
-                    <div class="dropdown-menu show shadow-lg fade-in" 
-                         style="position: absolute; right: 0; top: calc(100% + 8px); min-width: 250px; background: rgba(10, 20, 42, 0.98); backdrop-filter: blur(16px); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 14px; padding: 8px; z-index: 1045; box-shadow: 0 14px 35px rgba(0, 0, 0, 0.75);">
+                    <div class="dropdown-menu show shadow-lg fade-in admin-profile-dropdown" 
+                         style="position: absolute; right: 0; top: calc(100% + 8px); min-width: 250px; border-radius: 14px; padding: 8px; z-index: 1045;">
                         
                         <!-- Header Section inside Dropdown -->
-                        <div class="p-2 mb-2 rounded-3" style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.15);">
-                            <div class="fw-bold text-white small text-truncate">@(CurrentUser?.FullName ?? "Administrator")</div>
+                        <div class="p-2 mb-2 rounded-3 admin-dropdown-header" style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2);">
+                            <div class="fw-bold small text-truncate" style="color: var(--cyh-text-primary);">@(CurrentUser?.FullName ?? "Administrator")</div>
                             <div class="text-secondary text-truncate" style="font-size: 0.74rem;">@(CurrentUser?.Email ?? "admin@cyhdoctorhub.com")</div>
-                            <span class="badge mt-1" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; font-size: 0.68rem; border: 1px solid rgba(245, 158, 11, 0.4);">
+                            <span class="badge mt-1" style="background: rgba(245, 158, 11, 0.2); color: #b45309; font-size: 0.68rem; border: 1px solid rgba(245, 158, 11, 0.4);">
                                 <i class="bi bi-shield-check me-1"></i>Hospital Admin
                             </span>
                         </div>
 
                         <!-- 1. Password Change Option -->
                         <button type="button" 
-                                class="dropdown-item d-flex align-items-center gap-2 rounded-2 py-2 px-3 text-white border-0 w-100 text-start" 
+                                class="dropdown-item d-flex align-items-center gap-2 rounded-2 py-2 px-3 border-0 w-100 text-start" 
                                 @onclick="OpenChangePasswordModal" 
-                                style="font-size: 0.86rem; transition: all 0.15s; background: transparent;">
+                                style="font-size: 0.86rem; transition: all 0.15s; color: var(--cyh-text-primary);">
                             <i class="bi bi-key-fill text-warning fs-6"></i>
                             <span>Change Password</span>
                         </button>
 
-                        <div class="dropdown-divider my-2" style="border-color: rgba(255, 255, 255, 0.1);"></div>
+                        <div class="dropdown-divider my-2"></div>
 
                         <!-- 2. Logout Option -->
                         <button type="button" 
                                 class="dropdown-item d-flex align-items-center gap-2 rounded-2 py-2 px-3 text-danger border-0 w-100 text-start" 
                                 @onclick="Logout" 
-                                style="font-size: 0.86rem; transition: all 0.15s; background: transparent;">
+                                style="font-size: 0.86rem; transition: all 0.15s;">
                             <i class="bi bi-box-arrow-right fs-6"></i>
                             <span class="fw-bold">Logout</span>
                         </button>
@@ -184,7 +187,7 @@
     @if (liveBannerAlert != null)
     {
         <div class="alert alert-warning m-3 mb-0 p-3 rounded-4 shadow-lg d-flex align-items-center justify-content-between gap-3 border-warning position-relative"
-             style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.35) 0%, rgba(14, 25, 48, 0.98) 100%); backdrop-filter: blur(12px); border: 2px solid #f59e0b !important; box-shadow: 0 10px 30px rgba(245, 158, 11, 0.3) !important;">
+             style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.35) 0%, rgba(14, 25, 48, 0.98) 100%); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 2px solid #f59e0b !important; box-shadow: 0 10px 30px rgba(245, 158, 11, 0.3) !important;">
             <div class="d-flex align-items-center gap-3">
                 <div class="p-2 rounded-circle bg-warning text-dark fs-4 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; box-shadow: 0 0 15px rgba(245, 158, 11, 0.8);">
                     <i class="bi bi-bell-fill bell-ring-anim"></i>
@@ -219,7 +222,7 @@
 <!-- ================= CHANGE PASSWORD & AUDIT HISTORY MODAL ================= -->
 @if (isChangePasswordOpen)
 {
-    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px); z-index: 1055;">
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 1055;">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 500px;">
             <div class="modal-content text-white rounded-4 shadow-lg" style="background: rgba(14, 25, 48, 0.98); border: 1px solid rgba(245, 158, 11, 0.4); max-height: 90vh;">
                 <div class="modal-header border-bottom" style="border-color: rgba(255, 255, 255, 0.1) !important;">
@@ -359,7 +362,7 @@
 <!-- 1-Click Interactive Social & WhatsApp Share Modal -->
 @if (activeShareModalSchedule != null)
 {
-    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(10px); z-index: 1090;">
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 1090;">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content glass-panel" style="background: rgba(14, 25, 48, 0.98); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 20px;">
                 <div class="modal-header border-bottom border-secondary border-opacity-25 px-4 py-3 d-flex align-items-center justify-content-between">
@@ -644,6 +647,10 @@
 
                 // Ask browser desktop notification permission
                 await JSRuntime.InvokeVoidAsync("cyhSocial.requestNotificationPermission");
+                if (CurrentUser != null)
+                {
+                    await JSRuntime.InvokeVoidAsync("cyhTheme.syncUserTheme", CurrentUser.UserId);
+                }
             }
             catch { }
         }

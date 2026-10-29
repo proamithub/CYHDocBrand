@@ -1,17 +1,17 @@
 // CYH Doctor Brand - Progressive Web App (PWA) Service Worker
-const CACHE_NAME = 'cyh-pwa-cache-v1.2';
+const CACHE_NAME = 'cyh-pwa-cache-v2.0';
 
 const PRECACHE_ASSETS = [
     '/',
-    '/app.css',
-    '/css/glass-theme.css',
+
+
     '/favicon.svg',
     '/favicon.png',
     '/images/branding/cyh-emblem.png',
     '/images/branding/cyh-logo.png',
     '/images/branding/icon-192.png',
     '/lib/bootstrap/dist/css/bootstrap.min.css',
-    '/js/bannerStudio.js'
+
 ];
 
 // Install: Cache critical shell assets
@@ -60,6 +60,24 @@ self.addEventListener('fetch', (event) => {
                         headers: { 'Content-Type': 'text/html' }
                     });
                 })
+        );
+        return;
+    }
+
+    // For CSS and JS files: Network-First to guarantee immediate refresh when code is published live
+    if (url.pathname.endsWith('.css') || url.pathname.endsWith('.js')) {
+        event.respondWith(
+            fetch(req)
+                .then((networkResponse) => {
+                    if (networkResponse && networkResponse.status === 200) {
+                        const responseToCache = networkResponse.clone();
+                        caches.open(CACHE_NAME).then((cache) => {
+                            cache.put(req, responseToCache);
+                        });
+                    }
+                    return networkResponse;
+                })
+                .catch(() => caches.match(req))
         );
         return;
     }

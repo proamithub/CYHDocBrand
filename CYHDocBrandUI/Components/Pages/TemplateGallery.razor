@@ -293,7 +293,7 @@
 <!-- Quick High-Res Preview Modal -->
 @if (previewTemplate != null)
 {
-    <div class="modal-backdrop fade show" style="background: rgba(3, 8, 20, 0.88); backdrop-filter: blur(10px); z-index: 1050;"></div>
+    <div class="modal-backdrop fade show" style="background: rgba(3, 8, 20, 0.88); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 1050;"></div>
     <div class="modal fade show d-block" tabindex="-1" style="z-index: 1055;" @onclick="ClosePreviewModal">
         <div class="modal-dialog modal-dialog-centered modal-lg" @onclick:stopPropagation>
             <div class="modal-content glass-panel" style="background: rgba(14, 25, 48, 0.95); border: 1px solid rgba(0, 242, 254, 0.35); border-radius: 20px; overflow: hidden; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);">

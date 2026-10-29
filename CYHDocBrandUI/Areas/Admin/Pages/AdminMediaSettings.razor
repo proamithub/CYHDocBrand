@@ -21,7 +21,7 @@
 
     <!-- ── Header ── -->
     <div class="glass-panel p-4 d-flex flex-wrap align-items-center justify-content-between gap-3"
-         style="border-left: 4px solid #f59e0b; background: rgba(14, 25, 48, 0.85); backdrop-filter: blur(16px); border-radius: 16px;">
+         style="border-left: 4px solid #f59e0b; background: rgba(14, 25, 48, 0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-radius: 16px;">
         <div>
             <div class="d-flex align-items-center gap-2 mb-1">
                 <span class="badge px-2 py-1" style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); color: #fbbf24; font-size: 0.72rem; font-weight: 700;">
@@ -352,7 +352,7 @@
 <!-- ── MODAL 1: Global API Configuration Modal ── -->
 @if (editingPlatform != null)
 {
-    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); z-index: 1085;">
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 1085;">
         <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
             <div class="modal-content glass-panel" style="background: rgba(14, 25, 48, 0.98); border: 1px solid @GetPlatformBorderColor(editingPlatform.ColorHex); border-radius: 18px; max-height: 90vh;">
                 <div class="modal-header border-bottom border-secondary border-opacity-25 px-4 py-3">
@@ -442,7 +442,7 @@
 <!-- ── MODAL 2: Admin Doctor Account Link Modal ── -->
 @if (editingDocPlatform != null)
 {
-    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); z-index: 1085;">
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 1085;">
         <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
             <div class="modal-content glass-panel" style="background: rgba(14, 25, 48, 0.98); border: 1px solid @GetPlatformBorderColor(editingDocPlatform.ColorHex); border-radius: 18px; max-height: 90vh;">
                 <div class="modal-header border-bottom border-secondary border-opacity-25 px-4 py-3">

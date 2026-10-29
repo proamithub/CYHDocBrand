@@ -334,7 +334,7 @@
 <!-- ── Delete Confirmation Modal ── -->
 @if (deletingSchedule != null)
 {
-    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); z-index: 9999;">
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 9999;">
         <div class="modal-dialog modal-dialog-centered" style="max-width: 490px;">
             <div class="modal-content glass-panel text-white border-0 shadow-lg" style="background: rgba(14, 25, 48, 0.98); border: 1px solid rgba(239, 68, 68, 0.4) !important; border-radius: 18px;">
                 <div class="modal-header border-0 pb-0 pt-4 px-4">
@@ -396,7 +396,7 @@
 <!-- ── Lightbox Image Preview Modal ── -->
 @if (!string.IsNullOrEmpty(previewImageUrl))
 {
-    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.92); backdrop-filter: blur(10px); z-index: 10000;" @onclick="CloseImagePreview">
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.92); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 10000;" @onclick="CloseImagePreview">
         <div class="modal-dialog modal-dialog-centered modal-lg" @onclick:stopPropagation="true">
             <div class="modal-content glass-panel border-0 text-white p-3" style="background: rgba(10, 18, 38, 0.96); border: 1px solid rgba(0, 242, 254, 0.3) !important; border-radius: 18px;">
                 <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom border-secondary border-opacity-25">

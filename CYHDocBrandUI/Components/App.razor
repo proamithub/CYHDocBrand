@@ -1,3 +1,4 @@
+@using CYHDocBrandUI.Services
 <!DOCTYPE html>
 <html lang="en">
 
@@ -14,21 +15,67 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="CYH Brand" />
     <meta name="application-name" content="CYH Brand" />
-    <!-- Google Fonts for High Quality English & Hindi (Devanagari) Typography -->
+    <!-- High-Speed DNS Prefetch & Preconnect for External CDNs -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Hind:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@400;600;700;800&family=Mukta:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;0,900;1,600&family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600&family=Rozha+One&family=Yatra+One&display=swap" rel="stylesheet">
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+
+    <!-- Non-Blocking Asynchronous Google Fonts (Instant First Contentful Paint) -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Hind:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@400;600;700;800&family=Mukta:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;0,900;1,600&family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600&family=Rozha+One&family=Yatra+One&display=swap" />
+    <link href="https://fonts.googleapis.com/css2?family=Hind:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@400;600;700;800&family=Mukta:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;0,900;1,600&family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600&family=Rozha+One&family=Yatra+One&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+    <noscript>
+        <link href="https://fonts.googleapis.com/css2?family=Hind:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@400;600;700;800&family=Mukta:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;0,900;1,600&family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600&family=Rozha+One&family=Yatra+One&display=swap" rel="stylesheet">
+    </noscript>
     <link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="lib/flatpickr.min.css" />
     <link rel="stylesheet" href="lib/flatpickr-dark.min.css" />
-    <link rel="stylesheet" href="css/glass-theme.css" />
-    <link rel="stylesheet" href="app.css" />
-    <link rel="stylesheet" href="CYHDocBrandUI.styles.css" />
-    <link rel="icon" type="image/svg+xml" href="favicon.svg?v=4" />
-    <link rel="icon" type="image/png" sizes="256x256" href="favicon.png?v=4" />
-    <link rel="shortcut icon" href="favicon.ico?v=4" />
-    <link rel="apple-touch-icon" href="favicon.png?v=4" />
+    
+    <!-- Central Asset Version Registry for Dynamic Scripts & Theme Switching -->
+    <script>
+        window.CYH_ASSETS = {
+            build: '@AssetVersioning.BuildId',
+            themes: {
+                'glass': '@AssetVersioning.Append("css/glass-theme.css")',
+                'dark': '@AssetVersioning.Append("css/dark-theme.css")',
+                'light': '@AssetVersioning.Append("css/light-theme.css")'
+            }
+        };
+    </script>
+
+    <!-- Active Theme Stylesheet (Auto Versioned to bust cache on every change) -->
+    <link id="app-theme-css" rel="stylesheet" href="@AssetVersioning.Append("css/glass-theme.css")" />
+    <script>
+        (function() {
+            try {
+                var activeUserId = localStorage.getItem('cyh_active_user_id');
+                var savedTheme = (activeUserId ? localStorage.getItem('cyh_theme_' + activeUserId) : null) 
+                                 || localStorage.getItem('cyh_theme') 
+                                 || 'glass';
+                var themeFiles = window.CYH_ASSETS && window.CYH_ASSETS.themes ? window.CYH_ASSETS.themes : {
+                    'glass': 'css/glass-theme.css',
+                    'dark': 'css/dark-theme.css',
+                    'light': 'css/light-theme.css'
+                };
+                var cssHref = themeFiles[savedTheme] || themeFiles['glass'];
+                var themeLink = document.getElementById('app-theme-css');
+                if (themeLink && cssHref) {
+                    themeLink.href = cssHref;
+                }
+                document.documentElement.setAttribute('data-theme', savedTheme);
+            } catch(e) {}
+        })();
+    </script>
+    <script src="@AssetVersioning.Append("js/themeManager.js")"></script>
+    <link rel="stylesheet" href="@AssetVersioning.Append("app.css")" />
+    <link rel="stylesheet" href="@AssetVersioning.Append("CYHDocBrandUI.styles.css")" />
+    <link rel="icon" type="image/svg+xml" href="@AssetVersioning.Append("favicon.svg")" />
+    <link rel="icon" type="image/png" sizes="256x256" href="@AssetVersioning.Append("favicon.png")" />
+    <link rel="shortcut icon" href="@AssetVersioning.Append("favicon.ico")" />
+    <link rel="apple-touch-icon" sizes="192x192" href="@AssetVersioning.Append("images/branding/icon-192.png")" />
     <HeadOutlet @rendermode="new InteractiveServerRenderMode(prerender: false)" />
 </head>
 
@@ -36,9 +83,9 @@
     <Routes @rendermode="new InteractiveServerRenderMode(prerender: false)" />
     <ReconnectModal />
     <script src="lib/flatpickr.min.js"></script>
-    <script src="js/bannerStudio.js?v=4.4"></script>
-    <script src="js/socialShare.js?v=2.1"></script>
-    <script src="js/pwa.js?v=1.1"></script>
+    <script src="@AssetVersioning.Append("js/bannerStudio.js")"></script>
+    <script src="@AssetVersioning.Append("js/socialShare.js")"></script>
+    <script src="@AssetVersioning.Append("js/pwa.js")"></script>
     <script src="_framework/blazor.web.js"></script>
 </body>
 

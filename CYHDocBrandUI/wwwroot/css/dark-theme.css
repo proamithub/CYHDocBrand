@@ -1,0 +1,1327 @@
+/* ==========================================================================
+   CYH DoctorHub — Modern Solid Obsidian Dark Design System
+   High-Contrast, High-Performance Dark Edition
+   ========================================================================== */
+
+:root {
+  --cyh-bg-main: #0b0f19;
+  --cyh-bg-surface: #111827;
+  --cyh-bg-card: #162033;
+  --cyh-bg-card-hover: #1c2b44;
+  --cyh-bg-glass-input: #0f172a;
+  
+  --cyh-border-glass: #22314d;
+  --cyh-border-glass-glow: rgba(0, 242, 254, 0.45);
+  --cyh-border-focus: #00f2fe;
+
+  --cyh-accent-cyan: #00f2fe;
+  --cyh-accent-blue: #38bdf8;
+  --cyh-accent-emerald: #10b981;
+  --cyh-accent-amber: #f59e0b;
+  --cyh-accent-rose: #f43f5e;
+  --cyh-accent-purple: #a855f7;
+
+  --cyh-text-primary: #f8fafc;
+  --cyh-text-secondary: #94a3b8;
+  --cyh-text-muted: #64748b;
+
+  --cyh-glass-blur: none;
+  --cyh-shadow-glass: 0 8px 24px -4px rgba(0, 0, 0, 0.65), 0 2px 6px -1px rgba(0, 0, 0, 0.4);
+  --cyh-shadow-glow: 0 0 20px rgba(0, 242, 254, 0.25);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background-color: #0b0f19;
+  background-image: 
+    radial-gradient(circle at 10% 15%, rgba(0, 242, 254, 0.04) 0%, transparent 40%),
+    radial-gradient(circle at 85% 25%, rgba(56, 189, 248, 0.04) 0%, transparent 45%),
+    radial-gradient(circle at 50% 80%, rgba(168, 85, 247, 0.03) 0%, transparent 50%);
+  background-attachment: fixed;
+  color: var(--cyh-text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: clip;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ================= Containers & Cards ================= */
+.glass-panel {
+  background: var(--cyh-bg-card);
+  border: 1px solid var(--cyh-border-glass);
+  border-radius: 16px;
+  box-shadow: var(--cyh-shadow-glass);
+  transition: all 0.25s ease;
+}
+
+.glass-panel:hover {
+  border-color: #2e4163;
+}
+
+.glass-card {
+  background: var(--cyh-bg-card);
+  border: 1px solid var(--cyh-border-glass);
+  border-radius: 14px;
+  box-shadow: var(--cyh-shadow-glass);
+  padding: 1.25rem;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.glass-card:hover {
+  transform: translateY(-2px);
+  background: var(--cyh-bg-card-hover);
+  border-color: var(--cyh-border-glass-glow);
+  box-shadow: 0 14px 30px -4px rgba(0, 0, 0, 0.7), var(--cyh-shadow-glow);
+}
+
+/* ================= Stat Cards ================= */
+.stat-card {
+  position: relative;
+  overflow: hidden;
+  background: #141d2e;
+  border: 1px solid var(--cyh-border-glass);
+}
+
+.stat-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 90px;
+  height: 90px;
+  background: radial-gradient(circle, rgba(0, 242, 254, 0.12) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.stat-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  background: rgba(0, 242, 254, 0.12);
+  color: var(--cyh-accent-cyan);
+  border: 1px solid rgba(0, 242, 254, 0.25);
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   DROPDOWNS & HEADER POPUPS IN DARK THEME
+   ========================================================================== */
+.dropdown-menu,
+.admin-profile-dropdown,
+.admin-notifications-dropdown {
+  background: #141d2e;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 14px;
+  box-shadow: 0 14px 35px rgba(0, 0, 0, 0.75);
+  color: #f8fafc;
+}
+
+.admin-dropdown-header {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.dropdown-item {
+  color: #f8fafc;
+  background: transparent;
+  transition: all 0.15s ease;
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.dropdown-item.text-danger {
+  color: #f43f5e;
+}
+
+.dropdown-item.text-danger:hover {
+  background: rgba(244, 63, 94, 0.15);
+  color: #fda4af;
+}
+
+.dropdown-divider {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.stat-icon-emerald {
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--cyh-accent-emerald);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.stat-icon-amber {
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--cyh-accent-amber);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.stat-icon-purple {
+  background: rgba(168, 85, 247, 0.12);
+  color: var(--cyh-accent-purple);
+  border: 1px solid rgba(168, 85, 247, 0.25);
+}
+
+.stat-value {
+  font-size: clamp(1.4rem, 3.5vw, 1.85rem);
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.5px;
+  line-height: 1.2;
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: var(--cyh-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+/* ================= Buttons ================= */
+.glass-btn-primary {
+  background: linear-gradient(135deg, #00f2fe 0%, #38bdf8 100%);
+  color: #070d1e;
+  border: none;
+  font-weight: 600;
+  padding: 0.6rem 1.3rem;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0, 242, 254, 0.35);
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  min-height: 40px;
+}
+
+.glass-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0, 242, 254, 0.55);
+  color: #070d1e;
+}
+
+.glass-btn-secondary {
+  background: #1c273a;
+  color: var(--cyh-text-primary);
+  border: 1px solid var(--cyh-border-glass);
+  font-weight: 500;
+  padding: 0.6rem 1.2rem;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 40px;
+}
+
+.glass-btn-secondary:hover {
+  background: #25334c;
+  border-color: #384c6e;
+  color: #ffffff;
+}
+
+.glass-btn-sm {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+  border-radius: 8px;
+  min-height: 34px;
+}
+
+.glass-btn-danger {
+  background: rgba(244, 63, 94, 0.15);
+  color: #fda4af;
+  border: 1px solid rgba(244, 63, 94, 0.35);
+  min-height: 40px;
+}
+
+.glass-btn-danger:hover {
+  background: rgba(244, 63, 94, 0.3);
+  color: #ffffff;
+}
+
+/* ================= Form Controls ================= */
+.glass-input,
+.form-control:not([type="range"]):not([type="color"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+.form-select,
+select.glass-input,
+textarea.glass-input {
+  background: #0f172a;
+  border: 1px solid #2a3a54;
+  border-radius: 10px;
+  padding: 0.72rem 1rem;
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 500;
+  outline: none;
+  width: 100%;
+  min-height: 42px;
+  transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+}
+
+.glass-input:focus,
+.form-control:not([type="range"]):not([type="color"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
+.form-select:focus,
+select.glass-input:focus,
+textarea.glass-input:focus {
+  border-color: #00f2fe;
+  box-shadow: 0 0 0 3px rgba(0, 242, 254, 0.25);
+  background: #131c31;
+  color: #ffffff;
+}
+
+.glass-input::placeholder,
+.form-control::placeholder {
+  color: #64748b;
+  opacity: 0.85;
+}
+
+/* Small Form Controls */
+.form-control-sm,
+.form-select-sm {
+  min-height: calc(1.5em + 0.5rem + 2px);
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+  padding-left: 0.5rem;
+  font-size: 0.8rem;
+}
+
+/* Select Options */
+select option,
+.form-select option,
+select.glass-input option {
+  background-color: #0f172a;
+  color: #ffffff;
+}
+
+/* Input File Handling */
+input[type="file"][style*="display: none"],
+input[type="file"][style*="display:none"],
+input[type="file"].d-none,
+.d-none input[type="file"] {
+  display: none !important;
+}
+
+input[type="file"].form-control,
+.form-control[type="file"] {
+  background-color: #0f172a;
+  color: #ffffff;
+  border: 1px solid #2a3a54;
+  border-radius: 10px;
+  padding: 0.4rem 0.65rem;
+  cursor: pointer;
+}
+
+input[type="file"].form-control::file-selector-button,
+.form-control[type="file"]::file-selector-button {
+  background-color: #1e293b;
+  color: #ffffff;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 0.35rem 0.85rem;
+  margin-right: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+input[type="file"].form-control::file-selector-button:hover,
+.form-control[type="file"]::file-selector-button:hover {
+  background-color: #334155;
+}
+
+/* Range Sliders */
+.form-range,
+input[type="range"] {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  min-height: auto !important;
+  height: 1.5rem !important;
+  box-shadow: none !important;
+  accent-color: #00f2fe !important;
+  cursor: pointer;
+}
+
+/* Color Picker */
+.form-control-color,
+input[type="color"] {
+  background-color: #0f172a !important;
+  border: 1px solid #2a3a54 !important;
+  padding: 4px !important;
+  min-height: 38px !important;
+  height: 38px !important;
+  width: 48px !important;
+  cursor: pointer;
+}
+
+/* Input Group Addons */
+.input-group-text {
+  background: #141e30 !important;
+  border: 1px solid #2a3a54 !important;
+  color: #00f2fe !important;
+  font-weight: 700 !important;
+}
+
+/* ================= Tables ================= */
+.glass-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.glass-table th {
+  background: #141e30;
+  color: var(--cyh-text-secondary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--cyh-border-glass);
+  white-space: nowrap;
+}
+
+.glass-table th:first-child {
+  border-top-left-radius: 12px;
+}
+.glass-table th:last-child {
+  border-top-right-radius: 12px;
+}
+
+.glass-table td {
+  padding: 0.95rem 1rem;
+  border-bottom: 1px solid #1c273a;
+  color: var(--cyh-text-primary);
+  font-size: 0.9rem;
+  vertical-align: middle;
+}
+
+.glass-table tbody tr {
+  transition: background 0.15s ease;
+}
+
+.glass-table tbody tr:hover {
+  background: #152033;
+}
+
+.table-responsive {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.table-responsive::-webkit-scrollbar {
+  height: 6px;
+}
+.table-responsive::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+/* ================= Badges ================= */
+.badge-status {
+  padding: 0.35rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.badge-scheduled {
+  background: rgba(148, 163, 184, 0.15);
+  color: #cbd5e1;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.badge-confirmed {
+  background: rgba(0, 242, 254, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(0, 242, 254, 0.35);
+}
+
+.badge-inconsultation {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  animation: pulse-glow 2s infinite;
+}
+
+.badge-completed {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.badge-cancelled {
+  background: rgba(244, 63, 94, 0.15);
+  color: #fb7185;
+  border: 1px solid rgba(244, 63, 94, 0.35);
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* ================= Sidebar & Layout Architecture ================= */
+.cyh-app-container {
+  display: flex;
+  min-height: 100vh;
+  min-height: 100dvh;
+  position: relative;
+  overflow-x: clip;
+  width: 100%;
+}
+
+.cyh-sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  background: rgba(3, 7, 18, 0.85);
+  z-index: 1040;
+  opacity: 0;
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+.cyh-sidebar-backdrop.show {
+  display: block;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Sidebar */
+.cyh-sidebar {
+  width: 260px;
+  background: #0d131f;
+  border-right: 1px solid var(--cyh-border-glass);
+  display: flex;
+  flex-direction: column;
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100dvh;
+  z-index: 100;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+  overflow: hidden;
+}
+
+.cyh-brand {
+  padding: 1.15rem 1.15rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-bottom: 1px solid var(--cyh-border-glass);
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   DROPDOWNS & HEADER POPUPS IN DARK THEME
+   ========================================================================== */
+.dropdown-menu,
+.admin-profile-dropdown,
+.admin-notifications-dropdown {
+  background: #141d2e;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 14px;
+  box-shadow: 0 14px 35px rgba(0, 0, 0, 0.75);
+  color: #f8fafc;
+}
+
+.admin-dropdown-header {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.dropdown-item {
+  color: #f8fafc;
+  background: transparent;
+  transition: all 0.15s ease;
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.dropdown-item.text-danger {
+  color: #f43f5e;
+}
+
+.dropdown-item.text-danger:hover {
+  background: rgba(244, 63, 94, 0.15);
+  color: #fda4af;
+}
+
+.dropdown-divider {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.cyh-brand-logo {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: inherit;
+  font-size: 1.2rem;
+  box-shadow: none;
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   DROPDOWNS & HEADER POPUPS IN DARK THEME
+   ========================================================================== */
+.dropdown-menu,
+.admin-profile-dropdown,
+.admin-notifications-dropdown {
+  background: #141d2e;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 14px;
+  box-shadow: 0 14px 35px rgba(0, 0, 0, 0.75);
+  color: #f8fafc;
+}
+
+.admin-dropdown-header {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.dropdown-item {
+  color: #f8fafc;
+  background: transparent;
+  transition: all 0.15s ease;
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.dropdown-item.text-danger {
+  color: #f43f5e;
+}
+
+.dropdown-item.text-danger:hover {
+  background: rgba(244, 63, 94, 0.15);
+  color: #fda4af;
+}
+
+.dropdown-divider {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.cyh-brand-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cyh-brand-subtitle {
+  font-size: 0.7rem;
+  color: var(--cyh-accent-cyan);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cyh-sidebar-close-btn {
+  background: #1c273a;
+  border: 1px solid var(--cyh-border-glass);
+  color: var(--cyh-text-primary);
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   DROPDOWNS & HEADER POPUPS IN DARK THEME
+   ========================================================================== */
+.dropdown-menu,
+.admin-profile-dropdown,
+.admin-notifications-dropdown {
+  background: #141d2e;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 14px;
+  box-shadow: 0 14px 35px rgba(0, 0, 0, 0.75);
+  color: #f8fafc;
+}
+
+.admin-dropdown-header {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.dropdown-item {
+  color: #f8fafc;
+  background: transparent;
+  transition: all 0.15s ease;
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.dropdown-item.text-danger {
+  color: #f43f5e;
+}
+
+.dropdown-item.text-danger:hover {
+  background: rgba(244, 63, 94, 0.15);
+  color: #fda4af;
+}
+
+.dropdown-divider {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.cyh-sidebar-close-btn:hover {
+  background: #273750;
+  color: #ffffff;
+}
+
+.cyh-mobile-toggle {
+  background: #162033;
+  border: 1px solid var(--cyh-border-glass);
+  color: var(--cyh-text-primary);
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   DROPDOWNS & HEADER POPUPS IN DARK THEME
+   ========================================================================== */
+.dropdown-menu,
+.admin-profile-dropdown,
+.admin-notifications-dropdown {
+  background: #141d2e;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 14px;
+  box-shadow: 0 14px 35px rgba(0, 0, 0, 0.75);
+  color: #f8fafc;
+}
+
+.admin-dropdown-header {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.dropdown-item {
+  color: #f8fafc;
+  background: transparent;
+  transition: all 0.15s ease;
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.dropdown-item.text-danger {
+  color: #f43f5e;
+}
+
+.dropdown-item.text-danger:hover {
+  background: rgba(244, 63, 94, 0.15);
+  color: #fda4af;
+}
+
+.dropdown-divider {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.cyh-mobile-toggle:hover,
+.cyh-mobile-toggle:focus {
+  background: rgba(0, 242, 254, 0.15);
+  color: #00f2fe;
+  border-color: rgba(0, 242, 254, 0.4);
+}
+
+.cyh-nav {
+  padding: 1rem 0.75rem;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.cyh-nav::-webkit-scrollbar {
+  width: 5px;
+}
+.cyh-nav::-webkit-scrollbar-thumb {
+  background: #22314d;
+  border-radius: 4px;
+}
+
+.cyh-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 10px;
+  color: var(--cyh-text-secondary);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.cyh-nav-item:hover {
+  color: #ffffff;
+  background: #162033;
+  border-color: #22314d;
+}
+
+.cyh-nav-item.active {
+  color: var(--cyh-accent-cyan);
+  background: rgba(0, 242, 254, 0.12);
+  border-color: rgba(0, 242, 254, 0.35);
+  box-shadow: inset 0 0 10px rgba(0, 242, 254, 0.1);
+  font-weight: 600;
+}
+
+.cyh-nav-divider {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--cyh-text-muted);
+  padding: 0.85rem 0.9rem 0.35rem 0.9rem;
+  font-weight: 700;
+}
+
+.cyh-sidebar-footer {
+  padding: 1rem;
+  border-top: 1px solid var(--cyh-border-glass);
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   DROPDOWNS & HEADER POPUPS IN DARK THEME
+   ========================================================================== */
+.dropdown-menu,
+.admin-profile-dropdown,
+.admin-notifications-dropdown {
+  background: #141d2e;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 14px;
+  box-shadow: 0 14px 35px rgba(0, 0, 0, 0.75);
+  color: #f8fafc;
+}
+
+.admin-dropdown-header {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.dropdown-item {
+  color: #f8fafc;
+  background: transparent;
+  transition: all 0.15s ease;
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.dropdown-item.text-danger {
+  color: #f43f5e;
+}
+
+.dropdown-item.text-danger:hover {
+  background: rgba(244, 63, 94, 0.15);
+  color: #fda4af;
+}
+
+.dropdown-divider {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.cyh-main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+  position: relative;
+}
+
+.cyh-topbar {
+  height: 68px;
+  background: #0d131f;
+  border-bottom: 1px solid var(--cyh-border-glass);
+  padding: 0 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+  width: 100%;
+  transition: height 0.2s ease, padding 0.2s ease;
+}
+
+.cyh-body {
+  padding: 1.75rem;
+  flex: 1;
+  width: 100%;
+}
+
+/* User Profile Pill */
+.user-profile-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 30px;
+  background: #162033;
+  border: 1px solid var(--cyh-border-glass);
+  max-width: 100%;
+}
+
+.user-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #38bdf8, #00f2fe);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: #070d1e;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   DROPDOWNS & HEADER POPUPS IN DARK THEME
+   ========================================================================== */
+.dropdown-menu,
+.admin-profile-dropdown,
+.admin-notifications-dropdown {
+  background: #141d2e;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 14px;
+  box-shadow: 0 14px 35px rgba(0, 0, 0, 0.75);
+  color: #f8fafc;
+}
+
+.admin-dropdown-header {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.dropdown-item {
+  color: #f8fafc;
+  background: transparent;
+  transition: all 0.15s ease;
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.dropdown-item.text-danger {
+  color: #f43f5e;
+}
+
+.dropdown-item.text-danger:hover {
+  background: rgba(244, 63, 94, 0.15);
+  color: #fda4af;
+}
+
+.dropdown-divider {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Auth Role Switcher Tabs */
+.auth-role-tabs {
+  display: flex;
+  padding: 5px;
+  margin-bottom: 1.5rem;
+  border-radius: 12px;
+  background: #101726;
+  border: 1px solid #22314d;
+  gap: 6px;
+}
+
+.auth-role-tab {
+  flex: 1;
+  padding: 0.65rem 0.75rem;
+  text-align: center;
+  border-radius: 9px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  background: #162033;
+  border: 1px solid #22314d;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 42px;
+}
+
+.auth-role-tab:hover:not(.active-doctor):not(.active-admin) {
+  background: #1d2a42;
+  color: #ffffff;
+  border-color: rgba(0, 242, 254, 0.45);
+}
+
+.auth-role-tab.active-doctor {
+  background: linear-gradient(135deg, #00f2fe 0%, #38bdf8 100%) !important;
+  color: #070d1e !important;
+  font-weight: 700 !important;
+  border: 1px solid #00f2fe !important;
+  box-shadow: 0 4px 18px rgba(0, 242, 254, 0.45) !important;
+}
+
+.auth-role-tab.active-admin {
+  background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%) !important;
+  color: #070d1e !important;
+  font-weight: 700 !important;
+  border: 1px solid #f59e0b !important;
+  box-shadow: 0 4px 18px rgba(245, 158, 11, 0.45) !important;
+}
+
+/* Modal Styling */
+.modal-content {
+  background: #121927 !important;
+  border: 1px solid #273750 !important;
+  color: #f8fafc !important;
+  border-radius: 16px;
+}
+
+.modal-header, .modal-footer {
+  border-color: #22314d !important;
+}
+
+/* Toast Positioning */
+.toast-popup-wrapper {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 99999;
+  min-width: 320px;
+  max-width: 460px;
+}
+
+/* Hardcoded Dark Navy Helper Overrides for Dark Solid Theme */
+[style*="rgba(14, 25, 48"] {
+  background: #162033 !important;
+  border-color: #22314d !important;
+}
+
+[style*="rgba(9, 18, 36"] {
+  background: #0d131f !important;
+  border-color: #22314d !important;
+}
+
+[style*="rgba(11, 22, 44"] {
+  background: #101726 !important;
+  border-color: #22314d !important;
+}
+
+/* Responsive Media Queries */
+@media (max-width: 991.98px) {
+  .cyh-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 285px;
+    max-width: 86vw;
+    height: 100vh;
+    height: 100dvh;
+    z-index: 1050;
+    transform: translateX(-100%);
+    box-shadow: none;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .cyh-sidebar.mobile-open {
+    transform: translateX(0);
+    box-shadow: 10px 0 40px rgba(0, 0, 0, 0.9);
+  }
+
+  .cyh-topbar {
+    height: 60px;
+    padding: 0 1rem;
+    gap: 0.5rem;
+    background: #0d131f;
+  }
+
+  .cyh-body {
+    padding: 1.15rem 0.85rem;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .cyh-topbar {
+    height: 56px;
+    padding: 0 0.65rem;
+    gap: 0.4rem;
+    background: #0d131f;
+  }
+
+  .cyh-body {
+    padding: 0.85rem 0.5rem;
+  }
+
+  .glass-panel {
+    border-radius: 14px;
+    padding: 1rem !important;
+  }
+
+  .glass-card {
+    border-radius: 12px;
+    padding: 0.85rem !important;
+  }
+
+  .toast-popup-wrapper {
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    min-width: auto;
+    max-width: 100%;
+    width: auto;
+  }
+}
+
+
+/* ==========================================================================
+   DROPDOWNS & HEADER POPUPS IN DARK THEME
+   ========================================================================== */
+.dropdown-menu,
+.admin-profile-dropdown,
+.admin-notifications-dropdown {
+  background: #141d2e;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 14px;
+  box-shadow: 0 14px 35px rgba(0, 0, 0, 0.75);
+  color: #f8fafc;
+}
+
+.admin-dropdown-header {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.dropdown-item {
+  color: #f8fafc;
+  background: transparent;
+  transition: all 0.15s ease;
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.dropdown-item.text-danger {
+  color: #f43f5e;
+}
+
+.dropdown-item.text-danger:hover {
+  background: rgba(244, 63, 94, 0.15);
+  color: #fda4af;
+}
+
+.dropdown-divider {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ==========================================================================
+   DOCTOR PROFILE TABS IN DARK THEME
+   ========================================================================== */
+.profile-nav-pills {
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 6px;
+  display: flex;
+  gap: 6px;
+}
+
+.profile-tab-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 16px;
+  border-radius: 9px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #94a3b8;
+  font-weight: 600;
+  font-size: 0.88rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  text-align: center;
+}
+
+.profile-tab-btn:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+}
+
+.profile-tab-btn.active {
+  background: linear-gradient(135deg, #00f2fe 0%, #38bdf8 100%);
+  color: #070d1e !important;
+  font-weight: 700;
+  box-shadow: 0 4px 15px rgba(0, 242, 254, 0.35);
+}
+
+.profile-tab-btn.active i {
+  color: #070d1e !important;
+}
+
+/* ==========================================================================
+   CROSS-PLATFORM & MOBILE ENGINE (iOS Safari, macOS, Android Chrome/Samsung)
+   ========================================================================== */
+
+/* 1. Prevent iOS Safari auto-zoom on input focus by enforcing 16px minimum on mobile */
+@media screen and (max-width: 768px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="url"],
+  input[type="tel"],
+  input[type="search"],
+  select,
+  textarea,
+  .glass-input,
+  .form-control,
+  .form-select {
+    font-size: 16px !important;
+  }
+}
+
+/* 2. Remove default iOS/WebKit inner shadows and form element styling */
+.glass-input,
+.form-control,
+.form-select,
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="url"],
+input[type="tel"],
+input[type="search"],
+select,
+textarea {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+/* 3. Smooth touch action & tap highlight removal for all touch devices */
+button,
+.btn,
+.nav-link,
+.cyh-nav-item,
+.cyh-sidebar-close-btn,
+.cyh-mobile-toggle,
+.profile-tab-btn,
+a {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 4. Safe Area Insets for iPhone Notch / Dynamic Island & Android Gesture Navigation */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .cyh-topbar {
+    padding-top: max(0.5rem, env(safe-area-inset-top));
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+  .cyh-sidebar {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .cyh-sidebar-backdrop {
+    height: 100vh;
+    height: 100dvh;
+  }
+}
+
+/* 5. WebKit Elastic Momentum Scrolling for mobile tables and lists */
+.table-responsive,
+.scroll-pills-mobile,
+.cyh-nav,
+.modal-body {
+  -webkit-overflow-scrolling: touch;
+}

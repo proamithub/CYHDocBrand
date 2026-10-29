@@ -1,4 +1,4 @@
-﻿@page "/banner-designs"
+@page "/banner-designs"
 @page "/doctor/banner-designs"
 @page "/admin/banner-designs"
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
@@ -303,7 +303,7 @@
     <!-- PHOTO VIEW MODAL (अगर फोटो खोलना हो तो - FULL BRANDED COMPOSITE PREVIEW & HD DOWNLOAD) -->
     @if (viewingBanner != null)
     {
-        <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.88); backdrop-filter: blur(10px); z-index: 1070;" @onclick="ClosePhotoModal">
+        <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.88); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 1070;" @onclick="ClosePhotoModal">
             <div class="modal-dialog modal-dialog-centered modal-lg" @onclick:stopPropagation>
                 <div class="modal-content text-white" style="background: #0b1426; border: 1px solid rgba(0, 242, 254, 0.35); border-radius: 18px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7); overflow: hidden;">
                     <div class="modal-header border-secondary border-opacity-25 pb-3">
@@ -386,7 +386,7 @@
     <!-- Delete Confirmation Modal -->
     @if (pendingDeleteId.HasValue)
     {
-        <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(5px); z-index: 1080;">
+        <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); z-index: 1080;">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content glass-panel" style="background: rgba(14, 25, 48, 0.95); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 16px;">
                     <div class="modal-header border-secondary border-opacity-25 pb-2">
@@ -415,7 +415,7 @@
     <!-- Schedule Post Modal -->
     @if (schedulingBanner != null)
     {
-        <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); z-index: 1085;">
+        <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 1085;">
             <div class="modal-dialog modal-dialog-centered modal-lg">
                 <div class="modal-content glass-panel" style="background: rgba(14, 25, 48, 0.98); border: 1px solid rgba(0, 242, 254, 0.35); border-radius: 18px;">
                     <div class="modal-header border-bottom border-secondary border-opacity-25 px-4 py-3">

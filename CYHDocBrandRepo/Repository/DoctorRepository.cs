@@ -1,4 +1,5 @@
-﻿using System.Data;
+using System.Data;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -13,11 +14,13 @@ public class DoctorRepository : IDoctorRepository
 {
     private readonly string _conn;
     private readonly ILogger<DoctorRepository>? _logger;
+    private readonly IMemoryCache? _cache;
 
-    public DoctorRepository(IConfiguration configuration, ILogger<DoctorRepository>? logger = null)
+    public DoctorRepository(IConfiguration configuration, IMemoryCache? cache = null, ILogger<DoctorRepository>? logger = null)
     {
         _conn = configuration.GetConnectionString("DefaultConnection") 
             ?? "Server=AMITLAP;Database=CYHDocBrandBD;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
+        _cache = cache;
         _logger = logger;
     }
 
@@ -210,6 +213,14 @@ public class DoctorRepository : IDoctorRepository
 
     public async Task<DoctorProfile?> GetByUserIdAsync(string userId)
     {
+        if (string.IsNullOrWhiteSpace(userId)) return null;
+
+        var cacheKey = $"cyh_doc_user_{userId}";
+        if (_cache != null && _cache.TryGetValue(cacheKey, out DoctorProfile? cached) && cached != null)
+        {
+            return cached;
+        }
+
         try
         {
             await using var con = new SqlConnection(_conn);
@@ -223,7 +234,12 @@ public class DoctorRepository : IDoctorRepository
             await using var reader = await cmd.ExecuteReaderAsync();
             if (await reader.ReadAsync())
             {
-                return MapDoctor(reader);
+                var doc = MapDoctor(reader);
+                if (_cache != null && doc != null)
+                {
+                    _cache.Set(cacheKey, doc, TimeSpan.FromMinutes(2));
+                }
+                return doc;
             }
         }
         catch (Exception ex)
@@ -360,6 +376,11 @@ public class DoctorRepository : IDoctorRepository
 
     public async Task<bool> UpdateProfileAsync(DoctorProfile profile)
     {
+        if (profile == null) return false;
+        if (profile.UserId != null)
+        {
+            _cache?.Remove($"cyh_doc_user_{profile.UserId}");
+        }
         try
         {
             await using var con = new SqlConnection(_conn);

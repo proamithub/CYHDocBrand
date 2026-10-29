@@ -1,4 +1,5 @@
 using CYHDocBrandModel.Common;
+using Microsoft.Extensions.Caching.Memory;
 using System.Data;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
@@ -12,11 +13,13 @@ public class MediaPlatformRepository : IMediaPlatformRepository
 {
     private readonly string _conn;
     private readonly ILogger<MediaPlatformRepository>? _logger;
+    private readonly IMemoryCache? _cache;
 
-    public MediaPlatformRepository(IConfiguration configuration, ILogger<MediaPlatformRepository>? logger = null)
+    public MediaPlatformRepository(IConfiguration configuration, IMemoryCache? cache = null, ILogger<MediaPlatformRepository>? logger = null)
     {
         _conn = configuration.GetConnectionString("DefaultConnection")
             ?? "Server=AMITLAP;Database=CYHDocBrandBD;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
+        _cache = cache;
         _logger = logger;
     }
 
@@ -47,6 +50,12 @@ public class MediaPlatformRepository : IMediaPlatformRepository
 
     public async Task<List<MediaPlatformDTO>> GetActiveAsync()
     {
+        var cacheKey = "cyh_media_platforms_active";
+        if (_cache != null && _cache.TryGetValue(cacheKey, out List<MediaPlatformDTO>? cached) && cached != null)
+        {
+            return cached;
+        }
+
         var list = new List<MediaPlatformDTO>();
         try
         {
@@ -61,6 +70,11 @@ public class MediaPlatformRepository : IMediaPlatformRepository
             while (await reader.ReadAsync())
             {
                 list.Add(MapReaderToDTO(reader));
+            }
+
+            if (_cache != null && list.Count > 0)
+            {
+                _cache.Set(cacheKey, list, TimeSpan.FromMinutes(15));
             }
         }
         catch (Exception ex)

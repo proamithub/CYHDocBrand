@@ -24,6 +24,12 @@ public class BannerTemplateRepository : IBannerTemplateRepository
 
     public async Task<List<BannerCategoryDTO>> GetCategoriesAsync(bool onlyActive = true)
     {
+        var cacheKey = $"cyh_banner_categories_{onlyActive}";
+        if (_cache != null && _cache.TryGetValue(cacheKey, out List<BannerCategoryDTO>? cached) && cached != null)
+        {
+            return cached;
+        }
+
         var list = new List<BannerCategoryDTO>();
         try
         {
@@ -50,6 +56,11 @@ public class BannerTemplateRepository : IBannerTemplateRepository
                     CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt"))
                 });
             }
+
+            if (_cache != null && list.Count > 0)
+            {
+                _cache.Set(cacheKey, list, TimeSpan.FromMinutes(10));
+            }
         }
         catch (Exception ex)
         {
@@ -60,6 +71,13 @@ public class BannerTemplateRepository : IBannerTemplateRepository
 
     public async Task<List<BannerTemplateDTO>> GetAllTemplatesAsync(int? categoryId = null, string? style = null, string? search = null)
     {
+        var isMasterQuery = categoryId == null && string.IsNullOrEmpty(style) && string.IsNullOrEmpty(search);
+        var cacheKey = "cyh_banner_templates_master_all";
+        if (isMasterQuery && _cache != null && _cache.TryGetValue(cacheKey, out List<BannerTemplateDTO>? cached) && cached != null)
+        {
+            return cached;
+        }
+
         var list = new List<BannerTemplateDTO>();
         try
         {
@@ -77,6 +95,11 @@ public class BannerTemplateRepository : IBannerTemplateRepository
             while (await reader.ReadAsync())
             {
                 list.Add(MapReaderToTemplate(reader));
+            }
+
+            if (isMasterQuery && _cache != null && list.Count > 0)
+            {
+                _cache.Set(cacheKey, list, TimeSpan.FromMinutes(5));
             }
         }
         catch (Exception ex)
@@ -113,6 +136,9 @@ public class BannerTemplateRepository : IBannerTemplateRepository
 
     public async Task<int> SaveTemplateAsync(BannerTemplateDTO template)
     {
+        _cache?.Remove("cyh_banner_templates_master_all");
+        _cache?.Remove("cyh_banner_categories_True");
+        _cache?.Remove("cyh_banner_categories_False");
         try
         {
             await using var con = new SqlConnection(_conn);
@@ -153,6 +179,9 @@ public class BannerTemplateRepository : IBannerTemplateRepository
 
     public async Task<bool> DeleteTemplateAsync(int id)
     {
+        _cache?.Remove("cyh_banner_templates_master_all");
+        _cache?.Remove("cyh_banner_categories_True");
+        _cache?.Remove("cyh_banner_categories_False");
         try
         {
             await using var con = new SqlConnection(_conn);

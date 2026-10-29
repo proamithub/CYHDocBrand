@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.ResponseCompression;
 using CYHDocBrandData;
 using CYHDocBrandRepo.IRepository;
@@ -11,7 +11,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // 1. Connection String (SQL Server Stored Procedures)
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
-    ?? "Server=VRS-AMITPC\\SQLEXPRESS;Database=CYHDocBrandBD;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
+    ?? "Server=VRS-AMITPC\\SQLEXPRESS;Database=CYHDocBrandBD;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True;Pooling=true;Min Pool Size=5;Max Pool Size=100;Connect Timeout=15;";
 
 // 2. Authentication & Authorization (Custom Stored-Procedure Auth State)
 builder.Services.AddAuthorizationCore();
@@ -49,12 +49,33 @@ builder.Services.AddResponseCompression(options =>
     options.EnableForHttps = true;
     options.Providers.Add<BrotliCompressionProvider>();
     options.Providers.Add<GzipCompressionProvider>();
+    options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(new[]
+    {
+        "image/svg+xml",
+        "application/wasm",
+        "text/json",
+        "application/json",
+        "application/manifest+json"
+    });
+});
+
+builder.Services.Configure<BrotliCompressionProviderOptions>(options =>
+{
+    options.Level = System.IO.Compression.CompressionLevel.Fastest;
+});
+
+builder.Services.Configure<GzipCompressionProviderOptions>(options =>
+{
+    options.Level = System.IO.Compression.CompressionLevel.Fastest;
 });
 
 builder.Services.AddSignalR(options =>
 {
     options.MaximumReceiveMessageSize = 10 * 1024 * 1024; // 10 MB for High-DPI Canvas transfers
     options.EnableDetailedErrors = builder.Environment.IsDevelopment();
+    options.KeepAliveInterval = TimeSpan.FromSeconds(15);
+    options.ClientTimeoutInterval = TimeSpan.FromSeconds(45);
+    options.HandshakeTimeout = TimeSpan.FromSeconds(15);
 });
 
 // 6. Razor Components (Interactive Server)
@@ -62,6 +83,9 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents(options =>
     {
         options.JSInteropDefaultCallTimeout = TimeSpan.FromSeconds(30);
+        options.DisconnectedCircuitRetentionPeriod = TimeSpan.FromMinutes(2);
+        options.DisconnectedCircuitMaxRetained = 50;
+        options.MaxBufferedUnacknowledgedRenderBatches = 10;
     });
 
 var app = builder.Build();
@@ -90,6 +114,9 @@ if (args.Contains("--seed-only"))
 // 8. Pipeline Configuration
 app.UseResponseCompression();
 
+// Initialize Asset Versioning engine for automatic cache busting
+AssetVersioning.Initialize(app.Environment.ContentRootPath);
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
@@ -103,8 +130,35 @@ app.UseStaticFiles(new StaticFileOptions
 {
     OnPrepareResponse = ctx =>
     {
-        // 7 days browser cache for images, fonts, scripts
-        ctx.Context.Response.Headers.Append("Cache-Control", "public,max-age=604800");
+        // Smart Cache-Control: Fingerprinted assets cached 1 year; unversioned CSS/JS always revalidated
+        var path = ctx.Context.Request.Path.Value ?? "";
+        var hasVersionQuery = ctx.Context.Request.Query.ContainsKey("v");
+
+        if (hasVersionQuery)
+        {
+            // Fingerprinted/versioned assets (?v=...): immutable cache for 1 year
+            ctx.Context.Response.Headers["Cache-Control"] = "public,max-age=31536000,immutable";
+        }
+        else if (path.EndsWith("service-worker.js", StringComparison.OrdinalIgnoreCase))
+        {
+            // Service worker script MUST never be cached by browser
+            ctx.Context.Response.Headers["Cache-Control"] = "no-cache,no-store,must-revalidate";
+            ctx.Context.Response.Headers["Pragma"] = "no-cache";
+            ctx.Context.Response.Headers["Expires"] = "0";
+        }
+        else if (path.EndsWith(".css", StringComparison.OrdinalIgnoreCase) || 
+                 path.EndsWith(".js", StringComparison.OrdinalIgnoreCase))
+        {
+            // Unversioned CSS and JS must revalidate on each request so live code refreshes immediately
+            ctx.Context.Response.Headers["Cache-Control"] = "no-cache,must-revalidate";
+            ctx.Context.Response.Headers["Pragma"] = "no-cache";
+            ctx.Context.Response.Headers["Expires"] = "0";
+        }
+        else
+        {
+            // Standard static assets (images, fonts): 7 days browser cache
+            ctx.Context.Response.Headers["Cache-Control"] = "public,max-age=604800";
+        }
     }
 });
 

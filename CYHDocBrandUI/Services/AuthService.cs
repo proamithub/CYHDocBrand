@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.JSInterop;
 using CYHDocBrandData.Entities;
@@ -117,6 +117,7 @@ public class AuthService : IAuthService
             await _js.InvokeVoidAsync("localStorage.setItem", "cyh_active_user_id", user.UserId);
             await _js.InvokeVoidAsync("localStorage.setItem", "cyh_active_user_email", user.Email);
             await _js.InvokeVoidAsync("localStorage.setItem", "cyh_active_user_role", user.Role);
+            await _js.InvokeVoidAsync("cyhTheme.syncUserTheme", user.UserId);
         }
         catch
         {
@@ -151,6 +152,7 @@ public class AuthService : IAuthService
             await _js.InvokeVoidAsync("localStorage.setItem", "cyh_active_user_id", user.UserId);
             await _js.InvokeVoidAsync("localStorage.setItem", "cyh_active_user_email", user.Email);
             await _js.InvokeVoidAsync("localStorage.setItem", "cyh_active_user_role", user.Role);
+            await _js.InvokeVoidAsync("cyhTheme.syncUserTheme", user.UserId);
         }
         catch
         {
@@ -216,6 +218,7 @@ public class AuthService : IAuthService
                     };
 
                     _authStateProvider.SetUser(restoredDocUser);
+                    await _js.InvokeVoidAsync("cyhTheme.syncUserTheme", restoredDocUser.UserId);
                     return restoredDocUser;
                 }
 
@@ -256,6 +259,7 @@ public class AuthService : IAuthService
                     };
 
                     _authStateProvider.SetUser(restoredDocUser);
+                    await _js.InvokeVoidAsync("cyhTheme.syncUserTheme", restoredDocUser.UserId);
                     return restoredDocUser;
                 }
             }

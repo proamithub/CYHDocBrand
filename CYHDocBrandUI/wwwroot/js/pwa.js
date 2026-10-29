@@ -17,6 +17,7 @@
                 window.addEventListener('load', () => {
                     navigator.serviceWorker.register('/service-worker.js')
                         .then((reg) => {
+                            try { reg.update(); } catch (e) {}
                             console.log('CYH PWA ServiceWorker registered with scope:', reg.scope);
                         })
                         .catch((err) => {

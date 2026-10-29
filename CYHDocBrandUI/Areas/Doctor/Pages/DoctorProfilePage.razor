@@ -7,6 +7,73 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IWebHostEnvironment WebHostEnvironment
 
+<style>
+    .profile-nav-pills {
+        background: rgba(14, 25, 48, 0.75);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 6px;
+        display: flex;
+        gap: 6px;
+    }
+
+    .profile-tab-btn {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 11px 16px;
+        border-radius: 9px;
+        border: 1px solid transparent;
+        background: transparent;
+        color: #94a3b8;
+        font-weight: 600;
+        font-size: 0.88rem;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        text-align: center;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+        -webkit-appearance: none;
+        appearance: none;
+    }
+
+    .profile-tab-btn:hover:not(.active) {
+        background: rgba(255, 255, 255, 0.06);
+        color: #ffffff;
+    }
+
+    .profile-tab-btn.active {
+        background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+        color: #070d1e !important;
+        font-weight: 700;
+        box-shadow: 0 4px 15px rgba(0, 242, 254, 0.35);
+    }
+
+    .profile-tab-btn.active i {
+        color: #070d1e !important;
+    }
+
+    .fade-in {
+        animation: profileFadeIn 0.25s ease-in-out;
+    }
+
+    @@keyframes profileFadeIn {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* iOS Safari Auto-Zoom Prevention (strictly 16px on mobile viewports) */
+    @@media (max-width: 768px) {
+        .glass-input, .form-control, input, select, textarea {
+            font-size: 16px !important;
+        }
+    }
+</style>
+
 <div class="d-flex flex-column gap-4">
     <!-- Top Header Banner & Actions -->
     <div class="glass-panel p-4 d-flex flex-wrap align-items-center justify-content-between gap-3" style="border-left: 4px solid #00f2fe;">
@@ -71,7 +138,7 @@
                     <!-- Doctor Avatar / Photo with Upload Overlay -->
                     <div class="position-relative d-inline-block mt-3 mb-2">
                         <label for="profilePicInput" class="rounded-circle shadow border border-3 border-info overflow-hidden d-inline-flex align-items-center justify-content-center position-relative mb-0"
-                             style="width: 125px; height: 125px; background: linear-gradient(135deg, #0b1c3a, #152d5a); cursor: pointer;"
+                             style="width: 125px; height: 125px;cursor: pointer;"
                              title="Click to upload or change photo">
                             @if (IsUploadingPic)
                             {
@@ -131,26 +198,12 @@
                     </small>
 
                     <h4 class="fw-bold mb-1 text-white">@(string.IsNullOrWhiteSpace(Profile?.DisplayName) ? Profile?.FullName : Profile.DisplayName)</h4>
-                    <p class="text-info fw-semibold small mb-2">@(Profile?.Specialization ?? "Chief Specialist")</p>
+                    <p class="text-info fw-semibold small mb-2">@(Profile?.Specialization ?? "----")</p>
                     <span class="badge bg-dark border border-secondary text-white-50 px-3 py-1 mb-3" style="font-size: 0.75rem;">
-                        @(Profile?.Qualifications ?? "MBBS, MD, DM, FACC")
+                        @(Profile?.Qualifications ?? "---")
                     </span>
 
-                    <!-- Quick Metrics Strip -->
-                    <div class="d-flex flex-column gap-2 text-start pt-3 border-top" style="border-color: rgba(255, 255, 255, 0.08) !important;">
-
-                        <div class="glass-card p-2 d-flex justify-content-between align-items-center">
-                            <span style="color: #94a3b8; font-size: 0.82rem;"><i class="bi bi-award-fill text-info me-1"></i> Experience:</span>
-                            <span class="text-white fw-semibold">@(Profile?.ExperienceYears ?? 14) Years</span>
-                        </div>
-
-                        <div class="glass-card p-2 d-flex justify-content-between align-items-center">
-                            <span style="color: #94a3b8; font-size: 0.82rem;"><i class="bi bi-activity text-info me-1"></i> Duty Status:</span>
-                            <span class="badge @(Profile?.IsAvailableToday == true ? "bg-success" : "bg-secondary") rounded-pill">
-                                @(Profile?.IsAvailableToday == true ? "â— On Duty" : "â—‹ Off Duty")
-                            </span>
-                        </div>
-                    </div>
+                   
                 </div>
 
            @*      <!-- Doctor Branding Palette Card -->
@@ -184,139 +237,261 @@
             </div>
         </div>
 
-        <!-- â”€â”€ RIGHT COLUMN: Detailed Profile & Clinic Form â”€â”€ -->
+                <!-- ── RIGHT COLUMN: Detailed Profile & Clinic Form with Modern Tabs ── -->
         <div class="col-12 col-lg-8">
-            <div class="d-flex flex-column gap-4">
-                <!-- Section 1: Personal & Medical Credentials -->
-                <div class="glass-panel p-4">
-                    <h5 class="fw-bold text-white mb-3 border-bottom pb-2" style="border-color: rgba(255, 255, 255, 0.08) !important;">
-                        <i class="bi bi-person-vcard text-info me-2"></i>Personal &amp; Medical Credentials
-                    </h5>
+            <div class="d-flex flex-column gap-3">
+                <!-- Profile Section Tabs Header -->
+                <div class="profile-nav-pills flex-column flex-sm-row">
+                    <button type="button"
+                            class="profile-tab-btn @(activeTab == "credentials" ? "active" : "")"
+                            @onclick='() => SetActiveTab("credentials")'
+                            role="tab"
+                            aria-selected="@(activeTab == "credentials")">
+                        <i class="bi bi-person-vcard fs-5"></i>
+                        <span>Personal &amp; Medical Credentials</span>
+                    </button>
 
-                    <div class="row g-3">
-                        <div class="col-12 col-md-6">
-                            <label class="form-label small fw-semibold text-white">Full Name</label>
-                            <input type="text" class="glass-input" @bind="Profile!.FullName" placeholder="Dr. Full Name" />
-                        </div>
+                    <button type="button"
+                            class="profile-tab-btn @(activeTab == "clinic" ? "active" : "")"
+                            @onclick='() => SetActiveTab("clinic")'
+                            role="tab"
+                            aria-selected="@(activeTab == "clinic")">
+                        <i class="bi bi-hospital fs-5"></i>
+                        <span>Clinic &amp; Hospital</span>
+                    </button>
 
-                        <div class="col-12 col-md-6">
-                            <label class="form-label small fw-semibold text-white">Display Name</label>
-                            <input type="text" class="glass-input" @bind="Profile.DisplayName" placeholder="e.g. Dr. A. Sharma, MD" />
-                        </div>
-
-                        <div class="col-12 col-md-6">
-                            <label class="form-label small fw-semibold text-white">Email Address</label>
-                            <input type="email" class="glass-input" value="@(CurrentUser?.Email ?? "doctor@cyhdoctorhub.com")" disabled style="opacity: 0.75;" />
-                            <small style="color: #94a3b8; font-size: 0.72rem;">Authentication account email (read-only)</small>
-                        </div>
-
-                        <div class="col-12 col-md-6">
-                            <label class="form-label small fw-semibold text-white">Contact Mobile No</label>
-                            <input type="text" class="glass-input" @bind="Profile.MobileNo" placeholder="+91 98765 43210" />
-                        </div>
-
-                        <div class="col-12 col-md-6">
-                            <label class="form-label small fw-semibold text-white">Medical Specialization</label>
-                            <input type="text" class="glass-input" @bind="Profile.Specialization" placeholder="e.g. Cardiology, Neurology" />
-                        </div>
-
-                        <div class="col-12 col-md-6">
-                            <label class="form-label small fw-semibold text-white">Medical License / Council Reg No</label>
-                            <input type="text" class="glass-input" @bind="Profile.LicenseNumber" placeholder="MED-DEL-98421" />
-                        </div>
-
-                        <div class="col-12 col-md-6">
-                            <label class="form-label small fw-semibold text-white">Qualifications &amp; Degrees</label>
-                            <input type="text" class="glass-input" @bind="Profile.Qualifications" placeholder="MBBS, MD (Cardiology), DM, FACC" />
-                        </div>
-
-                        <div class="col-12 col-md-3">
-                            <label class="form-label small fw-semibold text-white">Experience (Years)</label>
-                            <input type="number" class="glass-input" @bind="Profile.ExperienceYears" min="0" max="60" />
-                        </div>
-
-                        <div class="col-12 col-md-3">
-                            <label class="form-label small fw-semibold text-white">Consultation Fee ($)</label>
-                            <input type="number" step="0.5" class="glass-input" @bind="Profile.ConsultationFee" min="0" />
-                        </div>
-                    </div>
+                    <button type="button"
+                            class="profile-tab-btn @(activeTab == "bio" ? "active" : "")"
+                            @onclick='() => SetActiveTab("bio")'
+                            role="tab"
+                            aria-selected="@(activeTab == "bio")">
+                        <i class="bi bi-file-earmark-medical fs-5"></i>
+                        <span>Professional Bio &amp; Clinical</span>
+                    </button>
                 </div>
 
-                <!-- Section 2: Clinic & Hospital Information -->
-                <div class="glass-panel p-4">
-                    <h5 class="fw-bold text-white mb-3 border-bottom pb-2" style="border-color: rgba(255, 255, 255, 0.08) !important;">
-                        <i class="bi bi-hospital text-info me-2"></i>Clinic &amp; Hospital Information
-                    </h5>
-
-                    <div class="row g-3">
-                        <div class="col-12 col-md-6">
-                            <label class="form-label small fw-semibold text-white">Hospital / Clinic Name</label>
-                            <input type="text" class="glass-input" @bind="Profile.ClinicName" placeholder="CYH Heart Care Institute" />
+                <!-- TAB 1: Personal & Medical Credentials -->
+                @if (activeTab == "credentials")
+                {
+                    <div class="glass-panel p-4 fade-in">
+                        <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2" style="border-color: rgba(255, 255, 255, 0.08) !important;">
+                            <h5 class="fw-bold text-white mb-0">
+                                <i class="bi bi-person-vcard text-info me-2"></i>Personal &amp; Medical Credentials
+                            </h5>
+                            <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-2 py-1" style="font-size: 0.75rem;">
+                                Tab 1 of 3
+                            </span>
                         </div>
 
-                        <div class="col-12 col-md-6">
-                            <label class="form-label small fw-semibold text-white">Official Website / Portal URL</label>
-                            <input type="url" class="glass-input" @bind="Profile.WebsiteUrl" placeholder="https://www.clickyourhospital.com" />
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <label class="form-label small fw-semibold text-white">Full Name</label>
+                                <input type="text" class="glass-input" @bind="Profile!.FullName" placeholder="Dr. Full Name" />
+                            </div>
+
+                            <div class="col-12 col-md-6">
+                                <label class="form-label small fw-semibold text-white">Display Name</label>
+                                <input type="text" class="glass-input" @bind="Profile.DisplayName" placeholder="e.g. Dr. A. Sharma, MD" />
+                            </div>
+
+                            <div class="col-12 col-md-6">
+                                <label class="form-label small fw-semibold text-white">Email Address</label>
+                                <input type="email" class="glass-input" value="@(CurrentUser?.Email ?? "doctor@cyhdoctorhub.com")" disabled style="opacity: 0.75;" />
+                                <small style="color: #94a3b8; font-size: 0.72rem;">Authentication account email (read-only)</small>
+                            </div>
+
+                            <div class="col-12 col-md-6">
+                                <label class="form-label small fw-semibold text-white">Contact Mobile No</label>
+                                <input type="text" class="glass-input" @bind="Profile.MobileNo" placeholder="+91 98765 43210" />
+                            </div>
+
+                            <div class="col-12 col-md-6">
+                                <label class="form-label small fw-semibold text-white">Medical Specialization</label>
+                                <input type="text" class="glass-input" @bind="Profile.Specialization" placeholder="e.g. Cardiology, Neurology" />
+                            </div>
+
+                            <div class="col-12 col-md-6">
+                                <label class="form-label small fw-semibold text-white">Medical License / Council Reg No</label>
+                                <input type="text" class="glass-input" @bind="Profile.LicenseNumber" placeholder="MED-DEL-98421" />
+                            </div>
+
+                            <div class="col-12 col-md-6">
+                                <label class="form-label small fw-semibold text-white">Qualifications &amp; Degrees</label>
+                                <input type="text" class="glass-input" @bind="Profile.Qualifications" placeholder="MBBS, MD (Cardiology), DM, FACC" />
+                            </div>
+
+                            <div class="col-12 col-md-3">
+                                <label class="form-label small fw-semibold text-white">Experience (Years)</label>
+                                <input type="number" class="glass-input" @bind="Profile.ExperienceYears" min="0" max="60" />
+                            </div>
+
+                            <div class="col-12 col-md-3">
+                                <label class="form-label small fw-semibold text-white">Consultation Fee ($)</label>
+                                <input type="number" step="0.5" class="glass-input" @bind="Profile.ConsultationFee" min="0" />
+                            </div>
                         </div>
 
-
-                        <div class="col-12">
-                            <label class="form-label small fw-semibold text-white">Clinic / Chamber Address</label>
-                            <input type="text" class="glass-input" @bind="Profile.ClinicAddress" placeholder="Plot 42, Health City, Medical Enclave" />
-                        </div>
-
-                        <div class="col-12 col-md-4">
-                            <label class="form-label small fw-semibold text-white">City</label>
-                            <input type="text" class="glass-input" @bind="Profile.City" placeholder="New Delhi" />
-                        </div>
-
-                        <div class="col-12 col-md-4">
-                            <label class="form-label small fw-semibold text-white">State</label>
-                            <input type="text" class="glass-input" @bind="Profile.State" placeholder="Delhi" />
-                        </div>
-
-                        <div class="col-12 col-md-4">
-                            <label class="form-label small fw-semibold text-white">PIN Code</label>
-                            <input type="text" class="glass-input" @bind="Profile.PinCode" placeholder="110029" />
+                        <!-- Action Bar for Tab 1 -->
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 pt-3 border-top mt-4" style="border-color: rgba(255, 255, 255, 0.08) !important;">
+                            <span class="text-white-50 small">
+                                <i class="bi bi-shield-check text-info me-1"></i>Official credentials used on prescription &amp; branding.
+                            </span>
+                            <div class="d-flex align-items-center gap-2">
+                                <button type="button" class="glass-btn-secondary" @onclick="LoadProfileDataAsync">
+                                    <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
+                                </button>
+                                <button type="button" class="glass-btn-primary" @onclick="SaveChanges" disabled="@IsSaving">
+                                    @if (IsSaving)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-1"></span>
+                                        <span>Saving...</span>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-check2-circle me-1"></i>
+                                        <span>Save Changes</span>
+                                    }
+                                </button>
+                                <button type="button" class="btn btn-outline-info btn-sm ms-1 px-3 py-1" style="border-radius: 8px;" @onclick='() => SetActiveTab("clinic")' title="Next: Clinic & Hospital Information">
+                                    <span>Next</span> <i class="bi bi-arrow-right ms-1"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
+                }
 
-                <!-- Section 3: Professional Bio -->
-                <div class="glass-panel p-4">
-                    <h5 class="fw-bold text-white mb-3 border-bottom pb-2" style="border-color: rgba(255, 255, 255, 0.08) !important;">
-                        <i class="bi bi-file-earmark-medical text-info me-2"></i>Professional Bio &amp; Clinical Scope
-                    </h5>
+                <!-- TAB 2: Clinic & Hospital Information -->
+                @if (activeTab == "clinic")
+                {
+                    <div class="glass-panel p-4 fade-in">
+                        <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2" style="border-color: rgba(255, 255, 255, 0.08) !important;">
+                            <h5 class="fw-bold text-white mb-0">
+                                <i class="bi bi-hospital text-info me-2"></i>Clinic &amp; Hospital Information
+                            </h5>
+                            <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-2 py-1" style="font-size: 0.75rem;">
+                                Tab 2 of 3
+                            </span>
+                        </div>
 
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold text-white">Doctor Biography &amp; Practice Description</label>
-                        <textarea class="glass-input" rows="4" @bind="Profile.Bio" placeholder="Describe your clinical expertise, surgical procedures, patient care philosophy, and scope of practice..."></textarea>
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <label class="form-label small fw-semibold text-white">Hospital / Clinic Name</label>
+                                <input type="text" class="glass-input" @bind="Profile.ClinicName" placeholder="CYH Heart Care Institute" />
+                            </div>
+
+                            <div class="col-12 col-md-6">
+                                <label class="form-label small fw-semibold text-white">Official Website / Portal URL</label>
+                                <input type="url" class="glass-input" @bind="Profile.WebsiteUrl" placeholder="https://www.clickyourhospital.com" />
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label small fw-semibold text-white">Clinic / Chamber Address</label>
+                                <input type="text" class="glass-input" @bind="Profile.ClinicAddress" placeholder="Plot 42, Health City, Medical Enclave" />
+                            </div>
+
+                            <div class="col-12 col-md-4">
+                                <label class="form-label small fw-semibold text-white">City</label>
+                                <input type="text" class="glass-input" @bind="Profile.City" placeholder="New Delhi" />
+                            </div>
+
+                            <div class="col-12 col-md-4">
+                                <label class="form-label small fw-semibold text-white">State</label>
+                                <input type="text" class="glass-input" @bind="Profile.State" placeholder="Delhi" />
+                            </div>
+
+                            <div class="col-12 col-md-4">
+                                <label class="form-label small fw-semibold text-white">PIN Code</label>
+                                <input type="text" class="glass-input" @bind="Profile.PinCode" placeholder="110029" />
+                            </div>
+                        </div>
+
+                        <!-- Action Bar for Tab 2 -->
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 pt-3 border-top mt-4" style="border-color: rgba(255, 255, 255, 0.08) !important;">
+                            <button type="button" class="btn btn-outline-secondary btn-sm px-3 py-1" style="border-radius: 8px;" @onclick='() => SetActiveTab("credentials")'>
+                                <i class="bi bi-arrow-left me-1"></i> Back
+                            </button>
+                            <div class="d-flex align-items-center gap-2">
+                                <button type="button" class="glass-btn-secondary" @onclick="LoadProfileDataAsync">
+                                    <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
+                                </button>
+                                <button type="button" class="glass-btn-primary" @onclick="SaveChanges" disabled="@IsSaving">
+                                    @if (IsSaving)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-1"></span>
+                                        <span>Saving...</span>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-check2-circle me-1"></i>
+                                        <span>Save Changes</span>
+                                    }
+                                </button>
+                                <button type="button" class="btn btn-outline-info btn-sm ms-1 px-3 py-1" style="border-radius: 8px;" @onclick='() => SetActiveTab("bio")' title="Next: Professional Bio & Scope">
+                                    <span>Next</span> <i class="bi bi-arrow-right ms-1"></i>
+                                </button>
+                            </div>
+                        </div>
                     </div>
+                }
 
-                    <div class="d-flex justify-content-end gap-2 pt-2">
-                        <button type="button" class="glass-btn-secondary" @onclick="LoadProfileDataAsync">
-                            <i class="bi bi-arrow-counterclockwise"></i> Reset
-                        </button>
-                        <button type="button" class="glass-btn-primary" @onclick="SaveChanges" disabled="@IsSaving">
-                            @if (IsSaving)
-                            {
-                                <span class="spinner-border spinner-border-sm me-1"></span>
-                                <span>Saving...</span>
-                            }
-                            else
-                            {
-                                <i class="bi bi-check2-circle me-1"></i>
-                                <span>Save Changes</span>
-                            }
-                        </button>
+                <!-- TAB 3: Professional Bio & Clinical Scope -->
+                @if (activeTab == "bio")
+                {
+                    <div class="glass-panel p-4 fade-in">
+                        <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2" style="border-color: rgba(255, 255, 255, 0.08) !important;">
+                            <h5 class="fw-bold text-white mb-0">
+                                <i class="bi bi-file-earmark-medical text-info me-2"></i>Professional Bio &amp; Clinical Scope
+                            </h5>
+                            <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-2 py-1" style="font-size: 0.75rem;">
+                                Tab 3 of 3
+                            </span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-white">Doctor Biography &amp; Practice Description</label>
+                            <textarea class="glass-input" rows="6" @bind="Profile.Bio" placeholder="Describe your clinical expertise, surgical procedures, patient care philosophy, and scope of practice..."></textarea>
+                            <small class="text-white-50 mt-1 d-block" style="font-size: 0.75rem;">
+                                <i class="bi bi-info-circle me-1"></i>This biography is automatically displayed in doctor directories, patient portals, and promotional materials.
+                            </small>
+                        </div>
+
+                        <!-- Action Bar for Tab 3 -->
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 pt-3 border-top mt-4" style="border-color: rgba(255, 255, 255, 0.08) !important;">
+                            <button type="button" class="btn btn-outline-secondary btn-sm px-3 py-1" style="border-radius: 8px;" @onclick='() => SetActiveTab("clinic")'>
+                                <i class="bi bi-arrow-left me-1"></i> Back
+                            </button>
+                            <div class="d-flex align-items-center gap-2">
+                                <button type="button" class="glass-btn-secondary" @onclick="LoadProfileDataAsync">
+                                    <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
+                                </button>
+                                <button type="button" class="glass-btn-primary" @onclick="SaveChanges" disabled="@IsSaving">
+                                    @if (IsSaving)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-1"></span>
+                                        <span>Saving...</span>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-check2-circle me-1"></i>
+                                        <span>Save Changes</span>
+                                    }
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                }
             </div>
         </div>
     </div>
 </div>
 
 @code {
+    private string activeTab = "credentials";
+
+    private void SetActiveTab(string tab)
+    {
+        activeTab = tab;
+    }
     private CurrentUserDTO? CurrentUser;
     private CYHDocBrandData.Entities.DoctorProfile Profile = new();
     private bool IsSaving = false;

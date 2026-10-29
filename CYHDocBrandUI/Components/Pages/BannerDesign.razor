@@ -150,7 +150,7 @@
     <div class="row g-4">
         <!-- LEFT COLUMN: EDITABLE CONTROLS & TABS (5 Cols) -->
         <div class="col-xl-5 col-lg-6 col-12 order-2 order-lg-1">
-            <div class="glass-panel p-3 p-md-4 rounded-4" style="background: rgba(14, 25, 48, 0.7); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08);">
+            <div class="glass-panel p-3 p-md-4 rounded-4" style="background: rgba(14, 25, 48, 0.7); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08);">
                 
                 <!-- Tab Navigation Pill Bar -->
                 <ul class="nav nav-pills nav-fill p-1 rounded-3 mb-4" style="background: rgba(7, 13, 30, 0.65); border: 1px solid rgba(255, 255, 255, 0.06); pointer-events: auto;">
@@ -883,7 +883,7 @@
 
         <!-- RIGHT COLUMN: INTERACTIVE CANVAS PREVIEW & EXPORT ACTIONS (7 Cols) -->
         <div class="col-xl-7 col-lg-6 col-12 order-1 order-lg-2">
-            <div class="glass-panel p-3 p-md-4 rounded-4 position-sticky" style="top: 20px; background: rgba(14, 25, 48, 0.7); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08);">
+            <div class="glass-panel p-3 p-md-4 rounded-4 position-sticky" style="top: 20px; background: rgba(14, 25, 48, 0.7); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08);">
                 
                 <!-- Preview Canvas Header -->
                 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
@@ -904,7 +904,7 @@
                 <div class="canvas-viewport d-flex align-items-center justify-content-center p-2 rounded-3 mb-3 position-relative" style="background: #050a17; min-height: 480px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.08); touch-action: none;">
                     @if (isGenerating)
                     {
-                        <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center" style="background: rgba(7, 13, 30, 0.85); backdrop-filter: blur(8px); z-index: 10;">
+                        <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center" style="background: rgba(7, 13, 30, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 10;">
                             <div class="spinner-border text-info mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
                             <h5 class="text-white fw-bold">Generating Background with AI...</h5>
                             <p class="text-secondary mb-0" style="font-size: 0.85rem;">Using @aiRequest.Provider to synthesize medical aesthetic</p>
@@ -1341,22 +1341,22 @@
     {
         try
         {
-            var isReady = await JSRuntime.InvokeAsync<bool>("eval", @"
-                new Promise((resolve) => {
-                    if (typeof window.bannerStudio !== 'undefined' && typeof window.bannerStudio.init === 'function') {
-                        return resolve(true);
-                    }
-                    const existing = document.getElementById('banner-studio-dynamic-script');
-                    if (existing) existing.remove();
-                    const s = document.createElement('script');
-                    s.id = 'banner-studio-dynamic-script';
-                    s.src = 'js/bannerStudio.js?v=' + Date.now();
-                    s.onload = () => resolve(typeof window.bannerStudio !== 'undefined' && typeof window.bannerStudio.init === 'function');
-                    s.onerror = () => resolve(false);
-                    document.head.appendChild(s);
-                })
-            ");
-            return isReady;
+            return await JSRuntime.InvokeAsync<bool>("bannerStudio.isInitialized");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         }
         catch
         {
@@ -2110,8 +2110,8 @@
     {
         try
         {
-            var isReady = await JSRuntime.InvokeAsync<bool>("eval", 
-                "typeof window.bannerStudio !== 'undefined' && typeof window.bannerStudio.renderBanner === 'function'");
+            var isReady = true;
+
             if (isReady)
             {
                 await JSRuntime.InvokeVoidAsync("bannerStudio.renderBanner", "bannerCanvas", state);

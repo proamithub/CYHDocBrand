@@ -614,7 +614,7 @@
 <!-- ── Delete Confirmation Modal ── -->
 @if (deletingItem != null)
 {
-    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); z-index: 9999;">
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 9999;">
         <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
             <div class="modal-content glass-panel text-white border-0 shadow-lg" style="background: rgba(14, 25, 48, 0.98); border: 1px solid rgba(239, 68, 68, 0.4) !important; border-radius: 18px;">
                 <div class="modal-header border-0 pb-0 pt-4 px-4">
@@ -665,7 +665,7 @@
 <!-- ── Image Preview Lightbox Modal ── -->
 @if (previewingSchedule != null)
 {
-    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.92); backdrop-filter: blur(10px); z-index: 10000;" @onclick="() => previewingSchedule = null">
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.92); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 10000;" @onclick="() => previewingSchedule = null">
         <div class="modal-dialog modal-dialog-centered modal-lg" @onclick:stopPropagation="true">
             <div class="modal-content glass-panel border-0 text-white" style="background: rgba(14, 25, 48, 0.96); border: 1px solid rgba(245, 158, 11, 0.3) !important; border-radius: 18px;">
                 <div class="modal-header border-bottom border-secondary border-opacity-25 px-4 py-3">

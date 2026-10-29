@@ -1,0 +1,283 @@
+@inject IJSRuntime JSRuntime
+@inject IAuthService AuthService
+@using CYHDocBrandModel.DTO
+
+<div class="position-relative d-inline-block">
+    <!-- Theme Toggle Trigger Button -->
+    <button type="button" 
+            class="btn btn-outline-secondary p-2 rounded-circle d-flex align-items-center justify-content-center theme-switcher-trigger"
+            style="width: 38px; height: 38px; border-color: @GetBorderColor(); background: @GetButtonBackground();"
+            @onclick="ToggleDropdown" 
+            aria-expanded="@isOpen"
+            title="Change Theme (Current: @GetThemeDisplayName(currentTheme))">
+        @if (currentTheme == "light")
+        {
+            <i class="bi bi-sun-fill text-warning fs-5"></i>
+        }
+        else if (currentTheme == "dark")
+        {
+            <i class="bi bi-moon-stars-fill text-info fs-5"></i>
+        }
+        else
+        {
+            <i class="bi bi-droplet-half text-info fs-5"></i>
+        }
+    </button>
+
+    <!-- Theme Selection Dropdown Menu -->
+    @if (isOpen)
+    {
+        <!-- Click outside backdrop -->
+        <div class="position-fixed inset-0 top-0 start-0 w-100 h-100" style="z-index: 1045;" @onclick="CloseDropdown"></div>
+
+        <div class="position-absolute end-0 mt-2 p-2 rounded-4 shadow-lg glass-panel theme-dropdown-menu" 
+             style="width: 280px; z-index: 1050; min-width: 260px; animation: popupSlideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
+            
+            <!-- Header -->
+            <div class="px-2 py-2 mb-1 border-bottom border-secondary border-opacity-25 d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="fw-bold small d-flex align-items-center gap-1">
+                        <i class="bi bi-palette2 text-info"></i>
+                        <span>Select Theme</span>
+                    </div>
+                    @if (!string.IsNullOrEmpty(userDisplayName))
+                    {
+                        <div class="text-secondary text-truncate" style="font-size: 0.72rem;">
+                            Saved for: <span class="fw-semibold">@userDisplayName</span>
+                        </div>
+                    }
+                </div>
+                <button type="button" class="btn-close btn-close-white small" style="font-size: 0.7rem;" @onclick="CloseDropdown"></button>
+            </div>
+
+            <!-- Options -->
+            <div class="d-flex flex-column gap-1">
+                <!-- 1. Glass Theme -->
+                <button type="button" 
+                        class="btn text-start p-2 rounded-3 border-0 d-flex align-items-center justify-content-between w-100 theme-opt-btn @(currentTheme == "glass" ? "active-theme" : "")"
+                        @onclick='() => ChangeTheme("glass")'>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="theme-icon-box glass-box">
+                            <i class="bi bi-droplet-half"></i>
+                        </div>
+                        <div>
+                            <div class="fw-semibold small theme-title">Glass Theme</div>
+                            
+                        </div>
+                    </div>
+                    @if (currentTheme == "glass")
+                    {
+                        <i class="bi bi-check-circle-fill text-info fs-6"></i>
+                    }
+                </button>
+
+                <!-- 2. Dark Theme -->
+                <button type="button" 
+                        class="btn text-start p-2 rounded-3 border-0 d-flex align-items-center justify-content-between w-100 theme-opt-btn @(currentTheme == "dark" ? "active-theme" : "")"
+                        @onclick='() => ChangeTheme("dark")'>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="theme-icon-box dark-box">
+                            <i class="bi bi-moon-stars-fill"></i>
+                        </div>
+                        <div>
+                            <div class="fw-semibold small theme-title">Dark Theme</div>
+                            
+                        </div>
+                    </div>
+                    @if (currentTheme == "dark")
+                    {
+                        <i class="bi bi-check-circle-fill text-info fs-6"></i>
+                    }
+                </button>
+
+                <!-- 3. Light Theme -->
+                <button type="button" 
+                        class="btn text-start p-2 rounded-3 border-0 d-flex align-items-center justify-content-between w-100 theme-opt-btn @(currentTheme == "light" ? "active-theme" : "")"
+                        @onclick='() => ChangeTheme("light")'>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="theme-icon-box light-box">
+                            <i class="bi bi-sun-fill"></i>
+                        </div>
+                        <div>
+                            <div class="fw-semibold small theme-title">Light Theme</div>
+                           
+                        </div>
+                    </div>
+                    @if (currentTheme == "light")
+                    {
+                        <i class="bi bi-check-circle-fill text-primary fs-6"></i>
+                    }
+                </button>
+            </div>
+
+           
+        </div>
+    }
+</div>
+
+<style>
+    .theme-icon-box {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        flex-shrink: 0;
+    }
+    .glass-box {
+        background: rgba(0, 242, 254, 0.15);
+        color: #00f2fe;
+        border: 1px solid rgba(0, 242, 254, 0.3);
+    }
+    .dark-box {
+        background: rgba(139, 92, 246, 0.15);
+        color: #a855f7;
+        border: 1px solid rgba(139, 92, 246, 0.3);
+    }
+    .light-box {
+        background: rgba(245, 158, 11, 0.15);
+        color: #f59e0b;
+        border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    .theme-opt-btn {
+        transition: all 0.15s ease;
+        background: transparent;
+    }
+    .theme-opt-btn:hover {
+        background: rgba(255, 255, 255, 0.08);
+    }
+    [data-theme="light"] .theme-opt-btn:hover {
+        background: #f1f5f9 !important;
+    }
+    .theme-opt-btn.active-theme {
+        background: rgba(0, 242, 254, 0.12);
+        border: 1px solid rgba(0, 242, 254, 0.25) !important;
+    }
+    [data-theme="light"] .theme-opt-btn.active-theme {
+        background: rgba(2, 132, 199, 0.08) !important;
+        border: 1px solid rgba(2, 132, 199, 0.25) !important;
+    }
+    .theme-dropdown-menu {
+        background: rgba(14, 25, 48, 0.98);
+        border: 1px solid rgba(0, 242, 254, 0.3);
+    }
+    [data-theme="dark"] .theme-dropdown-menu {
+        background: #121927 !important;
+        border-color: #273750 !important;
+    }
+    [data-theme="light"] .theme-dropdown-menu {
+        background: #ffffff !important;
+        border-color: #cbd5e1 !important;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12) !important;
+        color: #0f172a !important;
+    }
+    [data-theme="light"] .theme-title,
+    [data-theme="light"] .theme-dropdown-menu div,
+    [data-theme="light"] .theme-dropdown-menu span {
+        color: #0f172a;
+    }
+    [data-theme="light"] .theme-dropdown-menu .text-secondary {
+        color: #64748b !important;
+    }
+    [data-theme="light"] .theme-dropdown-menu .btn-close-white {
+        filter: none !important;
+    }
+</style>
+
+@code {
+    private string currentTheme = "glass";
+    private bool isOpen = false;
+    private string? userId;
+    private string? userDisplayName;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = AuthService.GetCurrentUser();
+        if (user != null)
+        {
+            userId = user.UserId;
+            userDisplayName = user.FullName;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(userId))
+                {
+                    var user = await AuthService.GetOrRestoreCurrentUserAsync();
+                    if (user != null)
+                    {
+                        userId = user.UserId;
+                        userDisplayName = user.FullName;
+                    }
+                }
+
+                // Query active theme from client JS
+                var activeTheme = await JSRuntime.InvokeAsync<string>("cyhTheme.getCurrentTheme", userId);
+                if (!string.IsNullOrEmpty(activeTheme) && activeTheme != currentTheme)
+                {
+                    currentTheme = activeTheme;
+                    StateHasChanged();
+                }
+            }
+            catch
+            {
+                // Ignore JS interop errors during prerender or disconnect
+            }
+        }
+    }
+
+    private void ToggleDropdown()
+    {
+        isOpen = !isOpen;
+    }
+
+    private void CloseDropdown()
+    {
+        isOpen = false;
+    }
+
+    private async Task ChangeTheme(string themeName)
+    {
+        currentTheme = themeName;
+        isOpen = false;
+
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("cyhTheme.setTheme", themeName, userId);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ThemeSelector] ChangeTheme error: {ex.Message}");
+        }
+
+        StateHasChanged();
+    }
+
+    private string GetBorderColor()
+    {
+        if (currentTheme == "light") return "rgba(2, 132, 199, 0.4)";
+        if (currentTheme == "dark") return "rgba(139, 92, 246, 0.4)";
+        return "rgba(0, 242, 254, 0.4)";
+    }
+
+    private string GetButtonBackground()
+    {
+        if (currentTheme == "light") return "#ffffff";
+        if (currentTheme == "dark") return "#162033";
+        return "rgba(14, 25, 48, 0.7)";
+    }
+
+    private string GetThemeDisplayName(string theme) => theme switch
+    {
+        "light" => "Light Theme (Daylight)",
+        "dark" => "Dark Theme (Solid Obsidian)",
+        _ => "Glass Theme (Navy Frosted)"
+    };
+}

@@ -2,8 +2,8 @@
 @inject NavigationManager NavigationManager
 
 <div class="cyh-brand" style="border-bottom: 1px solid rgba(245, 158, 11, 0.25);">
-    <div class="cyh-brand-logo" style="background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%); box-shadow: 0 0 20px rgba(245, 158, 11, 0.45); color: #070d1e;">
-        <img src="images/branding/cyh-emblem.png" alt="CYH" style="width: 100%; height: 100%; object-fit: contain; padding: 2px;" />
+    <div class="cyh-brand-logo" style="background: transparent; box-shadow: none;">
+        <img src="images/branding/cyh-emblem.png" alt="CYH" style="width: 100%; height: 100%; object-fit: contain;" />
     </div>
     <div class="flex-grow-1 min-w-0" style="overflow: hidden;">
         <div class="cyh-brand-title text-truncate">CYH AdminHub</div>
@@ -24,7 +24,7 @@
 </div>
 
 <div class="cyh-nav">
-    <div class="cyh-nav-divider" style="color: #cbd5e1;">Administration Command</div>
+    <div class="cyh-nav-divider">Administration Command</div>
 
     <NavLink class="cyh-nav-item" href="admin/dashboard" Match="NavLinkMatch.All" @onclick="HandleClose">
         <i class="bi bi-speedometer2 text-warning"></i>
