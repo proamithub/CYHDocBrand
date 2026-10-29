@@ -39,4 +39,5 @@ public class CurrentUserDTO
     public string? Department { get; set; }
     public string? AvatarUrl { get; set; }
     public bool IsActive { get; set; } = true;
+    public bool EmailConfirmed { get; set; } = false;
 }

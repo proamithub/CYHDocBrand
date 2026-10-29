@@ -30,9 +30,7 @@
             <h3 class="fw-bold mb-1 text-white">
                 <i class="bi bi-key-fill text-warning me-2"></i>Doctor-Wise AI API Key Management
             </h3>
-            <p class="small mb-0" style="color: #cbd5e1;">
-                Hospital Admin yahan har **Doctor ke liye dedicated Gemini aur OpenAI API Keys** SQL database mein save aur manage kar sakta hai.
-            </p>
+          
         </div>
 
         <div class="d-flex flex-wrap gap-2">
@@ -56,12 +54,10 @@
                 </div>
                 <div>
                     <h5 class="fw-bold text-white mb-0">Doctor-Wise API Key Configuration Form</h5>
-                    <span class="text-secondary small">Select a specialist and configure their dedicated AI API Keys in SQL Server</span>
+                    <span class="text-secondary small">Select a specialist and configure their dedicated AI API Keys</span>
                 </div>
             </div>
-            <span class="badge px-3 py-2" style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #10b981; border-radius: 8px;">
-                <i class="bi bi-database-check me-1"></i> SQL Stored Procedure Active
-            </span>
+           
         </div>
 
         <!-- 1. Doctor Selection Dropdown -->
@@ -77,7 +73,7 @@
                         <option value="@doc.Id">Dr. @doc.FullName — @doc.Specialization (@(string.IsNullOrEmpty(doc.ClinicName) ? "Hospital" : doc.ClinicName))</option>
                     }
                 </select>
-                <small class="text-secondary">Jis doctor ke liye keys save karni hain, unhe list se chunein.</small>
+                
             </div>
 
             <!-- Active Selected Doctor Quick Badge -->
@@ -96,7 +92,7 @@
                 {
                     <div class="p-2 px-3 rounded-3 w-100 text-secondary small d-flex align-items-center gap-2" style="background: rgba(7, 13, 30, 0.5); border: 1px dashed rgba(255, 255, 255, 0.15);">
                         <i class="bi bi-arrow-left text-warning"></i>
-                        <span>Upar se doctor select karein</span>
+                        <span>Select doctor here </span>
                     </div>
                 }
             </div>
@@ -187,26 +183,25 @@
             <!-- Action Buttons for Selected Doctor -->
             <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 pt-2">
                 <div class="text-secondary small">
-                    <i class="bi bi-info-circle text-info me-1"></i>
-                    Ye keys SQL Server table <code>[DoctorAiSettings_CYH]</code> mein <strong>DoctorId: @currentDoctor.Id</strong> ke sath store hongi.
+                  
                 </div>
 
                 <div class="d-flex gap-2">
                     <button type="button" class="btn btn-outline-danger d-flex align-items-center gap-2 px-3 py-2" @onclick="ResetDoctorKeysAsync" disabled="@isSavingDoctor" style="border-radius: 10px;">
                         <i class="bi bi-trash"></i>
-                        <span>Reset to Hospital Default</span>
+                        <span>Reset to Default</span>
                     </button>
 
                     <button type="button" class="btn btn-warning d-flex align-items-center gap-2 px-4 py-2 fw-bold" @onclick="SaveCurrentDoctorSettingsAsync" disabled="@isSavingDoctor" style="background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%); border: none; border-radius: 10px; color: #070d1e;">
                         @if (isSavingDoctor)
                         {
                             <span class="spinner-border spinner-border-sm" role="status"></span>
-                            <span>Saving to SQL...</span>
+                            <span>Saving...</span>
                         }
                         else
                         {
                             <i class="bi bi-save2-fill"></i>
-                            <span>Save Dr. @currentDoctor.FullName's Keys to SQL</span>
+                            <span>Save Dr. @currentDoctor.FullName's Keys</span>
                         }
                     </button>
                 </div>
@@ -221,9 +216,7 @@
                 <h5 class="fw-bold text-white mb-1">
                     <i class="bi bi-table text-warning me-2"></i>All Doctors AI API Keys Directory
                 </h5>
-                <p class="text-secondary small mb-0">
-                    Hospital ke sabhi doctors ki configured keys ki live SQL report. Kisi bhi doctor par "Edit Keys" click karke unhe form me load karein.
-                </p>
+               
             </div>
 
             <!-- Search Filter -->
@@ -241,7 +234,7 @@
         {
             <div class="text-center py-5">
                 <div class="spinner-border text-warning" role="status"></div>
-                <div class="text-secondary mt-2 small">Loading specialists and AI settings from SQL...</div>
+                <div class="text-secondary mt-2 small">Loading specialists and AI settings...</div>
             </div>
         }
         else if (!FilteredDoctors.Any())
@@ -341,9 +334,7 @@
                 <h5 class="fw-bold text-white mb-1">
                     <i class="bi bi-hospital text-info me-2"></i>Hospital Global Fallback Keys (Backup)
                 </h5>
-                <p class="text-secondary small mb-0">
-                    Agar kisi doctor ka individual API key map nahi hoga, to system automatically is Global Hospital key ko use karega.
-                </p>
+               
             </div>
             <span class="badge px-3 py-2" style="background: rgba(0, 242, 254, 0.12); border: 1px solid rgba(0, 242, 254, 0.3); color: #00f2fe; border-radius: 8px;">
                 <i class="bi bi-database me-1"></i> DoctorId = NULL (Global)

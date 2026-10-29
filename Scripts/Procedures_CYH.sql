@@ -1,4 +1,4 @@
-﻿USE [CYHDocBrandBD];
+USE [CYHDocBrandBD];
 GO
 
 SET ANSI_NULLS ON;
@@ -305,7 +305,7 @@ BEGIN
             VALUES 
             (
                 @NewUserId, @Email, UPPER(@Email), @Email, UPPER(@Email), 
-                1, @FullName, 'Doctor', @Specialization, @PhoneNumber, 
+                0, @FullName, 'Doctor', @Specialization, @PhoneNumber, 
                 @Password, @Now, 0, 0, 0, 
                 0, 0
             );

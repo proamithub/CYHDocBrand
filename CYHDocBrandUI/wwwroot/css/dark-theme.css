@@ -374,7 +374,61 @@ input[type="color"] {
   cursor: pointer;
 }
 
-/* Input Group Addons */
+/* Input Group Addons & Clean Horizontal Alignment */
+.input-group,
+.input-group.flex-nowrap {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: stretch !important;
+  width: 100% !important;
+  position: relative !important;
+}
+
+.input-group > .glass-input,
+.input-group > .form-control {
+  position: relative !important;
+  flex: 1 1 auto !important;
+  width: 1% !important;
+  min-width: 0 !important;
+  margin-left: -1px !important;
+  display: block !important;
+}
+
+.input-group > .input-group-text {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  padding: 0.72rem 1.1rem !important;
+  font-weight: 700 !important;
+  font-size: 0.92rem !important;
+  min-height: 42px !important;
+  background: #141e30 !important;
+  border: 1px solid #2a3a54 !important;
+  color: #00f2fe !important;
+  z-index: 2 !important;
+}
+
+.input-group > :first-child:not(:last-child),
+.input-group > .input-group-text:first-child,
+.input-group > .glass-input:first-child {
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  border-right: none !important;
+}
+
+.input-group > :last-child:not(:first-child),
+.input-group > .glass-input:last-child,
+.input-group > .input-group-text:last-child {
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+}
+
+.input-group > :not(:first-child):not(:last-child) {
+  border-radius: 0 !important;
+}
 .input-group-text {
   background: #141e30 !important;
   border: 1px solid #2a3a54 !important;
@@ -1324,4 +1378,32 @@ a {
 .cyh-nav,
 .modal-body {
   -webkit-overflow-scrolling: touch;
+}
+
+/* ==========================================================================
+   Filter Pills (Glass Theme)
+   ========================================================================== */
+.filter-pill {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #cbd5e1 !important;
+  padding: 0.38rem 0.85rem !important;
+  border-radius: 20px !important;
+  font-size: 0.8rem !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.filter-pill:hover {
+  background: rgba(0, 242, 254, 0.15) !important;
+  border-color: rgba(0, 242, 254, 0.4) !important;
+  color: #00f2fe !important;
+}
+
+.filter-pill.active {
+  background: linear-gradient(135deg, rgba(0, 242, 254, 0.35), rgba(79, 172, 254, 0.35)) !important;
+  border-color: #00f2fe !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
 }

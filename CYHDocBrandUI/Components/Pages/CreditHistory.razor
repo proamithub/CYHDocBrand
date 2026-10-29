@@ -21,12 +21,12 @@
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
         <div>
             <div class="d-flex align-items-center gap-2 mb-1">
-                <span class="badge px-3 py-2" style="background: rgba(0, 242, 254, 0.15); border: 1px solid rgba(0, 242, 254, 0.4); color: #00f2fe; border-radius: 8px; font-weight: 700;">
+                <span class="badge px-3 py-2" style="background: var(--cyh-border-glass-glow, rgba(0, 242, 254, 0.15)); border: 1px solid var(--cyh-border-focus, rgba(0, 242, 254, 0.4)); color: var(--cyh-accent-cyan, #00f2fe); border-radius: 8px; font-weight: 700;">
                     <i class="bi bi-clock-history me-1"></i> LIVE USAGE &amp; AUDIT LEDGER
                 </span>
                 <span class="text-secondary" style="font-size: 0.85rem;">CYH Creative Studio</span>
             </div>
-            <h2 class="fw-bold text-white mb-1">Credit &amp; Activity History</h2>
+            <h2 class="fw-bold mb-1" style="color: var(--cyh-text-primary);">Credit &amp; Activity History</h2>
             <p class="text-secondary mb-0" style="font-size: 0.9rem;">
                 Doctor-wise real-time tracking of Template publishes, AI banner creations, and administrative credit grants.
             </p>
@@ -58,12 +58,12 @@
             <div class="d-flex flex-wrap align-items-center gap-2">
                 <i class="bi bi-person-badge text-warning fs-4"></i>
                 <div>
-                    <div class="text-white fw-bold">Admin Specialist Selector</div>
-                    <div class="small text-white-50">Filter audit records for specific doctor</div>
+                    <div class="fw-bold" style="color: var(--cyh-text-primary);">Admin Specialist Selector</div>
+                    <div class="small text-secondary">Filter audit records for specific doctor</div>
                 </div>
             </div>
             <div class="d-flex flex-wrap align-items-center gap-2">
-                <select class="form-select bg-dark border-secondary text-white" style="min-width: 250px;"
+                <select class="form-select glass-input" style="min-width: 250px;"
                         value="@SelectedDoctorId" @onchange="OnDoctorChanged">
                     <option value="0">All Specialists (Global)</option>
                     @foreach (var doc in AllDoctors)
@@ -80,7 +80,7 @@
         @if (!DoctorCredits.Any())
         {
             <div class="col-12">
-                <div class="glass-card p-4 text-center text-white-50">
+                <div class="glass-card p-4 text-center text-secondary">
                     <div class="spinner-border spinner-border-sm text-info me-2" role="status"></div>
                     <span>Loading live credit ledger...</span>
                 </div>
@@ -94,7 +94,7 @@
                     <div class="glass-card stat-card h-100 p-3">
                         <div class="d-flex align-items-center justify-content-between mb-2">
                             <span class="stat-label">@cred.CreditTypeName</span>
-                            <div class="stat-icon-wrapper" style="background: @(cred.IsPaid ? "rgba(245, 158, 11, 0.2)" : "rgba(16, 185, 129, 0.2)"); color: @(cred.IsPaid ? "#fbbf24" : "#10b981");">
+                            <div class="stat-icon-wrapper" style="background: @(cred.IsPaid ? "rgba(245, 158, 11, 0.15)" : "rgba(16, 185, 129, 0.15)"); color: @(cred.IsPaid ? "#d97706" : "#059669"); border: 1px solid @(cred.IsPaid ? "rgba(245, 158, 11, 0.3)" : "rgba(16, 185, 129, 0.3)");">
                                 <i class="bi @(cred.IsPaid ? "bi-cash-coin" : "bi-gift-fill")"></i>
                             </div>
                         </div>
@@ -104,15 +104,15 @@
                             </span>
                             <span class="text-secondary small">/ @cred.TotalCredits granted</span>
                         </div>
-                        <div class="progress mt-2" style="height: 6px; background: rgba(255, 255, 255, 0.08); border-radius: 4px;">
+                        <div class="progress mt-2" style="height: 6px; background: rgba(100, 116, 139, 0.2); border-radius: 4px;">
                             @{
                                 var pct = cred.TotalCredits > 0 ? (cred.RemainingCredits * 100 / cred.TotalCredits) : 0;
                             }
                             <div class="progress-bar" style="width: @pct%; background: @(cred.IsPaid ? "linear-gradient(90deg, #f59e0b, #fbbf24)" : "linear-gradient(90deg, #00f2fe, #4facfe)"); border-radius: 4px;"></div>
                         </div>
-                        <div class="d-flex justify-content-between mt-2 pt-1 border-top border-secondary border-opacity-10 small text-white-50" style="font-size: 0.72rem;">
+                        <div class="d-flex justify-content-between mt-2 pt-1 border-top small text-secondary" style="font-size: 0.72rem; border-color: var(--cyh-border-glass, rgba(255, 255, 255, 0.1)) !important;">
                             <span>@(cred.IsPaid ? "Paid Service" : "Free Service")</span>
-                            <span>Used: <strong class="text-white">@cred.UsedCredits</strong></span>
+                            <span>Used: <strong style="color: var(--cyh-text-primary);">@cred.UsedCredits</strong></span>
                         </div>
                     </div>
                 </div>
@@ -123,18 +123,18 @@
                 <div class="glass-card stat-card h-100 p-3">
                     <div class="d-flex align-items-center justify-content-between mb-2">
                         <span class="stat-label">Total Transactions</span>
-                        <div class="stat-icon-wrapper" style="background: rgba(139, 92, 246, 0.2); color: #a78bfa;">
+                        <div class="stat-icon-wrapper" style="background: rgba(139, 92, 246, 0.15); color: #7c3aed; border: 1px solid rgba(139, 92, 246, 0.3);">
                             <i class="bi bi-journal-check"></i>
                         </div>
                     </div>
                     <div class="d-flex align-items-baseline gap-2">
-                        <span class="stat-value text-white fw-bold" style="font-size: 1.8rem;">@Transactions.Count</span>
+                        <span class="stat-value fw-bold" style="font-size: 1.8rem; color: var(--cyh-text-primary);">@Transactions.Count</span>
                         <span class="text-secondary small">recorded</span>
                     </div>
-                    <div class="small text-white-50 mt-2">
+                    <div class="small text-secondary mt-2">
                         Published debits: <strong class="text-danger">@Transactions.Count(t => t.TransactionType == "DEBIT_ON_PUBLISH")</strong>
                     </div>
-                    <div class="small text-white-50 mt-1">
+                    <div class="small text-secondary mt-1">
                         Admin grants: <strong class="text-success">@Transactions.Count(t => t.TransactionType == "ADMIN_ADD")</strong>
                     </div>
                 </div>
@@ -177,7 +177,7 @@
 
             <!-- Timeframe Dropdown -->
             <div class="col-12 col-sm-4 col-lg-2">
-                <select class="form-select bg-dark border-secondary text-white small" @bind="SelectedTimeframe" @bind:after="FilterByTimeframe">
+                <select class="form-select glass-input small" @bind="SelectedTimeframe" @bind:after="FilterByTimeframe">
                     <option value="ALL">All Time</option>
                     <option value="TODAY">Today</option>
                     <option value="7DAYS">Last 7 Days</option>
@@ -189,17 +189,17 @@
 
     <!-- Activity Ledger Table -->
     <div class="glass-card p-0 overflow-hidden mb-4">
-        <div class="p-3 border-bottom border-secondary border-opacity-25 d-flex align-items-center justify-content-between">
-            <h6 class="text-white fw-bold mb-0">
+        <div class="p-3 border-bottom d-flex align-items-center justify-content-between" style="border-color: var(--cyh-border-glass, rgba(255, 255, 255, 0.1)) !important;">
+            <h6 class="fw-bold mb-0" style="color: var(--cyh-text-primary);">
                 <i class="bi bi-receipt me-2 text-info"></i>Audit Transaction Log
             </h6>
-            <span class="text-white-50 small">Showing @FilteredTransactions.Count() entries</span>
+            <span class="text-secondary small">Showing @FilteredTransactions.Count() entries</span>
         </div>
 
         <div class="table-responsive">
-            <table class="table table-dark table-hover align-middle mb-0" style="background: transparent;">
+            <table class="glass-table table-hover align-middle mb-0">
                 <thead>
-                    <tr class="text-white-50 small border-secondary">
+                    <tr>
                         <th class="ps-3">Date &amp; Time</th>
                         <th>Specialist</th>
                         <th>Credit Service</th>
@@ -214,8 +214,8 @@
                     @if (!FilteredTransactions.Any())
                     {
                         <tr>
-                            <td colspan="8" class="text-center py-5 text-white-50">
-                                <i class="bi bi-inbox fs-1 d-block mb-2 text-white-50"></i>
+                            <td colspan="8" class="text-center py-5 text-secondary">
+                                <i class="bi bi-inbox fs-1 d-block mb-2 text-secondary"></i>
                                 <span>No transaction records match the current filters.</span>
                             </td>
                         </tr>
@@ -225,13 +225,13 @@
                         @foreach (var tx in FilteredTransactions)
                         {
                             <tr>
-                                <td class="ps-3 text-white-50 small">
-                                    <div class="fw-semibold text-white">@tx.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")</div>
+                                <td class="ps-3 text-secondary small">
+                                    <div class="fw-semibold" style="color: var(--cyh-text-primary);">@tx.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")</div>
                                     <div style="font-size: 0.72rem;">@tx.CreatedAt.ToLocalTime().ToString("hh:mm:ss tt")</div>
                                 </td>
-                                <td class="fw-bold text-white small">@tx.DoctorName</td>
+                                <td class="fw-bold small" style="color: var(--cyh-text-primary);">@tx.DoctorName</td>
                                 <td>
-                                    <span class="badge" style="background: rgba(0, 242, 254, 0.15); color: #00f2fe; border: 1px solid rgba(0, 242, 254, 0.3);">
+                                    <span class="badge" style="background: var(--cyh-border-glass-glow, rgba(0, 242, 254, 0.15)); color: var(--cyh-accent-cyan, #00f2fe); border: 1px solid var(--cyh-border-focus, rgba(0, 242, 254, 0.3)); font-weight: 600;">
                                         @tx.CreditTypeName
                                     </span>
                                 </td>
@@ -246,10 +246,10 @@
                                 <td class="text-end fw-bold text-warning font-monospace">
                                     @tx.BalanceAfter
                                 </td>
-                                <td class="small text-white-50">
+                                <td class="small text-secondary">
                                     @(string.IsNullOrEmpty(tx.ActionBy) ? "System" : tx.ActionBy)
                                 </td>
-                                <td class="small text-white-50" style="max-width: 250px;">
+                                <td class="small text-secondary" style="max-width: 250px;">
                                     @(string.IsNullOrEmpty(tx.Note) ? (tx.ReferenceId ?? "-") : tx.Note)
                                 </td>
                             </tr>
@@ -265,15 +265,9 @@
     .credit-history-container {
         padding: 0.5rem 0;
     }
-    .glass-card {
-        background: rgba(15, 23, 42, 0.65);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 14px;
-        backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-    }
     .stat-label {
         font-size: 0.78rem;
-        color: #94a3b8;
+        color: var(--cyh-text-secondary, #94a3b8) !important;
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.5px;
@@ -288,26 +282,29 @@
         font-size: 1.1rem;
     }
     .filter-pill {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        color: #cbd5e1;
-        padding: 0.35rem 0.8rem;
+        background: var(--cyh-bg-surface, rgba(255, 255, 255, 0.05));
+        border: 1.5px solid var(--cyh-border-glass, rgba(255, 255, 255, 0.15));
+        color: var(--cyh-text-secondary, #cbd5e1);
+        padding: 0.38rem 0.85rem;
         border-radius: 20px;
-        font-size: 0.78rem;
-        font-weight: 500;
+        font-size: 0.8rem;
+        font-weight: 600;
         cursor: pointer;
         transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
     }
     .filter-pill:hover {
-        background: rgba(0, 242, 254, 0.15);
-        border-color: rgba(0, 242, 254, 0.4);
-        color: #00f2fe;
+        background: var(--cyh-border-glass-glow, rgba(0, 242, 254, 0.15));
+        border-color: var(--cyh-border-focus, #00f2fe);
+        color: var(--cyh-accent-cyan, #00f2fe);
     }
     .filter-pill.active {
-        background: linear-gradient(135deg, rgba(0, 242, 254, 0.3), rgba(79, 172, 254, 0.3));
-        border-color: #00f2fe;
-        color: #ffffff;
+        background: linear-gradient(135deg, #0284c7, #2563eb) !important;
+        border-color: #0284c7 !important;
+        color: #ffffff !important;
         font-weight: 700;
+        box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
     }
     .search-input-wrapper {
         position: relative;
@@ -317,42 +314,9 @@
         left: 14px;
         top: 50%;
         transform: translateY(-50%);
-        color: #64748b;
-    }
-    .glass-input {
-        background: rgba(0, 0, 0, 0.35);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 8px;
-        color: #ffffff;
-        padding: 0.45rem 0.85rem;
-        width: 100%;
-        font-size: 0.85rem;
-    }
-    .glass-input:focus {
-        outline: none;
-        border-color: #00f2fe;
-    }
-    .glass-btn-primary {
-        background: linear-gradient(135deg, #00f2fe, #4facfe);
-        color: #070d1e;
-        border: none;
-        border-radius: 8px;
-        padding: 0.5rem 1rem;
-        font-weight: 700;
-        font-size: 0.85rem;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-    .glass-btn-secondary {
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        color: #ffffff;
-        border-radius: 8px;
-        padding: 0.5rem 1rem;
-        font-weight: 600;
-        font-size: 0.85rem;
-        cursor: pointer;
-        transition: all 0.2s ease;
+        color: var(--cyh-text-muted, #64748b);
+        pointer-events: none;
+        z-index: 2;
     }
 </style>
 

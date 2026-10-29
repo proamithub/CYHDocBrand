@@ -142,9 +142,9 @@ public static class DbInitializer
                 IF COL_LENGTH('DoctorProfiles', 'AiCredits') IS NULL
                     ALTER TABLE [dbo].[DoctorProfiles] ADD [AiCredits] INT NOT NULL DEFAULT (25);
                 IF COL_LENGTH('DoctorProfiles', 'IsVerified') IS NULL
-                    ALTER TABLE [dbo].[DoctorProfiles] ADD [IsVerified] BIT NOT NULL DEFAULT (1);
+                    ALTER TABLE [dbo].[DoctorProfiles] ADD [IsVerified] BIT NOT NULL DEFAULT (0);
                 IF COL_LENGTH('DoctorProfiles', 'IsVerified') IS NULL
-                    ALTER TABLE [dbo].[DoctorProfiles] ADD [IsVerified] BIT NOT NULL DEFAULT (1);
+                    ALTER TABLE [dbo].[DoctorProfiles] ADD [IsVerified] BIT NOT NULL DEFAULT (0);
 
                 -- Credit System Tables
                 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[CreditTypes_CYH]') AND type in (N'U'))
@@ -517,7 +517,7 @@ public static class DbInitializer
                             VALUES 
                             (
                                 @NewUserId, @Email, UPPER(@Email), @Email, UPPER(@Email), 
-                                1, @FullName, 'Doctor', @Specialization, @PhoneNumber, 
+                                0, @FullName, 'Doctor', @Specialization, @PhoneNumber, 
                                 @Password, @Now, 0, 0, 0, 
                                 0, 0
                             );

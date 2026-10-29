@@ -37,6 +37,8 @@ builder.Services.AddScoped<IPushNotificationRepository, PushNotificationReposito
 builder.Services.AddHttpClient();
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient<ISMSService, SMSService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<EmailVerificationTokenService>();
 builder.Services.AddScoped<IOtpService, OtpService>();
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 builder.Services.AddScoped<IBannerAiService, BannerAiService>();
@@ -178,6 +180,37 @@ app.MapPost("/api/push/subscribe", async (CYHDocBrandModel.DTO.PushSubscriptionR
 
     var ok = await pushRepo.SaveSubscriptionAsync(request);
     return Results.Ok(new { success = ok });
+});
+
+// 10. Email Verification Gateway Endpoint
+app.MapGet("/api/verify-email", async (
+    string? token,
+    EmailVerificationTokenService tokenService,
+    IDoctorRepository doctorRepo) =>
+{
+    var validation = tokenService.ValidateToken(token);
+    if (!validation.IsValid || string.IsNullOrEmpty(validation.UserId))
+    {
+        var errorMsg = Uri.EscapeDataString(validation.ErrorMessage ?? "Invalid or expired verification link.");
+        return Results.Redirect($"/verify-email?status=error&message={errorMsg}");
+    }
+
+    var success = await doctorRepo.ConfirmDoctorEmailAsync(validation.UserId);
+    if (success)
+    {
+        var doc = await doctorRepo.GetByUserIdAsync(validation.UserId);
+        var nameParam = doc != null && !string.IsNullOrWhiteSpace(doc.FullName) 
+            ? $"&name={Uri.EscapeDataString(doc.FullName)}" 
+            : "";
+        var emailParam = validation.Email != null 
+            ? $"&email={Uri.EscapeDataString(validation.Email)}" 
+            : "";
+        return Results.Redirect($"/verify-email?status=success{nameParam}{emailParam}");
+    }
+    else
+    {
+        return Results.Redirect("/verify-email?status=error&message=" + Uri.EscapeDataString("Failed to confirm email in database. Please try again."));
+    }
 });
 
 app.Run();

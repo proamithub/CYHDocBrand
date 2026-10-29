@@ -93,7 +93,7 @@ BEGIN
         [SecondaryColorHex] NVARCHAR (50)  NULL DEFAULT ('#4facfe'),
         [PreferredFont]    NVARCHAR (50)   NULL DEFAULT ('Inter'),
         [AiCredits]        INT             NOT NULL DEFAULT (25),
-        [IsVerified]       BIT             NOT NULL DEFAULT (1),
+        [IsVerified]       BIT             NOT NULL DEFAULT (0),
         [IsAvailableToday] BIT             NOT NULL DEFAULT (1),
         [CreatedAt]        DATETIME2 (7)   NOT NULL DEFAULT (DATEADD(minute, 330, SYSUTCDATETIME())),
         CONSTRAINT [PK_DoctorProfiles] PRIMARY KEY CLUSTERED ([Id] ASC),
@@ -423,7 +423,7 @@ BEGIN
             VALUES 
             (
                 @NewUserId, @Email, UPPER(@Email), @Email, UPPER(@Email), 
-                1, @FullName, 'Doctor', @Specialization, @PhoneNumber, 
+                0, @FullName, 'Doctor', @Specialization, @PhoneNumber, 
                 @Password, @Now, 0, 0, 0, 
                 0, 0
             );

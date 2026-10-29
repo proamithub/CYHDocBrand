@@ -1,3 +1,4 @@
+@using System.Text.RegularExpressions
 @page "/admin/doctors"
 @layout AdminLayout
 @using CYHDocBrandRepo.Utilities
@@ -248,7 +249,9 @@
                             <label class="form-label small fw-semibold text-light mb-1">Login Email *</label>
                             <input type="email" class="glass-input @(AddValidationErrorField == "Email" ? "border-danger" : "")" 
                                    style="@(AddValidationErrorField == "Email" ? "border-color: #f43f5e !important; box-shadow: 0 0 10px rgba(244, 63, 94, 0.4) !important;" : "")"
-                                   @bind="NewDoctor.Email" placeholder="sameer.khan@cyhdoctorhub.com" />
+                                   value="@NewDoctor.Email"
+                                   @oninput="HandleAdminEmailInput"
+                                   placeholder="sameer.khan@cyhdoctorhub.com" />
                             @if (AddValidationErrorField == "Email")
                             {
                                 <div class="text-danger small mt-1" style="font-size: 0.78rem;">
@@ -263,13 +266,16 @@
                                 <span>Mobile Number *</span>
                                 <span class="text-info" style="font-size: 0.75rem;">10 digits only</span>
                             </label>
-                            <div class="input-group">
-                                <span class="input-group-text border-0 px-2 fw-semibold" style="background: rgba(15, 23, 42, 0.85); color: #f59e0b; border-radius: 10px 0 0 10px; border: 1px solid rgba(255, 255, 255, 0.12); border-right: none; font-size: 0.88rem;">
+                            <div class="input-group flex-nowrap">
+                                <span class="input-group-text px-3 fw-semibold">
                                   +91
                                 </span>
-                                <input type="tel" maxlength="10" class="glass-input @(AddValidationErrorField == "PhoneNumber" ? "border-danger" : "")" 
-                                       style="border-radius: 0 10px 10px 0 !important; @(AddValidationErrorField == "PhoneNumber" ? "border-color: #f43f5e !important; box-shadow: 0 0 10px rgba(244, 63, 94, 0.4) !important;" : "")"
-                                       @bind="NewDoctor.PhoneNumber" placeholder="10-digit mobile number" />
+                                <input type="tel" maxlength="10" inputmode="numeric" pattern="[0-9]*" 
+                                       class="glass-input @(AddValidationErrorField == "PhoneNumber" ? "border-danger" : "")" 
+                                       style="@(AddValidationErrorField == "PhoneNumber" ? "border-color: #f43f5e !important; box-shadow: 0 0 10px rgba(244, 63, 94, 0.4) !important;" : "")"
+                                       value="@NewDoctor.PhoneNumber" 
+                                       @oninput="HandleAdminPhoneInput"
+                                       placeholder="10-digit mobile number" />
                             </div>
                             @if (AddValidationErrorField == "PhoneNumber")
                             {
@@ -403,7 +409,7 @@
                         </div>
                         <div>
                             <h5 class="modal-title fw-bold text-white mb-0">Doctor Password Decryptor Tool</h5>
-                            <span class="small" style="color: #94a3b8;">Decrypt AES-256 encrypted passwords from database</span>
+                           
                         </div>
                     </div>
                     <button type="button" class="btn-close btn-close-white" @onclick="CloseDecryptModal" aria-label="Close"></button>
@@ -454,13 +460,7 @@
                         </div>
                     </div>
 
-                    <!-- SQL Procedure Reference Note -->
-                    <div class="alert mb-0 p-3 small" style="background: rgba(255, 255, 255, 0.04); border: 1px dashed rgba(255, 255, 255, 0.2); color: #cbd5e1; border-radius: 10px;">
-                        <strong class="text-warning"><i class="bi bi-terminal-fill me-1"></i>Direct SQL Query (SSMS):</strong>
-                        <div class="mt-1 font-monospace text-info small" style="background: #060b17; padding: 8px 12px; border-radius: 6px;">
-                            EXEC dbo.DecryptDocPassword @@EncryptedPassword = '@CipherInput'
-                        </div>
-                    </div>
+                   
                 </div>
 
                 <div class="modal-footer border-top p-3" style="border-color: rgba(255, 255, 255, 0.1) !important;">
@@ -700,13 +700,15 @@
             return;
         }
 
-        if (!NewDoctor.Email.Contains("@") || !NewDoctor.Email.Contains(".") || NewDoctor.Email.Trim().Length < 5)
+        var trimmedDocEmail = NewDoctor.Email.Trim();
+        if (!IsValidEmailAddress(trimmedDocEmail))
         {
             AddValidationErrorField = "Email";
-            AddErrorMessage = "Please enter a valid login email address (e.g. doctor@hospital.com).";
+            AddErrorMessage = "Please enter a valid official email address (e.g. doctor@hospital.com).";
             ShowPopup("Invalid Email", AddErrorMessage, "error");
             return;
         }
+        NewDoctor.Email = trimmedDocEmail.ToLowerInvariant();
 
         // Sequence 4: Mobile Number (10 Digits)
         if (string.IsNullOrWhiteSpace(NewDoctor.PhoneNumber))
@@ -882,6 +884,75 @@
             }
             catch (TaskCanceledException) { }
         }, token);
+    }
+
+    private static readonly Regex EmailFormatRegex = new Regex(
+        @"^[^@\s]+@[^@\s]+\.[a-zA-Z]{2,}$",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    private static bool IsValidEmailAddress(string? email)
+    {
+        if (string.IsNullOrWhiteSpace(email)) return false;
+        var trimmed = email.Trim();
+        if (trimmed.Length < 6 || trimmed.Length > 254) return false;
+        if (!EmailFormatRegex.IsMatch(trimmed)) return false;
+
+        var parts = trimmed.Split('@');
+        if (parts.Length != 2 || string.IsNullOrWhiteSpace(parts[0]) || string.IsNullOrWhiteSpace(parts[1]))
+            return false;
+
+        if (parts[0].StartsWith(".") || parts[0].EndsWith(".") || parts[0].Contains(".."))
+            return false;
+
+        var domain = parts[1];
+        if (domain.StartsWith(".") || domain.EndsWith(".") || domain.Contains("..") || domain.StartsWith("-") || domain.EndsWith("-"))
+            return false;
+
+        var domainParts = domain.Split('.');
+        if (domainParts.Length < 2 || domainParts.Any(string.IsNullOrWhiteSpace))
+            return false;
+
+        var tld = domainParts[^1];
+        if (tld.Length < 2 || !tld.All(char.IsLetter))
+            return false;
+
+        return true;
+    }
+
+    private void HandleAdminEmailInput(ChangeEventArgs e)
+    {
+        var raw = e.Value?.ToString() ?? "";
+        NewDoctor.Email = raw.Trim();
+        if (AddValidationErrorField == "Email")
+        {
+            AddValidationErrorField = null;
+            AddErrorMessage = null;
+        }
+    }
+
+    private void HandleAdminPhoneInput(ChangeEventArgs e)
+    {
+        var raw = e.Value?.ToString() ?? "";
+        var digitsOnly = new string(raw.Where(char.IsDigit).ToArray());
+        if (digitsOnly.Length == 12 && digitsOnly.StartsWith("91"))
+        {
+            digitsOnly = digitsOnly.Substring(2);
+        }
+        else if (digitsOnly.Length == 11 && digitsOnly.StartsWith("0"))
+        {
+            digitsOnly = digitsOnly.Substring(1);
+        }
+        if (digitsOnly.Length > 10)
+        {
+            digitsOnly = digitsOnly.Substring(0, 10);
+        }
+
+        NewDoctor.PhoneNumber = digitsOnly;
+        if (AddValidationErrorField == "PhoneNumber")
+        {
+            AddValidationErrorField = null;
+            AddErrorMessage = null;
+        }
     }
 
     private void DismissPopup()

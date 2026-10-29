@@ -1,0 +1,89 @@
+@page "/verify-email"
+@layout AuthLayout
+@inject NavigationManager NavigationManager
+
+<PageTitle>Email Verification • CYH Doctor Hub</PageTitle>
+
+<div class="glass-panel p-4 p-md-5 text-center position-relative overflow-hidden mx-auto my-4" 
+     style="max-width: 580px; border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: 0 25px 60px rgba(0, 0, 0, 0.65), 0 0 35px rgba(0, 242, 254, 0.18); border-radius: 20px;">
+    
+    <!-- Top Gradient Bar -->
+    <div class="position-absolute top-0 start-0 w-100" style="height: 4px; background: linear-gradient(90deg, #00f2fe, #4facfe, #8b5cf6);"></div>
+
+    <!-- CYH Logo Header -->
+    <div class="mb-4 text-center">
+        <img src="images/branding/cyh-logo.png" alt="CYH Care Aisi Family Jaisi" style="max-height: 70px; max-width: 210px; object-fit: contain; filter: drop-shadow(0 4px 12px rgba(0, 242, 254, 0.3));" />
+    </div>
+
+    @if (IsSuccess)
+    {
+        <div class="mb-2">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3 shadow-lg" 
+                 style="width: 82px; height: 82px; background: rgba(16, 185, 129, 0.15); border: 2.5px solid #10b981; color: #10b981; font-size: 2.6rem;">
+                <i class="bi bi-patch-check-fill"></i>
+            </div>
+            <h2 class="fw-bold mb-2" style="color: var(--cyh-text-primary); letter-spacing: -0.5px;">Email Verified Successfully!</h2>
+            @if (!string.IsNullOrEmpty(DoctorName))
+            {
+                <div class="fs-5 fw-semibold text-info mb-2">Welcome, @DoctorName</div>
+            }
+            <p class="text-secondary mb-4" style="font-size: 0.95rem; line-height: 1.6;">
+                Your official specialist email address <strong style="color: var(--cyh-text-primary);">@(string.IsNullOrEmpty(EmailAddress) ? "account" : EmailAddress)</strong> has been confirmed. All branding, creative publishing, and doctor portal features are now active.
+            </p>
+
+            <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center mt-4">
+                <a href="doctor/profile" class="glass-btn-primary px-4 py-2 text-decoration-none d-inline-flex align-items-center justify-content-center" style="border-radius: 12px; height: 46px;">
+                    <i class="bi bi-person-circle me-2 fs-5"></i>
+                    <span>Go to Doctor Profile</span>
+                </a>
+                <a href="doctor/dashboard" class="glass-btn-secondary px-4 py-2 text-decoration-none d-inline-flex align-items-center justify-content-center" style="border-radius: 12px; height: 46px;">
+                    <i class="bi bi-speedometer2 me-2 fs-5"></i>
+                    <span>Doctor Dashboard</span>
+                </a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="mb-2">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3 shadow-lg" 
+                 style="width: 82px; height: 82px; background: rgba(239, 68, 68, 0.15); border: 2.5px solid #ef4444; color: #ef4444; font-size: 2.6rem;">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+            </div>
+            <h2 class="fw-bold mb-2" style="color: var(--cyh-text-primary); letter-spacing: -0.5px;">Verification Link Expired</h2>
+            <p class="text-secondary mb-4" style="font-size: 0.95rem; line-height: 1.6;">
+                @(string.IsNullOrEmpty(ErrorMessage) ? "This email verification link is invalid or has expired (valid for 24 hours). Please sign in to your Doctor Profile and click 'Verify Email' to receive a fresh verification link." : ErrorMessage)
+            </p>
+
+            <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center mt-4">
+                <a href="login" class="glass-btn-primary px-4 py-2 text-decoration-none d-inline-flex align-items-center justify-content-center" style="border-radius: 12px; height: 46px;">
+                    <i class="bi bi-box-arrow-in-right me-2 fs-5"></i>
+                    <span>Sign In to Portal</span>
+                </a>
+                <a href="doctor/profile" class="glass-btn-secondary px-4 py-2 text-decoration-none d-inline-flex align-items-center justify-content-center" style="border-radius: 12px; height: 46px;">
+                    <i class="bi bi-arrow-repeat me-2 fs-5"></i>
+                    <span>Doctor Profile</span>
+                </a>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [SupplyParameterFromQuery]
+    public string? Status { get; set; }
+
+    [SupplyParameterFromQuery]
+    public string? Message { get; set; }
+
+    [SupplyParameterFromQuery]
+    public string? Name { get; set; }
+
+    [SupplyParameterFromQuery]
+    public string? Email { get; set; }
+
+    private bool IsSuccess => string.Equals(Status, "success", StringComparison.OrdinalIgnoreCase);
+    private string? ErrorMessage => Message;
+    private string? DoctorName => Name;
+    private string? EmailAddress => Email;
+}

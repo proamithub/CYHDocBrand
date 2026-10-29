@@ -126,7 +126,7 @@ public class DoctorRepository : IDoctorRepository
             await using var con = new SqlConnection(_conn);
             await con.OpenAsync();
 
-            await using var cmd = new SqlCommand("SELECT TOP 1 u.Id AS UserId, u.Email, u.FullName, u.Role, u.Department, u.IsActive, u.AvatarUrl, d.Id AS DoctorProfileId FROM AspNetUsers u LEFT JOIN DoctorProfiles d ON u.Id = d.UserId WHERE u.Email = @Email OR u.UserName = @Email", con);
+            await using var cmd = new SqlCommand("SELECT TOP 1 u.Id AS UserId, u.Email, u.FullName, u.Role, u.Department, u.IsActive, u.AvatarUrl, ISNULL(u.EmailConfirmed, 0) AS EmailConfirmed, d.Id AS DoctorProfileId FROM AspNetUsers u LEFT JOIN DoctorProfiles d ON u.Id = d.UserId WHERE u.Email = @Email OR u.UserName = @Email", con);
             cmd.Parameters.AddWithValue("@Email", email.Trim());
 
             await using var reader = await cmd.ExecuteReaderAsync();
@@ -545,5 +545,52 @@ public class DoctorRepository : IDoctorRepository
         catch { }
 
         return doc;
+    }
+    public async Task<bool> ConfirmDoctorEmailAsync(string userId)
+    {
+        if (string.IsNullOrWhiteSpace(userId)) return false;
+
+        try
+        {
+            await using var con = new SqlConnection(_conn);
+            await con.OpenAsync();
+
+            const string sql = @"
+                UPDATE AspNetUsers SET EmailConfirmed = 1 WHERE Id = @UserId;
+                UPDATE DoctorProfiles SET IsVerified = 1 WHERE UserId = @UserId;
+            ";
+
+            await using var cmd = new SqlCommand(sql, con);
+            cmd.Parameters.AddWithValue("@UserId", userId.Trim());
+            var affected = await cmd.ExecuteNonQueryAsync();
+            return affected > 0;
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "ConfirmDoctorEmailAsync failed for UserId {UserId}", userId);
+            return false;
+        }
+    }
+
+    public async Task<bool> IsEmailConfirmedAsync(string userId)
+    {
+        if (string.IsNullOrWhiteSpace(userId)) return false;
+
+        try
+        {
+            await using var con = new SqlConnection(_conn);
+            await con.OpenAsync();
+
+            const string sql = "SELECT TOP 1 ISNULL(EmailConfirmed, 0) FROM AspNetUsers WHERE Id = @UserId;";
+            await using var cmd = new SqlCommand(sql, con);
+            cmd.Parameters.AddWithValue("@UserId", userId.Trim());
+            var result = await cmd.ExecuteScalarAsync();
+            return result != null && result != DBNull.Value && Convert.ToBoolean(result);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "IsEmailConfirmedAsync failed for UserId {UserId}", userId);
+            return false;
+        }
     }
 }

@@ -1,3 +1,6 @@
+@using System.Text.RegularExpressions
+@using CYHDocBrandSMS
+@using CYHDocBrandUI.Services
 @page "/"
 @page "/login"
 @layout AuthLayout
@@ -6,6 +9,10 @@
 @inject IOtpService OtpService
 @inject IDoctorRepository DoctorRepo
 @inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+@inject IEmailService EmailService
+@inject EmailVerificationTokenService TokenService
+@inject IConfiguration Configuration
 
 <div class="glass-panel p-3 p-sm-4 p-md-5 position-relative overflow-hidden" style="border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65), 0 0 35px rgba(0, 242, 254, 0.15);">
     <div class="position-absolute top-0 start-0 w-100" style="height: 3px; background: linear-gradient(90deg, #00f2fe, #4facfe, #8b5cf6);"></div>
@@ -130,12 +137,18 @@
                     <i class="bi bi-phone-fill text-info" style="font-size: 0.95rem;"></i>
                     <span>Registered Mobile Number</span>
                 </label>
-                <div class="input-group">
-                    <span class="input-group-text border-0 px-3 fw-bold" style="background: rgba(15, 23, 42, 0.85); color: #00f2fe; border-radius: 12px 0 0 12px; border: 1px solid rgba(255, 255, 255, 0.12); border-right: none; font-size: 0.95rem;">
+                <div class="input-group flex-nowrap">
+                    <span class="input-group-text px-3 fw-bold" style="font-size: 0.95rem;">
                         🇮🇳 +91
                     </span>
-                    <input type="tel" maxlength="10" class="glass-input @(!string.IsNullOrEmpty(MobileValidationError) ? "border-danger" : "")" style="border-radius: 0 12px 12px 0 !important; font-size: 1.05rem; letter-spacing: 1px;" 
-                           @bind="MobileNumber" @bind:event="oninput" @onkeyup="HandleMobileKeyUp" placeholder="10-digit mobile number" autocomplete="off" />
+                    <input type="tel" maxlength="10" inputmode="numeric" pattern="[0-9]*" 
+                           class="glass-input @(!string.IsNullOrEmpty(MobileValidationError) ? "border-danger" : "")" 
+                           style="font-size: 1.05rem; letter-spacing: 1px;" 
+                           value="@MobileNumber" 
+                           @oninput="HandleLoginPhoneInput" 
+                           @onkeyup="HandleMobileKeyUp" 
+                           placeholder="10-digit mobile number" 
+                           autocomplete="off" />
                 </div>
                 @if (!string.IsNullOrEmpty(MobileValidationError))
                 {
@@ -184,9 +197,20 @@
                     </label>
                 </div>
                 <div class="position-relative">
-                    <input type="text" maxlength="6" class="glass-input text-center fw-bold fs-3 @(!string.IsNullOrEmpty(OtpValidationError) ? "border-danger" : "")" 
+                    <input id="cyh-login-otp"
+                           @ref="OtpInputElement"
+                           type="tel"
+                           inputmode="numeric"
+                           pattern="[0-9]*"
+                           maxlength="6"
+                           autofocus
+                           class="glass-input text-center fw-bold fs-3 @(!string.IsNullOrEmpty(OtpValidationError) ? "border-danger" : "")" 
                            style="letter-spacing: 12px; height: 52px; color: #00f2fe;" 
-                           @bind="EnteredOtp" @bind:event="oninput" @onkeyup="HandleOtpKeyUp" placeholder="······" autocomplete="one-time-code" />
+                           value="@EnteredOtp"
+                           @oninput="HandleOtpInput"
+                           @onkeyup="HandleOtpKeyUp"
+                           placeholder="······"
+                           autocomplete="one-time-code" />
                 </div>
                 @if (!string.IsNullOrEmpty(OtpValidationError))
                 {
@@ -334,7 +358,9 @@
                             </label>
                             <input type="email" class="glass-input @(RegValidationErrorField == "Email" ? "border-danger" : "")" 
                                    style="@(RegValidationErrorField == "Email" ? "border-color: #f43f5e !important; box-shadow: 0 0 10px rgba(244, 63, 94, 0.4) !important;" : "")"
-                                   @bind="RegModel.Email" placeholder="doctor@hospital.com" />
+                                   value="@RegModel.Email" 
+                                   @oninput="HandleRegEmailInput" 
+                                   placeholder="doctor@hospital.com" />
                             @if (RegValidationErrorField == "Email")
                             {
                                 <div class="text-danger small mt-1" style="font-size: 0.78rem;">
@@ -349,13 +375,16 @@
                                 <span>Mobile / WhatsApp (10 Digits) <span class="text-danger">*</span></span>
                                 <span class="text-info" style="font-size: 0.75rem;">10 digits only</span>
                             </label>
-                            <div class="input-group">
-                                <span class="input-group-text border-0 px-2 fw-semibold" style="background: rgba(15, 23, 42, 0.85); color: #00f2fe; border-radius: 10px 0 0 10px; border: 1px solid rgba(255, 255, 255, 0.12); border-right: none; font-size: 0.88rem;">
-                                  +91
+                            <div class="input-group flex-nowrap">
+                                <span class="input-group-text px-3 fw-bold">
+                                    +91
                                 </span>
-                                <input type="tel" maxlength="10" class="glass-input @(RegValidationErrorField == "PhoneNumber" ? "border-danger" : "")" 
-                                       style="border-radius: 0 10px 10px 0 !important; @(RegValidationErrorField == "PhoneNumber" ? "border-color: #f43f5e !important; box-shadow: 0 0 10px rgba(244, 63, 94, 0.4) !important;" : "")" 
-                                       @bind="RegModel.PhoneNumber" @bind:event="oninput" placeholder="10-digit mobile number" />
+                                <input type="tel" maxlength="10" inputmode="numeric" pattern="[0-9]*" 
+                                       class="glass-input @(RegValidationErrorField == "PhoneNumber" ? "border-danger" : "")" 
+                                       style="@(RegValidationErrorField == "PhoneNumber" ? "border-color: #f43f5e !important; box-shadow: 0 0 10px rgba(244, 63, 94, 0.4) !important;" : "")" 
+                                       value="@RegModel.PhoneNumber" 
+                                       @oninput="HandleRegPhoneInput" 
+                                       placeholder="10-digit mobile number" />
                             </div>
                             @if (RegValidationErrorField == "PhoneNumber")
                             {
@@ -542,6 +571,8 @@
     private System.Threading.Timer? countdownTimer;
     private string? MobileValidationError;
     private string? OtpValidationError;
+    private ElementReference OtpInputElement;
+    private bool shouldFocusOtp = false;
 
     // Doctor Registration Modal state
     private bool ShowRegisterModal = false;
@@ -617,6 +648,7 @@
                 EnteredOtp = "";
                 OtpValidationError = null;
                 StartCountdown(60);
+                shouldFocusOtp = true;
                 ShowPopup("OTP Sent Successfully", result.Message ?? "OTP sent to your registered mobile number.", "save");
             }
             else
@@ -648,6 +680,7 @@
             ErrorMessage = "Please enter the 6-digit OTP code. OTP cannot be blank.";
             OtpValidationError = "OTP code is required.";
             ShowPopup("OTP Required", ErrorMessage, "error");
+            shouldFocusOtp = true;
             return;
         }
 
@@ -657,6 +690,7 @@
             ErrorMessage = "Please enter a valid 6-digit OTP code.";
             OtpValidationError = "Exact 6 digits required.";
             ShowPopup("Invalid OTP", ErrorMessage, "error");
+            shouldFocusOtp = true;
             return;
         }
 
@@ -675,6 +709,8 @@
             {
                 ErrorMessage = result.ErrorMessage ?? "Invalid or expired OTP. Please enter valid OTP.";
                 OtpValidationError = ErrorMessage;
+                EnteredOtp = "";
+                shouldFocusOtp = true;
                 ShowPopup("Verification Failed", ErrorMessage, "error");
             }
         }
@@ -781,13 +817,15 @@
             return;
         }
 
-        if (!RegModel.Email.Contains("@") || !RegModel.Email.Contains(".") || RegModel.Email.Trim().Length < 5)
+        var trimmedEmail = RegModel.Email.Trim();
+        if (!IsValidEmailAddress(trimmedEmail))
         {
             RegValidationErrorField = "Email";
-            RegisterErrorMessage = "Please enter a valid official/login email address (e.g. doctor@hospital.com).";
+            RegisterErrorMessage = "Please enter a valid official email address (e.g. doctor@hospital.com).";
             ShowPopup("Invalid Email", RegisterErrorMessage, "error");
             return;
         }
+        RegModel.Email = trimmedEmail.ToLowerInvariant();
 
         // Sequence 4: Mobile / WhatsApp (10 Digits)
         if (string.IsNullOrWhiteSpace(RegModel.PhoneNumber))
@@ -932,9 +970,35 @@
                 MobileNumber = registeredPhone;
                 Password = "";
 
+                // Send Email Verification Link asynchronously in background
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var user = await DoctorRepo.GetByEmailAsync(registeredEmail);
+                        if (user != null && !string.IsNullOrEmpty(user.UserId))
+                        {
+                            var token = TokenService.GenerateToken(user.UserId, registeredEmail, TimeSpan.FromHours(24));
+                            var baseUrl = Configuration["EmailGateway:BaseUrl"];
+                            if (string.IsNullOrWhiteSpace(baseUrl))
+                            {
+                                baseUrl = NavigationManager.BaseUri.TrimEnd('/');
+                            }
+                            else
+                            {
+                                baseUrl = baseUrl.TrimEnd('/');
+                            }
+
+                            var verificationUrl = $"{baseUrl}/api/verify-email?token={Uri.EscapeDataString(token)}";
+                            await EmailService.SendVerificationLinkEmailAsync(registeredEmail, registeredName, verificationUrl);
+                        }
+                    }
+                    catch { }
+                });
+
                 ShowPopup(
                     "Registration Submitted!",
-                    $"{registeredName}, your account is created in PENDING APPROVAL state. You can sign in using Email or Mobile OTP to view your Profile. Other tools will unlock once Admin activates your account.",
+                    $"{registeredName}, your account is created in PENDING APPROVAL state. A verification link has been sent to {registeredEmail}. Please check your inbox to verify your email, or verify it from your profile.",
                     "save"
                 );
             }
@@ -1059,6 +1123,131 @@
             }
             catch (TaskCanceledException) { }
         }, token);
+    }
+
+    private static readonly Regex EmailFormatRegex = new Regex(
+        @"^[^@\s]+@[^@\s]+\.[a-zA-Z]{2,}$",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    private static bool IsValidEmailAddress(string? email)
+    {
+        if (string.IsNullOrWhiteSpace(email)) return false;
+        var trimmed = email.Trim();
+        if (trimmed.Length < 6 || trimmed.Length > 254) return false;
+        if (!EmailFormatRegex.IsMatch(trimmed)) return false;
+
+        var parts = trimmed.Split('@');
+        if (parts.Length != 2 || string.IsNullOrWhiteSpace(parts[0]) || string.IsNullOrWhiteSpace(parts[1]))
+            return false;
+
+        if (parts[0].StartsWith(".") || parts[0].EndsWith(".") || parts[0].Contains(".."))
+            return false;
+
+        var domain = parts[1];
+        if (domain.StartsWith(".") || domain.EndsWith(".") || domain.Contains("..") || domain.StartsWith("-") || domain.EndsWith("-"))
+            return false;
+
+        var domainParts = domain.Split('.');
+        if (domainParts.Length < 2 || domainParts.Any(string.IsNullOrWhiteSpace))
+            return false;
+
+        var tld = domainParts[^1];
+        if (tld.Length < 2 || !tld.All(char.IsLetter))
+            return false;
+
+        return true;
+    }
+
+    private void HandleRegEmailInput(ChangeEventArgs e)
+    {
+        var raw = e.Value?.ToString() ?? "";
+        RegModel.Email = raw.Trim();
+        if (RegValidationErrorField == "Email")
+        {
+            RegValidationErrorField = null;
+            RegisterErrorMessage = null;
+        }
+    }
+
+    private void HandleRegPhoneInput(ChangeEventArgs e)
+    {
+        var raw = e.Value?.ToString() ?? "";
+        var digitsOnly = new string(raw.Where(char.IsDigit).ToArray());
+        if (digitsOnly.Length == 12 && digitsOnly.StartsWith("91"))
+        {
+            digitsOnly = digitsOnly.Substring(2);
+        }
+        else if (digitsOnly.Length == 11 && digitsOnly.StartsWith("0"))
+        {
+            digitsOnly = digitsOnly.Substring(1);
+        }
+        if (digitsOnly.Length > 10)
+        {
+            digitsOnly = digitsOnly.Substring(0, 10);
+        }
+
+        RegModel.PhoneNumber = digitsOnly;
+        if (RegValidationErrorField == "PhoneNumber")
+        {
+            RegValidationErrorField = null;
+            RegisterErrorMessage = null;
+        }
+    }
+
+    private void HandleLoginPhoneInput(ChangeEventArgs e)
+    {
+        var raw = e.Value?.ToString() ?? "";
+        var digitsOnly = new string(raw.Where(char.IsDigit).ToArray());
+        if (digitsOnly.Length == 12 && digitsOnly.StartsWith("91"))
+        {
+            digitsOnly = digitsOnly.Substring(2);
+        }
+        else if (digitsOnly.Length == 11 && digitsOnly.StartsWith("0"))
+        {
+            digitsOnly = digitsOnly.Substring(1);
+        }
+        if (digitsOnly.Length > 10)
+        {
+            digitsOnly = digitsOnly.Substring(0, 10);
+        }
+
+        MobileNumber = digitsOnly;
+        if (!string.IsNullOrEmpty(MobileValidationError))
+        {
+            MobileValidationError = null;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (shouldFocusOtp)
+        {
+            shouldFocusOtp = false;
+            try
+            {
+                await Task.Delay(60);
+                await OtpInputElement.FocusAsync();
+            }
+            catch
+            {
+                try
+                {
+                    await JSRuntime.InvokeVoidAsync("eval", "setTimeout(function(){ var el = document.getElementById('cyh-login-otp'); if(el) el.focus(); }, 80);");
+                }
+                catch { }
+            }
+        }
+    }
+
+    private void HandleOtpInput(ChangeEventArgs e)
+    {
+        var raw = e.Value?.ToString() ?? "";
+        var digitsOnly = new string(raw.Where(char.IsDigit).Take(6).ToArray());
+        EnteredOtp = digitsOnly;
+        if (!string.IsNullOrEmpty(OtpValidationError))
+        {
+            OtpValidationError = null;
+        }
     }
 
     private void DismissPopup()

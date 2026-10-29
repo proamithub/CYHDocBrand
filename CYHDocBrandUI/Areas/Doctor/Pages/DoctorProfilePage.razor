@@ -1,11 +1,17 @@
 @page "/doctor/profile"
 @layout DoctorLayout
 @using CYHDocBrandRepo.Utilities
+@using CYHDocBrandSMS
+@using CYHDocBrandUI.Services
+@implements IDisposable
 @inject IDoctorRepository DoctorRepo
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IWebHostEnvironment WebHostEnvironment
+@inject IEmailService EmailService
+@inject EmailVerificationTokenService TokenService
+@inject IConfiguration Configuration
 
 <style>
     .profile-nav-pills {
@@ -295,8 +301,45 @@
                             </div>
 
                             <div class="col-12 col-md-6">
-                                <label class="form-label small fw-semibold text-white">Email Address</label>
-                                <input type="email" class="glass-input" value="@(CurrentUser?.Email ?? "doctor@cyhdoctorhub.com")" disabled style="opacity: 0.75;" />
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <label class="form-label small fw-semibold text-white mb-0">Email Address</label>
+                                    @if (IsEmailConfirmed)
+                                    {
+                                        <span class="badge bg-success bg-opacity-25 text-success border border-success px-2 py-1 d-inline-flex align-items-center gap-1" style="font-size: 0.72rem;">
+                                            <i class="bi bi-patch-check-fill"></i> Verified
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning bg-opacity-25 text-warning border border-warning px-2 py-1 d-inline-flex align-items-center gap-1" style="font-size: 0.72rem;">
+                                            <i class="bi bi-exclamation-triangle-fill"></i> Not Verified
+                                        </span>
+                                    }
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <input type="email" class="glass-input flex-grow-1" value="@(CurrentUser?.Email ?? "doctor@cyhdoctorhub.com")" disabled style="opacity: 0.85;" />
+                                    @if (!IsEmailConfirmed)
+                                    {
+                                        <button type="button" class="glass-btn-primary text-nowrap px-3 py-1 d-inline-flex align-items-center gap-1" style="font-size: 0.82rem; height: 42px;"
+                                                @onclick="SendVerificationLinkAsync" disabled="@(IsSendingVerificationEmail || EmailCooldownSeconds > 0)">
+                                            @if (IsSendingVerificationEmail)
+                                            {
+                                                <span class="spinner-border spinner-border-sm"></span>
+                                                <span>Sending...</span>
+                                            }
+                                            else if (EmailCooldownSeconds > 0)
+                                            {
+                                                <i class="bi bi-clock"></i>
+                                                <span>Resend (@(EmailCooldownSeconds)s)</span>
+                                            }
+                                            else
+                                            {
+                                                <i class="bi bi-send-fill"></i>
+                                                <span>Verify Email</span>
+                                            }
+                                        </button>
+                                    }
+                                </div>
                                 <small style="color: #94a3b8; font-size: 0.72rem;">Authentication account email (read-only)</small>
                             </div>
 
@@ -496,6 +539,10 @@
     private CYHDocBrandData.Entities.DoctorProfile Profile = new();
     private bool IsSaving = false;
     private bool IsUploadingPic = false;
+    private bool IsEmailConfirmed = false;
+    private bool IsSendingVerificationEmail = false;
+    private int EmailCooldownSeconds = 0;
+    private System.Threading.Timer? emailCooldownTimer;
     private string? SuccessMessage;
     private string? ErrorMessage;
 
@@ -555,6 +602,12 @@
                 {
                     Profile.WebsiteUrl = "https://www.clickyourhospital.com";
                 }
+            }
+
+            if (CurrentUser != null && !string.IsNullOrEmpty(CurrentUser.UserId))
+            {
+                IsEmailConfirmed = await DoctorRepo.IsEmailConfirmedAsync(CurrentUser.UserId);
+                CurrentUser.EmailConfirmed = IsEmailConfirmed;
             }
         }
         catch
@@ -799,6 +852,78 @@
     {
         popupCts?.Cancel();
         ActivePopup = null;
+    }
+
+    private async Task SendVerificationLinkAsync()
+    {
+        if (CurrentUser == null || string.IsNullOrWhiteSpace(CurrentUser.Email))
+        {
+            ShowPopup("Error", "No email address found for your profile.", "error");
+            return;
+        }
+
+        IsSendingVerificationEmail = true;
+        try
+        {
+            var token = TokenService.GenerateToken(CurrentUser.UserId, CurrentUser.Email, TimeSpan.FromHours(24));
+            var baseUrl = Configuration["EmailGateway:BaseUrl"];
+            if (string.IsNullOrWhiteSpace(baseUrl))
+            {
+                baseUrl = NavigationManager.BaseUri.TrimEnd('/');
+            }
+            else
+            {
+                baseUrl = baseUrl.TrimEnd('/');
+            }
+
+            var verificationUrl = $"{baseUrl}/api/verify-email?token={Uri.EscapeDataString(token)}";
+            var doctorName = Profile?.FullName ?? CurrentUser.FullName ?? "Doctor";
+
+            var sent = await EmailService.SendVerificationLinkEmailAsync(CurrentUser.Email, doctorName, verificationUrl);
+            if (sent)
+            {
+                StartEmailCooldown(60);
+                ShowPopup("Verification Email Sent", $"A verification link has been sent to {CurrentUser.Email}. Please check your inbox and click the verify button.", "save");
+            }
+            else
+            {
+                ShowPopup("Email Failed", "Failed to send verification email. Please check server settings or try again.", "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowPopup("Error", ex.Message, "error");
+        }
+        finally
+        {
+            IsSendingVerificationEmail = false;
+        }
+    }
+
+    private void StartEmailCooldown(int seconds)
+    {
+        emailCooldownTimer?.Dispose();
+        EmailCooldownSeconds = seconds;
+        emailCooldownTimer = new System.Threading.Timer(async _ =>
+        {
+            if (EmailCooldownSeconds > 0)
+            {
+                EmailCooldownSeconds--;
+                await InvokeAsync(StateHasChanged);
+            }
+            else
+            {
+                emailCooldownTimer?.Dispose();
+                emailCooldownTimer = null;
+            }
+        }, null, 1000, 1000);
+    }
+
+    public void Dispose()
+    {
+        popupCts?.Cancel();
+        popupCts?.Dispose();
+        emailCooldownTimer?.Dispose();
     }
 }
 
