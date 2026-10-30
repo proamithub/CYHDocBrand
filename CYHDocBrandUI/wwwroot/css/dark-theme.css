@@ -1407,3 +1407,37 @@ a {
   color: #ffffff !important;
   font-weight: 700 !important;
 }
+
+/* Theme Selector Popup in Dark Theme */
+.theme-dropdown-menu {
+  background: #141d2e !important;
+  border: 1px solid rgba(139, 92, 246, 0.4) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75) !important;
+  color: #f8fafc !important;
+}
+
+.theme-dropdown-menu div,
+.theme-dropdown-menu span,
+.theme-title {
+  color: #f8fafc !important;
+}
+
+.theme-opt-btn {
+  color: #f8fafc !important;
+  background: transparent !important;
+}
+
+.theme-opt-btn:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+}
+
+.theme-opt-btn.active-theme {
+  background: rgba(139, 92, 246, 0.15) !important;
+  border: 1px solid rgba(139, 92, 246, 0.35) !important;
+}
+
+.theme-opt-btn.active-theme .theme-title {
+  color: #c084fc !important;
+}

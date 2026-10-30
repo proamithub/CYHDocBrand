@@ -11,7 +11,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // 1. Connection String (SQL Server Stored Procedures)
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
-    ?? "Server=VRS-AMITPC\\SQLEXPRESS;Database=CYHDocBrandBD;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True;Pooling=true;Min Pool Size=5;Max Pool Size=100;Connect Timeout=15;";
+    ?? "Server=AMITLAP;Database=CYHDocBrandBD;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True;Pooling=true;Min Pool Size=5;Max Pool Size=100;Connect Timeout=15;";
 
 // 2. Authentication & Authorization (Custom Stored-Procedure Auth State)
 builder.Services.AddAuthorizationCore();

@@ -1202,3 +1202,114 @@ a {
   color: #ffffff !important;
   font-weight: 700 !important;
 }
+
+
+/* ==========================================================================
+   DROPDOWNS & HEADER POPUPS IN GLASS THEME
+   ========================================================================== */
+.dropdown-menu,
+.admin-profile-dropdown,
+.admin-notifications-dropdown {
+  background: rgba(14, 25, 48, 0.96) !important;
+  background-color: rgba(14, 25, 48, 0.96) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 1px solid rgba(245, 158, 11, 0.4) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75), 0 0 25px rgba(245, 158, 11, 0.15) !important;
+  color: #f8fafc !important;
+}
+
+.admin-profile-dropdown {
+  border: 1px solid rgba(245, 158, 11, 0.45) !important;
+}
+
+.admin-notifications-dropdown {
+  background: rgba(14, 25, 48, 0.96) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 1px solid rgba(245, 158, 11, 0.35) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75) !important;
+  color: #f8fafc !important;
+}
+
+.admin-dropdown-header {
+  background: rgba(245, 158, 11, 0.12) !important;
+  border: 1px solid rgba(245, 158, 11, 0.25) !important;
+}
+
+.admin-dropdown-header div {
+  color: #f8fafc !important;
+}
+
+.admin-dropdown-header .text-secondary {
+  color: #94a3b8 !important;
+}
+
+.dropdown-item {
+  color: #f8fafc !important;
+  font-weight: 500;
+  background: transparent !important;
+  transition: all 0.15s ease;
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+  background: rgba(245, 158, 11, 0.18) !important;
+  color: #fbbf24 !important;
+}
+
+.dropdown-item.text-danger {
+  color: #f87171 !important;
+}
+
+.dropdown-item.text-danger:hover {
+  background: rgba(239, 68, 68, 0.18) !important;
+  color: #fca5a5 !important;
+}
+
+.dropdown-divider {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  opacity: 1 !important;
+}
+
+/* Theme Selector Popup in Glass Theme */
+.theme-dropdown-menu {
+  background: rgba(14, 25, 48, 0.98) !important;
+  background-color: rgba(14, 25, 48, 0.98) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 1px solid rgba(0, 242, 254, 0.4) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75), 0 0 25px rgba(0, 242, 254, 0.15) !important;
+  color: #f8fafc !important;
+}
+
+.theme-dropdown-menu div,
+.theme-dropdown-menu span,
+.theme-title {
+  color: #f8fafc !important;
+}
+
+.theme-subtitle {
+  color: #94a3b8 !important;
+}
+
+.theme-opt-btn {
+  color: #f8fafc !important;
+  background: transparent !important;
+}
+
+.theme-opt-btn:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+}
+
+.theme-opt-btn.active-theme {
+  background: rgba(0, 242, 254, 0.15) !important;
+  border: 1px solid rgba(0, 242, 254, 0.35) !important;
+}
+
+.theme-opt-btn.active-theme .theme-title {
+  color: #00f2fe !important;
+}
